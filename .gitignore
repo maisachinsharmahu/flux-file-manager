@@ -50,3 +50,7 @@ app.*.map.json
 *.out
 *.synctex.gz
 
+# Exclude proprietary design and technical specifications documents
+docs/
+
+
