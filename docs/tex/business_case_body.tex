@@ -1,0 +1,61 @@
+\chapter{Market Opportunity and Investment Thesis}
+
+\section{Market Context}
+
+India has over 700 million active Android smartphone users --- the largest Android market on Earth by volume. Every one of these devices ships with a file manager. The category has received no significant architectural innovation in over a decade.
+
+File explorer applications command consistent top-50 Play Store rankings in the Tools category. Users open them weekly or daily. Retention in the utility category is among the highest of any app type.
+
+\section{The Architectural Moat}
+
+FLUX's competitive moat is not a feature --- it is an architectural lead that competitors cannot close without rebuilding their applications from scratch:
+
+\begin{itemize}
+  \item Google Files would need to abandon MediaStore dependency entirely.
+  \item Samsung My Files is deeply integrated with One UI's kernel --- a fundamental rebuild risks breaking OS-level integrations.
+  \item No third-party file explorer currently ships on-device vector search or kernel-level inotify synchronisation.
+\end{itemize}
+
+\section{Government of India Alignment}
+
+\begin{longtable}{@{}p{44mm}p{92mm}@{}}
+\toprule
+\textbf{Initiative} & \textbf{FLUX Alignment} \\
+\midrule
+Digital India & Improves digital experience for 700 million Android users \\
+Atmanirbhar Bharat & Indian-built alternative replacing Google Files and Samsung My Files \\
+Data Sovereignty & 100\% on-device. No file metadata, search queries, or content leaves the device. \\
+Startup India & Eligible deep-technology startup. Novel architecture is patentable IP. \\
+\bottomrule
+\end{longtable}
+
+\section{Revenue Model}
+
+\begin{longtable}{@{}p{40mm}p{28mm}p{25mm}p{45mm}@{}}
+\toprule
+\textbf{Revenue Stream} & \textbf{Timing} & \textbf{Est. ARR} & \textbf{Notes} \\
+\midrule
+Free tier & Day 1 & --- & Core browsing and search free forever \\
+FLUX Pro subscription & Month 3 & \$2/user/mo & AI search, content index, secure folder \\
+OEM licensing & Month 12 & TBD & License FLUX Index to device manufacturers \\
+Enterprise & Month 18 & \$8/user/mo & Audit trails, MDM, on-prem deployment \\
+Government contracts & Month 24 & TBD & GoI-issued device deployment \\
+\bottomrule
+\end{longtable}
+
+\section{Investment Requirement}
+
+\begin{longtable}{@{}p{46mm}p{30mm}p{64mm}@{}}
+\toprule
+\textbf{Category} & \textbf{Amount (INR)} & \textbf{Allocation} \\
+\midrule
+Engineering team (27 weeks) & 90,00,000 & 3 senior engineers, 1 ML engineer, 1 QA \\
+Infrastructure (CI/CD, testing) & 8,00,000 & GitHub Actions, Firebase Test Lab \\
+Design & 12,00,000 & UI/UX designer, prototyping tools \\
+Legal (IP protection) & 6,00,000 & Patent filing, trademark \\
+Marketing (launch) & 10,00,000 & ASO, content, influencer \\
+Contingency (15\%) & 19,50,000 & Risk buffer \\
+\midrule
+\textbf{Total} & \textbf{1,45,50,000} & 27-week runway to Play Store launch \\
+\bottomrule
+\end{longtable}

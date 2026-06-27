@@ -1,0 +1,202 @@
+\chapter{Application Flow}
+
+\section{Navigation Architecture}
+
+FLUX uses a bottom navigation bar with five primary destinations managed by GoRouter with typed routes. All navigation is declarative --- state drives navigation, not imperative push/pop calls.
+
+\section{Screen Specifications}
+
+\subsection{Home Screen}
+
+Four zones:
+\begin{enumerate}
+  \item \textbf{Storage bar:} Live animated breakdown of used/free space.
+  \item \textbf{Quick access:} Images, Videos, Audio, Documents, Downloads (MIME type bucket queries --- \bigO{1}).
+  \item \textbf{Recent files:} Last 20 accessed files from recency ring buffer --- \bigO{1}.
+  \item \textbf{Smart cards:} AI-suggested cleaning actions, large files, duplicates.
+\end{enumerate}
+
+\subsection{Browser Screen}
+
+Renders directory contents at 60\,fps with 10,000 items. Key implementation details:
+\begin{itemize}
+  \item \texttt{dirIndex.get(dirFid)} returns a sorted \texttt{IntArray} in \bigO{1}.
+  \item Items rendered via \texttt{ListView.builder} --- only visible items built.
+  \item Scroll velocity monitoring: above 3,000\,px/s, thumbnail loading pauses to prevent jank.
+  \item Multi-select: selected FIDs in a \texttt{RoaringBitmap} for \bigO{1} membership test.
+\end{itemize}
+
+\subsection{Search Screen}
+
+Three search modes, streamed in parallel:
+
+\begin{longtable}{@{}p{30mm}p{30mm}p{38mm}p{38mm}@{}}
+\toprule
+\textbf{Mode} & \textbf{Trigger} & \textbf{Index Used} & \textbf{Latency} \\
+\midrule
+Prefix autocomplete & Every keystroke (150\,ms debounce) & Name Trie & $<$0.5\,ms \\
+Keyword search & On submit & Token Index + Bitmap AND & $<$2\,ms \\
+Semantic AI search & Long query or no keyword results & HNSW Vector Graph & $<$10\,ms \\
+\bottomrule
+\end{longtable}
+
+Results stream via \texttt{EventChannel} --- the first 20 results appear within the first mode's latency. The user never waits for all three modes to finish.
+
+\subsection{Analytics Screen}
+
+Storage breakdown computed in $<$50\,ms because all data already exists in RAM:
+\begin{itemize}
+  \item Animated donut chart (11 categories).
+  \item Per-category: total size, file count, largest file.
+  \item Per-app storage via \texttt{StorageStatsManager.queryStatsForPackage()} (no root required).
+  \item Tapping an app entry opens system App Info for one-tap cache clear.
+\end{itemize}
+
+\subsection{Trash Screen}
+
+Tombstoned files with deletion timestamps. 30-day retention. Undo delete: remove FID from \texttt{deletionSet} --- \bigO{1}. Undoing 1,000 deleted files: \bigO{N/64} bitmap operation, $<$2\,ms.
+
+\section{Gesture Map}
+
+\begin{longtable}{@{}p{40mm}p{35mm}p{60mm}@{}}
+\toprule
+\textbf{Gesture} & \textbf{Surface} & \textbf{Action} \\
+\midrule
+Tap & File item & Open / preview \\
+Long press & File item & Enter multi-select mode \\
+Tap (multi-select) & File item & Toggle selection \\
+Swipe right & File item & Quick action: share \\
+Swipe left & File item & Quick action: delete (with undo snackbar) \\
+Two-finger pinch & Grid view & Toggle between grid sizes \\
+Pull down & Any list & Manual reconciliation trigger \\
+Swipe up from bottom & Any screen & Open quick search \\
+Long press + drag & File item & Start drag-to-folder \\
+\bottomrule
+\end{longtable}
+
+\chapter{Visual Design System}
+
+\section{Design Philosophy}
+
+Three governing principles:
+\begin{enumerate}
+  \item \textbf{Typography first:} Every visual decision subordinates to legibility and typographic hierarchy.
+  \item \textbf{Zero decoration:} No gradients, no drop shadows, no decorative borders. Structure communicated through spacing and type weight.
+  \item \textbf{Information density:} Power users manage thousands of files. Design accommodates high density without visual noise.
+\end{enumerate}
+
+\section{Colour System}
+
+Achromatic palette with single semantic accents:
+
+\begin{longtable}{@{}p{38mm}p{28mm}p{22mm}p{50mm}@{}}
+\toprule
+\textbf{Token} & \textbf{Light} & \textbf{Dark} & \textbf{Usage} \\
+\midrule
+\texttt{surface.base} & \texttt{\#FFFFFF} & \texttt{\#0A0A0A} & App background \\
+\texttt{surface.elevated} & \texttt{\#F5F5F5} & \texttt{\#141414} & Cards, sheets \\
+\texttt{surface.overlay} & \texttt{\#EBEBEB} & \texttt{\#1E1E1E} & Hover, selected states \\
+\texttt{ink.primary} & \texttt{\#0D0D0D} & \texttt{\#F0F0F0} & Primary text, icons \\
+\texttt{ink.secondary} & \texttt{\#4A4A4A} & \texttt{\#A0A0A0} & Secondary text, labels \\
+\texttt{ink.tertiary} & \texttt{\#888888} & \texttt{\#606060} & Hints, timestamps \\
+\texttt{border.subtle} & \texttt{\#E0E0E0} & \texttt{\#2A2A2A} & Dividers \\
+\texttt{semantic.delete} & \texttt{\#B91C1C} & \texttt{\#EF4444} & Delete confirmation only \\
+\texttt{semantic.success} & \texttt{\#166534} & \texttt{\#4ADE80} & Completion states only \\
+\bottomrule
+\end{longtable}
+
+\section{Typography Scale}
+
+\begin{longtable}{@{}p{36mm}p{22mm}p{18mm}p{18mm}p{44mm}@{}}
+\toprule
+\textbf{Token} & \textbf{Font} & \textbf{Size} & \textbf{Weight} & \textbf{Usage} \\
+\midrule
+\texttt{display.large} & Inter & 28\,sp & 700 & Screen titles \\
+\texttt{display.medium} & Inter & 22\,sp & 600 & Section headers \\
+\texttt{title.large} & Inter & 18\,sp & 600 & Card titles \\
+\texttt{title.medium} & Inter & 16\,sp & 500 & Filenames in list \\
+\texttt{body.large} & Inter & 15\,sp & 400 & Body text \\
+\texttt{body.medium} & Inter & 14\,sp & 400 & File metadata, paths \\
+\texttt{label.large} & Inter & 13\,sp & 500 & Buttons, tabs \\
+\texttt{label.small} & Inter & 11\,sp & 400 & Timestamps, byte counts \\
+\texttt{mono.code} & JetBrains Mono & 13\,sp & 400 & File paths, checksums \\
+\bottomrule
+\end{longtable}
+
+\textbf{Spacing:} All values derive from a 4\,dp base: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64\,dp.
+
+\section{Core Components}
+
+\textbf{\texttt{FluxFileListItem}:} Single file in list view. Three variants: compact (48\,dp), standard (64\,dp), comfortable (80\,dp with path preview). Always shows thumbnail, filename, size, modified date, type badge.
+
+\textbf{\texttt{FluxThumbnail}:} Renders via 4-stage pipeline. Uses \texttt{cacheWidth} to prevent memory bloat. Props: \texttt{fid}, \texttt{size}.
+
+\textbf{\texttt{FluxSearchBar}:} Persistent. Debounce 150\,ms. Mode indicator label (prefix/keyword/semantic).
+
+\textbf{\texttt{FluxStorageDonut}:} Animated donut via \texttt{Canvas.drawArc}. No external chart library.
+
+\chapter{Storage Analytics \& Junk Cleaner}
+
+\section{Storage Analytics Engine}
+
+\begin{insightbox}[title={Why FLUX Analytics is 300$\times$ Faster}]
+Google Files takes 10--15 seconds to compute storage breakdown because it scans files on demand. FLUX computes the same result in $<$50\,ms because the data already exists in RAM: \texttt{typeBuckets} contains every file ID by MIME type, and \texttt{masterIndex} has every file size. Analytics is pure arithmetic on existing indexes.
+\end{insightbox}
+
+\textbf{11 storage categories:} Images, Videos, Audio, Documents, APK/Apps, Archives, Downloads, WhatsApp Media, Junk, App Data, Other.
+
+Each category is computed from the existing index in \bigO{1} after the first \bigO{n} pass (cached, invalidated on every insert/delete).
+
+\section{Junk Cleaner Engine}
+
+\begin{longtable}{@{}p{42mm}p{38mm}p{24mm}p{30mm}@{}}
+\toprule
+\textbf{Junk Type} & \textbf{Detection Method} & \textbf{Scan Time} & \textbf{Typical Size} \\
+\midrule
+Empty folders & dirIndex empty arrays & $<$100\,ms & Negligible \\
+.tmp / .bak / .log files & typeBuckets + tokenIndex & \bigO{1} & 50--500\,MB \\
+.DS\_Store / Thumbs.db & nameTrie exact match & \bigO{k} & Negligible \\
+Duplicate files & checksumMap groups $>$ 1 & $<$1\,s & 1--20\,GB \\
+Orphaned /Android/data/ & PackageManager diff & $<$200\,ms & 100\,MB--5\,GB \\
+WhatsApp Sent/ copies & checksumMap + path filter & $<$1\,s & 500\,MB--10\,GB \\
+Large old Downloads & sizeVEB + timeVEB AND & $<$1\,ms query & User-defined \\
+Residual APKs & typeBuckets[apk] + PackageManager & $<$100\,ms & 100--500\,MB \\
+\bottomrule
+\end{longtable}
+
+\textbf{Hard safety rules:}
+\begin{enumerate}
+  \item DCIM directory is never touched by the junk cleaner under any circumstances.
+  \item Files created or modified within 24 hours are excluded.
+  \item Any file open by another process is skipped.
+  \item User must review scan results and confirm before any deletion.
+  \item All junk cleaner deletions use FLUX's tombstone system --- undo available for 30 days.
+\end{enumerate}
+
+Full scan of 1,000,000 files: $<$3 seconds. Batch deletion: $<$10\,ms logical tombstone + background physical removal.
+
+\section{Progressive Thumbnail Rendering Pipeline}
+
+\begin{insightbox}[title={Core Principle}]
+Never decode a full image for display. Maximum decode size: 256$\times$256 pixels. Format: RGB\_565 (2 bytes/pixel), not ARGB\_8888 (4 bytes/pixel). This alone halves thumbnail RAM consumption.
+\end{insightbox}
+
+\textbf{Four-Stage Pipeline:}
+\begin{enumerate}
+  \item \textbf{Micro placeholder:} 16$\times$16 blurred JPEG stored in FileRecord (40 bytes) --- shown instantly, zero I/O.
+  \item \textbf{Memory LRU cache:} 50\,MB \texttt{LruCache<Int, Bitmap>} --- \bigO{1} hit, sub-millisecond.
+  \item \textbf{Disk LRU cache:} JPEG files at \texttt{/cache/thumbs/<fidHash>.jpg} --- $\sim$15\,ms disk read.
+  \item \textbf{Generate:} \texttt{ThumbnailUtils.createImageThumbnail()} at 256$\times$256 RGB\_565 --- $\sim$40--100\,ms; written to both caches.
+\end{enumerate}
+
+\begin{lstlisting}[language=Dart, caption=Flutter Image with cacheWidth -- critical for memory]
+Image.memory(
+  thumbnailBytes,
+  cacheWidth: 256,     // Forces Flutter image cache to store at 256x256
+  cacheHeight: 256,    // Without this: stored at 3x display density (3MB/thumb)
+  fit: BoxFit.cover,
+  filterQuality: FilterQuality.low,
+)
+// With cacheWidth: 256x256 RGB_565 = 128KB per thumbnail
+// Without: 768x768 ARGB_8888 = 1.76MB per thumbnail -- 13.7x memory waste
+\end{lstlisting}

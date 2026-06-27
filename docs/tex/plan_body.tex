@@ -1,0 +1,301 @@
+\chapter{Project Structure}
+
+\begin{lstlisting}[caption=Project Directory Tree]
+flux_app/
+|-- android/app/src/main/kotlin/com/flux/
+|   |-- FluxPlugin.kt           # MethodChannel + EventChannel bridge
+|   |-- index/
+|   |   |-- FluxIndex.kt        # Main index facade
+|   |   |-- FileRecord.kt       # 64-byte FileRecord struct
+|   |   |-- StringPool.kt       # Shared string pool (mmap)
+|   |   |-- PathMap.kt          # Index 1: path HashMap
+|   |   |-- NameTrie.kt         # Index 2: Radix Trie
+|   |   |-- TokenIndex.kt       # Index 3: inverted index + Roaring
+|   |   |-- DirIndex.kt         # Index 4: directory children
+|   |   |-- TypeBuckets.kt      # Index 5: MIME type bitmaps
+|   |   |-- SizeIndex.kt        # Index 6: Van Emde Boas Tree
+|   |   |-- TimeIndex.kt        # Index 7: Van Emde Boas Tree
+|   |   |-- ChecksumMap.kt      # Index 8: content dedup
+|   |   `-- HnswGraph.kt        # Index 9: vector graph (ONNX)
+|   |-- sync/
+|   |   |-- FileObserverHub.kt
+|   |   |-- MediaStoreObserver.kt
+|   |   `-- DeltaReconciler.kt
+|   |-- thermal/ThermalGovernor.kt
+|   |-- thumbnail/ThumbnailEngine.kt
+|   |-- analytics/StorageAggregator.kt
+|   |-- cleaner/JunkScanner.kt
+|   `-- persistence/WalManager.kt
+`-- lib/
+    |-- main.dart
+    |-- app.dart
+    |-- bridge/flux_bridge.dart
+    |-- models/file_record.dart
+    |-- screens/
+    |   |-- home_screen.dart
+    |   |-- browser_screen.dart
+    |   |-- search_screen.dart
+    |   |-- analytics_screen.dart
+    |   |-- trash_screen.dart
+    |   `-- settings_screen.dart
+    |-- widgets/
+    |   |-- flux_file_list_item.dart
+    |   |-- flux_thumbnail.dart
+    |   |-- flux_search_bar.dart
+    |   `-- flux_storage_donut.dart
+    `-- providers/
+        |-- index_provider.dart
+        |-- search_provider.dart
+        `-- analytics_provider.dart
+\end{lstlisting}
+
+\section{Key Dependencies}
+
+\begin{lstlisting}[caption=Android dependencies (build.gradle)]
+implementation 'org.roaringbitmap:RoaringBitmap:0.9.49'
+implementation 'net.openhft:zero-allocation-hashing:0.16'
+implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.17.0'
+implementation 'androidx.work:work-runtime-ktx:2.9.0'
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Flutter dependencies (pubspec.yaml)]
+flutter_riverpod: ^2.5.1
+go_router: ^13.2.0
+path_provider: ^2.1.3
+permission_handler: ^11.3.1
+shared_preferences: ^2.2.3
+flutter_animate: ^4.5.0
+\end{lstlisting}
+
+\chapter{27-Week Implementation Plan}
+
+\section{Phase 1 --- Foundation (Weeks 1--4)}
+
+\textbf{Goal:} FileRecord struct, WAL, PathMap, DirIndex, FileObserverHub, Flutter shell.
+
+\begin{longtable}{@{}p{14mm}p{126mm}@{}}
+\toprule
+\textbf{Week} & \textbf{Deliverables} \\
+\midrule
+1 & Project setup, Gradle config, Flutter plugin skeleton, MethodChannel hello-world \\
+2 & FileRecord (64B), StringPool, MmapStore, WAL write + read \\
+3 & PathMap (HashMap + xxHash64), DirIndex (HashMap + IntArray), unit tests \\
+4 & FileObserverHub (Layer 1), initial BFS directory scan, insert to PathMap + DirIndex \\
+\midrule
+\textbf{Gate 1} & Browse any folder from Flutter. No crashes. \\
+\bottomrule
+\end{longtable}
+
+\section{Phase 2 --- Core Index (Weeks 5--10)}
+
+\textbf{Goal:} All 9 indexes complete. Deletion BitSet. Search working.
+
+\begin{longtable}{@{}p{14mm}p{126mm}@{}}
+\toprule
+\textbf{Week} & \textbf{Deliverables} \\
+\midrule
+5 & NameTrie (Radix Trie), TokenIndex (inverted index + RoaringBitmap) \\
+6 & TypeBuckets, SizeIndex (VEB), TimeIndex (VEB) \\
+7 & ChecksumMap, deletion BitSet, logical delete working end-to-end \\
+8 & Tokeniser + content extractor (PDF, DOCX, TXT first 500 chars) \\
+9 & FLUX search query router (prefix then keyword then semantic fallback) \\
+10 & Full benchmark suite: all operations measured against targets \\
+\midrule
+\textbf{Gate 2} & Search 1\,M synthetic files $<$2\,ms. Delete 1,000 files $<$3\,s. \\
+\bottomrule
+\end{longtable}
+
+\section{Phase 3 --- Flutter UI (Weeks 11--16)}
+
+\textbf{Goal:} All screens built. Thumbnail system. Full navigation.
+
+\begin{longtable}{@{}p{14mm}p{126mm}@{}}
+\toprule
+\textbf{Week} & \textbf{Deliverables} \\
+\midrule
+11 & Design system tokens, ThemeData, typography scale, FluxFileListItem \\
+12 & HomeScreen, BrowserScreen (60\,fps verified on 10k items) \\
+13 & SearchScreen (3 modes, debounce, EventChannel streaming results) \\
+14 & ThumbnailEngine (4-stage pipeline), FluxThumbnail widget \\
+15 & AnalyticsScreen, StorageAggregator, FluxStorageDonut \\
+16 & TrashScreen, undo delete, 30-day retention; SettingsScreen \\
+\midrule
+\textbf{Gate 3} & All screens navigable. 60\,fps on benchmark device. \\
+\bottomrule
+\end{longtable}
+
+\section{Phase 4 --- AI + Sync (Weeks 17--20)}
+
+\textbf{Goal:} HNSW vector index. MiniLM-L6 on-device embedding. Full 4-layer sync.
+
+\begin{longtable}{@{}p{14mm}p{126mm}@{}}
+\toprule
+\textbf{Week} & \textbf{Deliverables} \\
+\midrule
+17 & ONNX Runtime integration, MiniLM-L6 embedding pipeline \\
+18 & HnswGraph (Index 9): insert, search, delete \\
+19 & MediaStoreObserver (Layer 2), DeltaReconciler (Layer 4) \\
+20 & Thermal governor integrated; charging-only HNSW embedding \\
+\midrule
+\textbf{Gate 4} & Semantic search working. Cross-app deletion sync verified. \\
+\bottomrule
+\end{longtable}
+
+\section{Phase 5 --- Junk Cleaner + Analytics (Weeks 21--24)}
+
+\begin{longtable}{@{}p{14mm}p{126mm}@{}}
+\toprule
+\textbf{Week} & \textbf{Deliverables} \\
+\midrule
+21 & JunkScanner: empty folders, tmp/bak, DS\_Store, orphaned /Android/data/ \\
+22 & JunkScanner: duplicates (checksumMap), large old downloads (VEB AND) \\
+23 & Per-app storage via StorageStatsManager; deep-link to App Info \\
+24 & Review + safety rules enforcement; Scan to Review to Clean UI \\
+\midrule
+\textbf{Gate 5} & Junk scan of 1\,M files $<$3\,s. Safety rules verified. \\
+\bottomrule
+\end{longtable}
+
+\section{Phase 6 --- Production Hardening (Weeks 25--27)}
+
+\begin{longtable}{@{}p{14mm}p{126mm}@{}}
+\toprule
+\textbf{Week} & \textbf{Deliverables} \\
+\midrule
+25 & ANR audit (all bridge calls off main thread), OOM testing on low-RAM devices \\
+26 & Battery whitelist, WorkManager chain, crash reporting, analytics \\
+27 & Play Store listing, privacy policy, MANAGE\_EXTERNAL\_STORAGE justification \\
+\midrule
+\textbf{Gate 6} & Zero ANRs in 48\,h stress test. Play Store submission accepted. \\
+\bottomrule
+\end{longtable}
+
+\chapter{Sprint Tracker}
+
+\begin{longtable}{@{}p{12mm}p{28mm}p{52mm}p{42mm}@{}}
+\toprule
+\textbf{Sprint} & \textbf{Goal} & \textbf{Acceptance Criteria} & \textbf{Blocked By} \\
+\midrule
+S1 (W1--2) & Foundation setup & Flutter plugin compiles; WAL writes and reads correctly & --- \\
+S2 (W3--4) & PathMap + FileObserver & Browse real device folder; FileObserver fires on manual delete & S1 \\
+S3 (W5--6) & Search indexes & Prefix search $<$1\,ms on 100k synthetic & S2 \\
+S4 (W7--8) & Delete + content index & Delete 1,000 files $<$3\,s; PDF tokens searchable & S3 \\
+S5 (W9--10) & Query router + benchmarks & All 19 ops meeting latency targets & S4 \\
+S6 (W11--12) & Design system + Home/Browse & BrowserScreen 60\,fps on 10k items & S5 \\
+S7 (W13--14) & Search UI + Thumbnails & SearchScreen streams results; stage-4 thumbnail working & S6 \\
+S8 (W15--16) & Analytics + Trash & Donut chart $<$50\,ms; undo delete works & S7 \\
+S9 (W17--18) & HNSW + Embeddings & Semantic search correct on 50k test corpus & S8 \\
+S10 (W19--20) & Sync + Thermal & Cross-app delete detected $<$1\,s; thermal throttle verified & S9 \\
+S11 (W21--22) & Junk Scanner P1 & Duplicates, orphans detected; scan $<$3\,s on 500k files & S10 \\
+S12 (W23--24) & Junk Scanner P2 + App Stats & All 8 junk categories; per-app storage; safety rules & S11 \\
+S13 (W25--27) & Production hardening & Zero ANRs; Play Store submission accepted & S12 \\
+\bottomrule
+\end{longtable}
+
+\section{Risk Register}
+
+\begin{longtable}{@{}p{46mm}p{18mm}p{28mm}p{44mm}@{}}
+\toprule
+\textbf{Risk} & \textbf{Probability} & \textbf{Impact} & \textbf{Mitigation} \\
+\midrule
+MANAGE\_EXTERNAL\_STORAGE rejected by Play Store & Medium & Critical & Prepare justification; test MediaStore-only fallback \\
+inotify watch limit hit ($>$8k dirs) & Medium & Medium & Depth 1--2 only; Layer 4 fallback \\
+HNSW $>$600\,MB RAM on low-end devices & High & High & COLD mmap; opt-in; BERT-tiny fallback \\
+MiniLM-L6 too slow on budget SoCs & Medium & Medium & Charge-only embedding; BERT-tiny fallback \\
+ANR during initial index build & Medium & High & Foreground service with notification; incremental build \\
+\bottomrule
+\end{longtable}
+
+\chapter{AI Agent Rules and Coding Standards}
+
+This chapter defines the rules that any AI coding assistant must follow when working on the FLUX codebase.
+
+\section{The Prime Directives}
+
+\begin{warnbox}
+\textbf{PRIME DIRECTIVE 1:} Never introduce a loop over \texttt{masterIndex} on the main thread or in response to a user gesture. All \bigO{n} operations must run on a background coroutine.
+
+\textbf{PRIME DIRECTIVE 2:} Never call MediaStore ContentResolver for a search query. Use FLUX indexes exclusively.
+
+\textbf{PRIME DIRECTIVE 3:} Never cross the Flutter/Native bridge with lists of strings or file content. Cross only with FIDs (\texttt{Int} or \texttt{IntArray}).
+
+\textbf{PRIME DIRECTIVE 4:} Every new operation must have its time complexity documented in a comment before implementation begins.
+\end{warnbox}
+
+\section{Naming Conventions}
+
+\begin{longtable}{@{}p{38mm}p{30mm}p{68mm}@{}}
+\toprule
+\textbf{Artefact} & \textbf{Convention} & \textbf{Example} \\
+\midrule
+Kotlin class & PascalCase & \texttt{TokenIndex}, \texttt{ThermalGovernor} \\
+Kotlin function & camelCase & \texttt{logicalDelete()}, \texttt{prefixSearch()} \\
+Kotlin constant & SCREAMING\_SNAKE & \texttt{MAX\_WATCH\_DEPTH}, \texttt{FLAG\_DELETED} \\
+Dart class & PascalCase & \texttt{BrowserScreen}, \texttt{FluxThumbnail} \\
+Dart function & camelCase & \texttt{buildFileItem()}, \texttt{onQueryChanged()} \\
+Dart provider & camelCase + Provider & \texttt{searchProvider}, \texttt{analyticsProvider} \\
+MethodChannel method & camelCase & \texttt{lookupByFid}, \texttt{prefixSearch} \\
+WAL op code & PREFIX\_NAME & \texttt{WAL\_INSERT}, \texttt{WAL\_DELETE} \\
+\bottomrule
+\end{longtable}
+
+\section{Forbidden Patterns}
+
+\begin{enumerate}
+  \item \textbf{No \texttt{Thread.sleep()} in production code.} Use \texttt{delay()} in coroutines.
+  \item \textbf{No \texttt{ArrayList} for FID collections.} Use \texttt{IntArray} or \texttt{RoaringBitmap}.
+  \item \textbf{No \texttt{String} keys in inner-loop HashMaps.} Use \texttt{Long} xxHash64 keys.
+  \item \textbf{No \texttt{Bitmap.createScaledBitmap()}.} Use \texttt{ThumbnailUtils} with explicit size.
+  \item \textbf{No uncaught exceptions from the Kotlin bridge.} All bridge methods must catch and call \texttt{result.error()}.
+  \item \textbf{No synchronous file I/O on the main thread.} All file operations in \texttt{withContext(Dispatchers.IO)}.
+  \item \textbf{No deletion without WAL entry.} Every deletion writes a WAL record before physical removal.
+  \item \textbf{No MediaStore \texttt{LIKE} queries.} This pattern is permanently banned in FLUX.
+  \item \textbf{No Image widget without \texttt{cacheWidth}.} Always set to 256 for thumbnails.
+\end{enumerate}
+
+\section{Required Patterns}
+
+\begin{enumerate}
+  \item \textbf{Complexity comment:} Every index function begins with \texttt{// Complexity: O(...) using [index name]}.
+  \item \textbf{Deletion filter:} Every function returning FID collections must \texttt{andNot(deletionSet)} before returning.
+  \item \textbf{Thermal check:} Any loop processing $>$100 files must check \texttt{thermalGovernor.currentState()}.
+  \item \textbf{Null FID handling:} \texttt{-1} means not found. Never return 0 (reserved sentinel).
+  \item \textbf{WAL before delete:} Physical deletion always follows WAL flush.
+  \item \textbf{Bridge size limit:} No single MethodChannel response exceeds 1,000 FIDs. Use EventChannel for larger results.
+\end{enumerate}
+
+\section{Review Checklist}
+
+Before any pull request is merged, the AI agent must verify:
+\begin{itemize}
+  \item[$\square$] All new public functions have complexity documented in a comment.
+  \item[$\square$] No forbidden patterns present (automated linter check passes).
+  \item[$\square$] Unit tests cover: empty input, 1 file, 100 files, 1,000,000 synthetic files.
+  \item[$\square$] Benchmark test added for any function touching indexes.
+  \item[$\square$] No \texttt{LIKE} queries introduced anywhere in the codebase.
+  \item[$\square$] \texttt{deletionSet} filter applied to all query return values.
+  \item[$\square$] Thermal governor checked in any new background batch worker.
+  \item[$\square$] Bridge method has error handler.
+  \item[$\square$] WAL entry written before any physical file mutation.
+  \item[$\square$] All file I/O uses \texttt{Dispatchers.IO} coroutine context.
+  \item[$\square$] All Image widgets have \texttt{cacheWidth} set.
+\end{itemize}
+
+\section{Test Coverage Requirements}
+
+\begin{longtable}{@{}p{38mm}p{22mm}p{80mm}@{}}
+\toprule
+\textbf{Module} & \textbf{Min Coverage} & \textbf{Required Test Cases} \\
+\midrule
+PathMap & 95\% & Lookup hit, miss, collision, delete, rename \\
+NameTrie & 90\% & Prefix hit, no match, CamelCase split, empty query \\
+TokenIndex & 90\% & Single keyword, AND, OR, NOT, empty bitmap \\
+DirIndex & 90\% & Empty dir, 1 child, 10k children, delete child \\
+TypeBuckets & 85\% & All 11 categories, unknown MIME \\
+ChecksumMap & 90\% & No dupe, exact dupe, near-dupe (different size) \\
+HnswGraph & 80\% & Recall $\geq$95\% on 100k synthetic vectors \\
+FileObserverHub & 85\% & CREATE, DELETE, MOVED, new dir, watch limit hit \\
+ThermalGovernor & 80\% & All 4 states, API$<$29 fallback \\
+WAL & 95\% & Write, read-back, crash recovery, corruption detection \\
+\bottomrule
+\end{longtable}

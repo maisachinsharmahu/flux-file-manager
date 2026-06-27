@@ -1,0 +1,92 @@
+\documentclass[11pt, a4paper, openright]{report}
+\input{tex/preamble}
+
+\begin{document}
+\color{ink}
+
+%% ─── COVER PAGE ───────────────────────────────────────────────────────────────
+\begin{titlepage}
+\newgeometry{top=40mm, bottom=30mm, left=38mm, right=38mm}
+\thispagestyle{empty}
+
+\vspace*{10mm}
+{\fontsize{9}{11}\selectfont\textcolor{light}{\MakeUppercase{Government of India --- Technology Investment Proposal}}}
+
+\vspace{20mm}
+{\fontsize{44}{48}\selectfont\bfseries\color{ink}FLUX}
+
+\vspace{4mm}
+{\fontsize{18}{22}\selectfont\color{ink}File Lookup \& Unified eXperience Index}
+
+\vspace{6mm}
+\textcolor{rule}{\rule{\linewidth}{1.2pt}}
+\vspace{6mm}
+
+{\fontsize{13}{17}\selectfont\color{mid}
+  A Complete Technical White Paper for the World's First\\[2pt]
+  \textbf{Sub-Millisecond, AI-Powered, Thermally-Safe}\\[2pt]
+  Native Android File Explorer
+}
+
+\vspace{16mm}
+\textcolor{rule}{\rule{\linewidth}{0.4pt}}
+\vspace{10mm}
+
+\begin{tabular}{@{}p{55mm}p{80mm}@{}}
+  \small\textcolor{light}{Classification} & \small Confidential --- Investment Prospectus \\[4pt]
+  \small\textcolor{light}{Version}        & \small 2.0 --- Unified Master Document \\[4pt]
+  \small\textcolor{light}{Year}           & \small 2025 \\[4pt]
+  \small\textcolor{light}{Audience}       & \small Government of India, Technology Investors \\[4pt]
+  \small\textcolor{light}{Document Scope} & \small PRD, TRD, App Flow, Design, Schema, \\
+                                           & \small Implementation, Tracker, AI Agent Rules \\
+\end{tabular}
+
+\vspace{16mm}
+\textcolor{rule}{\rule{\linewidth}{0.4pt}}
+\vspace{10mm}
+
+{\small\textcolor{light}
+This document constitutes the complete specification, architecture, and implementation guide for FLUX --- a next-generation native file explorer targeting the Android ecosystem. It is prepared for submission to the Government of India's technology investment and startup support programs. All content is original research and proprietary design.
+}
+
+\restoregeometry
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+\part{Product Definition}
+\input{tex/prd_body}
+
+\part{Technical Architecture}
+\input{tex/trd_body}
+
+\part{Application Design}
+\input{tex/design_body}
+
+\part{Implementation Plan}
+\input{tex/plan_body}
+
+\part{Business Case}
+\input{tex/business_case_body}
+
+%% ─── BACK MATTER ──────────────────────────────────────────────────────────────
+\newpage
+\thispagestyle{plain}
+\vspace*{60mm}
+
+\begin{center}
+{\Large\bfseries FLUX}\\[6pt]
+{\large File Lookup \& Unified eXperience Index}\\[16pt]
+\textcolor{rule}{\rule{80mm}{0.4pt}}\\[16pt]
+{\small\textcolor{light}
+This document is the complete technical specification for FLUX.\\[4pt]
+All architecture, algorithms, data structures, and implementation plans\\
+described herein are original work prepared for submission\\
+to the Government of India's technology investment programs.\\[16pt]
+Prepared 2025. Confidential.
+}
+\end{center}
+
+\end{document}
