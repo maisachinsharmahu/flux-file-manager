@@ -53,4 +53,15 @@ app.*.map.json
 # Exclude proprietary design and technical specifications documents
 docs/
 
+# Exclude entire Flutter project codebase and platforms from Git
+android/
+ios/
+lib/
+linux/
+macos/
+test/
+web/
+windows/
+
+
 
