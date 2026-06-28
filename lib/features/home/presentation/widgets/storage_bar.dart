@@ -14,17 +14,14 @@ class StorageBar extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final cardBgColor = isDark 
-        ? AppColors.neutral900.withValues(alpha: 0.6) 
-        : Colors.white.withValues(alpha: 0.6);
+        ? AppColors.neutral900.withValues(alpha: 0.9) 
+        : Colors.white.withValues(alpha: 0.95);
     final borderColor = isDark 
         ? Colors.white.withValues(alpha: 0.08) 
         : Colors.black.withValues(alpha: 0.05);
 
     final usedTextColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final totalTextColor = isDark ? AppColors.textSecondaryLight : AppColors.neutral400;
-
-    final legendLabelColor = isDark ? Colors.white70 : AppColors.neutral700;
-    final legendSizeColor = isDark ? Colors.white38 : AppColors.neutral400;
+    final totalTextColor = isDark ? AppColors.textSecondaryDark : AppColors.neutral400;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
@@ -34,19 +31,20 @@ class StorageBar extends ConsumerWidget {
         },
         behavior: HitTestBehavior.opaque,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24.0.r),
+          borderRadius: BorderRadius.circular(28.0.r),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
             child: Container(
-              padding: EdgeInsets.all(20.0.r),
+              padding: EdgeInsets.all(24.0.r),
               decoration: BoxDecoration(
                 color: cardBgColor,
-                borderRadius: BorderRadius.circular(24.0.r),
+                borderRadius: BorderRadius.circular(28.0.r),
                 border: Border.all(color: borderColor, width: 1.5.r),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Top Row: 48 GB of 120 GB Used + Upgrade Plan Button
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -59,16 +57,16 @@ class StorageBar extends ConsumerWidget {
                             TextSpan(
                               text: '48 GB ',
                               style: TextStyle(
-                                fontSize: 24.0.sp,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 32.0.sp,
+                                fontWeight: FontWeight.w700,
                                 color: usedTextColor,
                               ),
                             ),
                             TextSpan(
-                              text: 'used of 120 GB',
+                              text: 'of 120 GB Used',
                               style: TextStyle(
-                                fontSize: 14.0.sp,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 13.0.sp,
+                                fontWeight: FontWeight.w400,
                                 color: totalTextColor,
                               ),
                             ),
@@ -76,83 +74,81 @@ class StorageBar extends ConsumerWidget {
                         ),
                       ),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 4.0.h),
+                        padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 8.0.h),
                         decoration: BoxDecoration(
-                          color: AppColors.mintAccent.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12.0.r),
-                          border: Border.all(
-                            color: AppColors.mintAccent.withValues(alpha: 0.2),
-                            width: 1.0.r,
-                          ),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20.0.r),
                         ),
                         child: Text(
-                          '40%',
+                          'Upgrade Plan',
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 12.0.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.mintAccent,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 16.0.h),
-                  // Continuous unified storage track
-                  Container(
-                    height: 10.0.h,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(5.0.r),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 12,
-                          child: Container(
-                            color: AppColors.storageCoral, // Audio
-                          ),
-                        ),
-                        Expanded(
-                          flex: 50,
-                          child: Container(
-                            color: AppColors.storageSkyBlue, // Images
-                          ),
-                        ),
-                        Expanded(
-                          flex: 12,
-                          child: Container(
-                            color: AppColors.storageYellow, // Docs
-                          ),
-                        ),
-                        Expanded(
-                          flex: 6,
-                          child: Container(
-                            color: AppColors.storageOrange, // System
-                          ),
-                        ),
-                        // Remaining space (Free storage)
-                        Expanded(
-                          flex: 120,
-                          child: Container(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 16.0.h),
-                  // Storage categories breakdown legend
-                  Wrap(
-                    spacing: 14.0.w,
-                    runSpacing: 8.0.h,
+                  SizedBox(height: 18.0.h),
+                  // Segmented Horizontal Progress Bar (individual capsules with gaps)
+                  Row(
                     children: [
-                      _buildLegendItem('Images', '30.0 GB', AppColors.storageSkyBlue, legendLabelColor, legendSizeColor),
-                      _buildLegendItem('Audio', '7.2 GB', AppColors.storageCoral, legendLabelColor, legendSizeColor),
-                      _buildLegendItem('Docs', '7.2 GB', AppColors.storageYellow, legendLabelColor, legendSizeColor),
-                      _buildLegendItem('System', '3.6 GB', AppColors.storageOrange, legendLabelColor, legendSizeColor),
+                      Expanded(
+                        flex: 15,
+                        child: Container(
+                          height: 10.0.h,
+                          decoration: BoxDecoration(
+                            color: AppColors.storageYellow,
+                            borderRadius: BorderRadius.circular(5.0.r),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 6.0.w),
+                      Expanded(
+                        flex: 55,
+                        child: Container(
+                          height: 10.0.h,
+                          decoration: BoxDecoration(
+                            color: AppColors.mintAccent,
+                            borderRadius: BorderRadius.circular(5.0.r),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 6.0.w),
+                      Expanded(
+                        flex: 15,
+                        child: Container(
+                          height: 10.0.h,
+                          decoration: BoxDecoration(
+                            color: AppColors.storageSkyBlue,
+                            borderRadius: BorderRadius.circular(5.0.r),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 6.0.w),
+                      Expanded(
+                        flex: 5,
+                        child: Container(
+                          height: 10.0.h,
+                          decoration: BoxDecoration(
+                            color: AppColors.storageOrange,
+                            borderRadius: BorderRadius.circular(5.0.r),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24.0.h),
+                  // Bottom Row: Custom Legends (Vertical capsule indicator + Label & Size)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildLegendItem(isDark, 'Docs', '124 MB', AppColors.storageYellow),
+                      _buildLegendItem(isDark, 'Videos', '823 MB', AppColors.mintAccent),
+                      _buildLegendItem(isDark, 'Images', '312 MB', AppColors.storageSkyBlue),
+                      _buildLegendItem(isDark, 'Audio', '14 MB', AppColors.storageOrange),
                     ],
                   ),
                 ],
@@ -164,44 +160,42 @@ class StorageBar extends ConsumerWidget {
     );
   }
 
-  Widget _buildLegendItem(String label, String size, Color color, Color labelColor, Color sizeColor) {
+  Widget _buildLegendItem(bool isDark, String label, String value, Color color) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 8.0.r,
-          height: 8.0.r,
+          width: 8.0.w,
+          height: 18.0.h,
           decoration: BoxDecoration(
             color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.4),
-                blurRadius: 4.r,
-                spreadRadius: 0.5.r,
+            borderRadius: BorderRadius.circular(3.5.r),
+          ),
+        ),
+        SizedBox(width: 8.0.w),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11.0.sp,
+                fontWeight: FontWeight.w400,
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
               ),
-            ],
-          ),
-        ),
-        SizedBox(width: 6.0.w),
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 12.0.sp,
-            fontWeight: FontWeight.w500,
-            color: labelColor,
-          ),
-        ),
-        SizedBox(width: 4.0.w),
-        Text(
-          size,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 11.0.sp,
-            fontWeight: FontWeight.w400,
-            color: sizeColor,
-          ),
+            ),
+            SizedBox(height: 2.0.h),
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13.0.sp,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+              ),
+            ),
+          ],
         ),
       ],
     );
