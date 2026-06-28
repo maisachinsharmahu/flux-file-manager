@@ -7,6 +7,7 @@ import '../../../core/widgets/flux_icon.dart';
 import 'widgets/storage_bar.dart';
 import 'widgets/quick_access_grid.dart';
 import 'widgets/recents_list.dart';
+import 'widgets/smart_cards_list.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/copy_task_provider.dart';
@@ -31,6 +32,7 @@ class HomeScreen extends ConsumerWidget {
               const StorageBar(),
               const QuickAccessGrid(),
               const RecentsList(),
+              const SmartCardsList(),
               SizedBox(height: 12.0.h),
               const _DevSimulationConsole(),
             ],

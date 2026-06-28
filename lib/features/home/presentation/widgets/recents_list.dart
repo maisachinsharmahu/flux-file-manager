@@ -12,7 +12,9 @@ class RecentsList extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final headerColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final dividerColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05);
+    final dividerColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.05);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,11 +53,8 @@ class RecentsList extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: 3,
-          separatorBuilder: (context, index) => Divider(
-            color: dividerColor,
-            height: 1.0.h,
-            thickness: 1.0.r,
-          ),
+          separatorBuilder: (context, index) =>
+              Divider(color: dividerColor, height: 1.0.h, thickness: 1.0.r),
           itemBuilder: (context, index) {
             final titles = [
               'Quarterly_Report.pptx',
@@ -138,7 +137,9 @@ class _RecentItemRow extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final titleColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final subtitleColor = isDark ? AppColors.textSecondaryLight.withValues(alpha: 0.6) : AppColors.neutral400;
+    final subtitleColor = isDark
+        ? AppColors.textSecondaryLight.withValues(alpha: 0.6)
+        : AppColors.neutral400;
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 12.0.h),
@@ -157,15 +158,8 @@ class _RecentItemRow extends StatelessWidget {
             ),
             child: Center(
               child: fluxIcon != null
-                  ? FluxIcon(
-                      fluxIcon!,
-                      size: 20.0.r,
-                    )
-                  : Icon(
-                      fallbackIcon,
-                      color: iconColor,
-                      size: 20.0.r,
-                    ),
+                  ? FluxIcon(fluxIcon!, size: 20.0.r)
+                  : Icon(fallbackIcon, color: iconColor, size: 20.0.r),
             ),
           ),
           SizedBox(width: 16.0.w),
