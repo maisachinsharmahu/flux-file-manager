@@ -60,8 +60,6 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
       // Reset the animation value when the screen is not active, so it is ready to slide up next time
       _controller.reset();
     }
-
-    final selectedCategory = ref.watch(selectedAnalyticsCategoryProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -142,34 +140,21 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
       ),
     ];
 
-    // Reorder: Render the selected tab last in the children list of Stack so it is painted on top!
-    // Non-selected tabs will keep their normal stacking positions, but the selected tab rises to the front.
+    // Static back-to-front stacking order: lower folders overlap the upper ones, forming a clean tabbed deck.
+    // Photos is at the back, Videos on top of Photos, Documents on top of Videos, and Audio on top of Documents.
+    // This ensures all 4 folder tabs are always visible and positioned perfectly.
     final List<Widget> positionedWidgets = [];
     final List<double> topOffsets = [0, 52.0.h, 104.0.h, 156.0.h];
 
-    final List<Widget> backgroundTabs = [];
-    Widget? foregroundTab;
-
     for (int i = 0; i < allTabs.length; i++) {
-      final tab = allTabs[i];
-      final offset = topOffsets[i];
-      final widget = Positioned(
-        top: offset,
-        left: 0,
-        right: 0,
-        child: tab.child,
+      positionedWidgets.add(
+        Positioned(
+          top: topOffsets[i],
+          left: 0,
+          right: 0,
+          child: allTabs[i].child,
+        ),
       );
-
-      if (tab.name == selectedCategory) {
-        foregroundTab = widget;
-      } else {
-        backgroundTabs.add(widget);
-      }
-    }
-
-    positionedWidgets.addAll(backgroundTabs);
-    if (foregroundTab != null) {
-      positionedWidgets.add(foregroundTab);
     }
 
     return Scaffold(
