@@ -4,8 +4,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/widgets/flux_icon.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class QuickAccessGrid extends StatelessWidget {
+class QuickAccessGrid extends StatefulWidget {
   const QuickAccessGrid({Key? key}) : super(key: key);
+
+  @override
+  State<QuickAccessGrid> createState() => _QuickAccessGridState();
+}
+
+class _QuickAccessGridState extends State<QuickAccessGrid> {
+  int _selectedCategoryIndex = 0; // Default highlight the first folder (Images)
 
   @override
   Widget build(BuildContext context) {
@@ -46,129 +53,120 @@ class QuickAccessGrid extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(height: 8.0.h),
-        SizedBox(
-          height: 180.0.h,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 24.0.w),
-            child: Row(
-              children: [
-                const _CategoryCard(
-                  title: 'Audio',
-                  count: '12 items',
-                  fluxIcon: FluxIconType.audioColor,
-                  accentColor: AppColors.storageCoral,
-                ),
-                SizedBox(width: 16.0.w),
-                const _CategoryCard(
-                  title: 'Images',
-                  count: '9,128 items',
-                  fluxIcon: FluxIconType.imageFileColor,
-                  accentColor: AppColors.storageSkyBlue,
-                ),
-                SizedBox(width: 16.0.w),
-                const _CategoryCard(
-                  title: 'Docs',
-                  count: '135 items',
-                  fluxIcon: FluxIconType.documentColor,
-                  accentColor: AppColors.storageYellow,
-                ),
-                SizedBox(width: 24.0.w),
-              ],
-            ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
+          child: GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 16.0.w,
+            mainAxisSpacing: 16.0.h,
+            childAspectRatio: 1.35,
+            children: [
+              _buildFolderCard(0, 'Images', '9,128 Items', FluxIconType.imageFileColor, AppColors.storageSkyBlue, isDark),
+              _buildFolderCard(1, 'Videos', '823 Items', FluxIconType.videoFileColor, AppColors.mintAccent, isDark),
+              _buildFolderCard(2, 'Docs', '135 Items', FluxIconType.documentColor, AppColors.storageYellow, isDark),
+              _buildFolderCard(3, 'Audio', '12 Items', FluxIconType.audioColor, AppColors.storageCoral, isDark),
+            ],
           ),
         ),
       ],
     );
   }
-}
 
-class _CategoryCard extends StatelessWidget {
-  final String title;
-  final String count;
-  final FluxIconType fluxIcon;
-  final Color accentColor;
+  Widget _buildFolderCard(
+    int index,
+    String title,
+    String count,
+    FluxIconType fluxIcon,
+    Color accentColor,
+    bool isDark,
+  ) {
+    final isSelected = _selectedCategoryIndex == index;
 
-  const _CategoryCard({
-    Key? key,
-    required this.title,
-    required this.count,
-    required this.fluxIcon,
-    required this.accentColor,
-  }) : super(key: key);
+    final cardBgColor = isSelected
+        ? accentColor
+        : (isDark 
+            ? AppColors.neutral900.withValues(alpha: 0.6) 
+            : Colors.white.withValues(alpha: 0.6));
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isSelected
+        ? Colors.transparent
+        : (isDark 
+            ? Colors.white.withValues(alpha: 0.08) 
+            : Colors.black.withValues(alpha: 0.05));
 
-    final cardBgColor = isDark 
-        ? AppColors.neutral900.withValues(alpha: 0.6) 
-        : Colors.white.withValues(alpha: 0.6);
-    final borderColor = isDark 
-        ? Colors.white.withValues(alpha: 0.08) 
-        : Colors.black.withValues(alpha: 0.05);
-    final titleColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final subtitleColor = isDark ? AppColors.textSecondaryLight : AppColors.neutral400;
+    final titleColor = isSelected
+        ? Colors.white
+        : (isDark ? AppColors.pureWhite : AppColors.neutral900);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24.0.r),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-        child: Container(
-          width: 130.0.w,
-          height: 170.0.h,
-          decoration: BoxDecoration(
-            color: cardBgColor,
-            borderRadius: BorderRadius.circular(24.0.r),
-            border: Border.all(color: borderColor, width: 1.5.r),
-          ),
-          padding: EdgeInsets.symmetric(vertical: 20.0.h, horizontal: 16.0.w),
+    final subtitleColor = isSelected
+        ? Colors.white.withValues(alpha: 0.7)
+        : (isDark ? AppColors.textSecondaryLight : AppColors.neutral400);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedCategoryIndex = index;
+        });
+      },
+      child: CustomPaint(
+        painter: FolderCardPainter(
+          fillColor: cardBgColor,
+          borderColor: borderColor,
+          isSelected: isSelected,
+          accentColor: accentColor,
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16.0.w, 24.0.h, 16.0.w, 16.0.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48.0.w,
-                height: 48.0.h,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: accentColor.withValues(alpha: 0.25),
-                    width: 1.5.r,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accentColor.withValues(alpha: 0.15),
-                      blurRadius: 10.r,
-                      spreadRadius: 1.r,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 32.0.r,
+                    height: 32.0.r,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : accentColor.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
                     ),
-                  ],
-                ),
-                child: Center(
-                  child: FluxIcon(
-                    fluxIcon, 
-                    size: 24.0.r,
+                    child: Center(
+                      child: FluxIcon(
+                        fluxIcon,
+                        size: 16.0.r,
+                        color: isSelected ? Colors.white : accentColor,
+                      ),
+                    ),
                   ),
-                ),
+                  Icon(
+                    Icons.more_vert,
+                    size: 18.0.r,
+                    color: isSelected 
+                        ? Colors.white70 
+                        : (isDark ? Colors.white38 : Colors.black38),
+                  ),
+                ],
               ),
               const Spacer(),
               Text(
                 title,
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 15.0.sp,
+                  fontSize: 14.0.sp,
                   fontWeight: FontWeight.w700,
                   color: titleColor,
                 ),
               ),
-              SizedBox(height: 4.0.h),
+              SizedBox(height: 2.0.h),
               Text(
                 count,
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 12.0.sp,
+                  fontSize: 11.0.sp,
                   fontWeight: FontWeight.w500,
                   color: subtitleColor,
                 ),
@@ -178,5 +176,107 @@ class _CategoryCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class FolderCardPainter extends CustomPainter {
+  final Color fillColor;
+  final Color borderColor;
+  final bool isSelected;
+  final Color accentColor;
+  final double borderWidth;
+
+  FolderCardPainter({
+    required this.fillColor,
+    required this.borderColor,
+    required this.isSelected,
+    required this.accentColor,
+    this.borderWidth = 1.5,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Configurable shape parameters (adjusted for perfect proportions)
+    final r = 16.0.r; // corner radius of the main body
+    final tabH = 12.0.h; // tab height
+    final tabW = w * 0.38; // tab width
+    final slopeW = 10.0.w; // slope width of the tab transition
+    final tabR = 6.0.r; // corner radius of the tab top-left
+
+    final path = Path();
+    
+    // Start at bottom-left corner
+    path.moveTo(r, h);
+    
+    // Bottom-right corner
+    path.lineTo(w - r, h);
+    path.quadraticBezierTo(w, h, w, h - r);
+    
+    // Top-right corner (main body starts at y = tabH)
+    path.lineTo(w, tabH + r);
+    path.quadraticBezierTo(w, tabH, w - r, tabH);
+    
+    // Main body top edge up to the tab slope end
+    path.lineTo(tabW + slopeW, tabH);
+    
+    // Curve/Slope up to the tab top
+    // Cubic bezier starting at (tabW + slopeW, tabH) going up to (tabW, 0)
+    path.cubicTo(
+      tabW + slopeW * 0.4, tabH,
+      tabW + slopeW * 0.1, 0,
+      tabW, 0,
+    );
+    
+    // Tab top edge to the left
+    path.lineTo(tabR, 0);
+    
+    // Tab top-left corner
+    path.quadraticBezierTo(0, 0, 0, tabR);
+    
+    // Left edge down to the bottom-left corner
+    path.lineTo(0, h - r);
+    path.quadraticBezierTo(0, h, r, h);
+    
+    path.close();
+
+    // 1. Draw soft glow shadow if selected
+    if (isSelected) {
+      final shadowPaint = Paint()
+        ..color = accentColor.withValues(alpha: 0.25)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 12.0.r);
+      canvas.drawPath(path, shadowPaint);
+    } else {
+      final shadowPaint = Paint()
+        ..color = Colors.black.withValues(alpha: 0.02)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 6.0.r);
+      canvas.drawPath(path, shadowPaint);
+    }
+
+    // 2. Draw Folder Fill
+    final fillPaint = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, fillPaint);
+
+    // 3. Draw Folder Border (if not selected)
+    if (!isSelected) {
+      final borderPaint = Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = borderWidth
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      canvas.drawPath(path, borderPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant FolderCardPainter oldDelegate) {
+    return oldDelegate.fillColor != fillColor ||
+        oldDelegate.borderColor != borderColor ||
+        oldDelegate.isSelected != isSelected;
   }
 }
