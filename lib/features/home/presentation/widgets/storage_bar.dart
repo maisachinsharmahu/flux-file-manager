@@ -144,14 +144,14 @@ class StorageBar extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 8.0.w,
-          height: 18.0.h,
+          width: 5.0.w,
+          height: 12.0.h,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(3.5.r),
+            borderRadius: BorderRadius.circular(2.5.r),
           ),
         ),
-        SizedBox(width: 8.0.w),
+        SizedBox(width: 6.0.w),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -159,17 +159,17 @@ class StorageBar extends ConsumerWidget {
               label,
               style: TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 11.0.sp,
+                fontSize: 10.0.sp,
                 fontWeight: FontWeight.w400,
                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
               ),
             ),
-            SizedBox(height: 2.0.h),
+            SizedBox(height: 1.0.h),
             Text(
               value,
               style: TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 13.0.sp,
+                fontSize: 12.0.sp,
                 fontWeight: FontWeight.w700,
                 color: isDark ? AppColors.pureWhite : AppColors.neutral900,
               ),
