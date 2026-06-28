@@ -32,7 +32,9 @@ class QuickAccessGrid extends ConsumerWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  ref.read(activeIndexProvider.notifier).state = 3; // Navigates to Browser
+                },
                 child: Text(
                   'View All',
                   style: TextStyle(
@@ -93,7 +95,7 @@ class QuickAccessGrid extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        ref.read(activeIndexProvider.notifier).state = 1; // Navigates to Browser
+        ref.read(activeIndexProvider.notifier).state = 3; // Navigates to Browser
       },
       child: SizedBox(
         width: 140.0.w,
