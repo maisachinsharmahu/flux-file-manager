@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../navigation/providers/navigation_provider.dart';
 import 'widgets/canvas_donut_chart.dart';
 import 'widgets/category_detail_row.dart';
 import 'widgets/app_storage_row.dart';
 
-class AnalyticsScreen extends StatelessWidget {
+class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            ref.read(activeIndexProvider.notifier).state = 0; // Return to Home screen
+          },
+        ),
         title: const Text('Storage Analytics'),
       ),
       body: SingleChildScrollView(

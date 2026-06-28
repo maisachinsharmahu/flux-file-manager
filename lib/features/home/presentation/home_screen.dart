@@ -10,6 +10,7 @@ import 'widgets/recents_list.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/copy_task_provider.dart';
+import '../../navigation/providers/navigation_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -126,42 +127,47 @@ class _HomeHeader extends ConsumerWidget {
               ),
               SizedBox(width: 12.0.w),
               // Glowing Cyberpunk Profile Avatar
-              Container(
-                width: 44.0.w,
-                height: 44.0.h,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [
-                      AppColors.mintAccent,
-                      Color(0xFF059669),
+              GestureDetector(
+                onTap: () {
+                  ref.read(activeIndexProvider.notifier).state = 4; // Navigate to SettingsScreen
+                },
+                child: Container(
+                  width: 44.0.w,
+                  height: 44.0.h,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [
+                        AppColors.mintAccent,
+                        Color(0xFF059669),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.mintAccent.withValues(alpha: 0.3),
+                        blurRadius: 8.r,
+                        spreadRadius: 1.r,
+                      ),
                     ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.mintAccent.withValues(alpha: 0.3),
-                      blurRadius: 8.r,
-                      spreadRadius: 1.r,
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(2.0.r),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.neutral900,
-                    ),
-                    child: Center(
-                      child: Text(
-                        'S',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 16.0.sp,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.mintAccent,
+                  child: Padding(
+                    padding: EdgeInsets.all(2.0.r),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.neutral900,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'S',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16.0.sp,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.mintAccent,
+                          ),
                         ),
                       ),
                     ),
