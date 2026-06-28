@@ -61,13 +61,13 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
             padding: EdgeInsets.symmetric(horizontal: 24.0.w),
             child: Row(
               children: [
-                _buildFolderCard(0, 'Images', '9,128 Items', FluxIconType.icon03, AppColors.storageSkyBlue, isDark),
+                _buildFolderCard(0, 'Images', '9,128 Items', FluxIconType.imageFileColor, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(1, 'Videos', '823 Items', FluxIconType.icon04, AppColors.mintAccent, isDark),
+                _buildFolderCard(1, 'Videos', '823 Items', FluxIconType.videoFileColor, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(2, 'Docs', '135 Items', FluxIconType.icon01, AppColors.storageYellow, isDark),
+                _buildFolderCard(2, 'Docs', '135 Items', FluxIconType.documentColor, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(3, 'Audio', '12 Items', FluxIconType.icon02, AppColors.storageCoral, isDark),
+                _buildFolderCard(3, 'Audio', '12 Items', FluxIconType.audioColor, isDark),
               ],
             ),
           ),
@@ -81,30 +81,31 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
     String title,
     String count,
     FluxIconType fluxIcon,
-    Color accentColor,
     bool isDark,
   ) {
     final isSelected = _selectedCategoryIndex == index;
 
-    final cardBgColor = isSelected
-        ? accentColor
-        : (isDark 
-            ? AppColors.neutral900.withValues(alpha: 0.6) 
-            : Colors.white.withValues(alpha: 0.6));
+    // Achromatic glassmorphic colors
+    final cardBgColor = isDark 
+        ? AppColors.neutral900.withValues(alpha: 0.6) 
+        : Colors.white.withValues(alpha: 0.6);
 
+    // Selected folder has a solid visual outline border
     final borderColor = isSelected
-        ? Colors.transparent
-        : (isDark 
-            ? Colors.white.withValues(alpha: 0.08) 
-            : Colors.black.withValues(alpha: 0.05));
+        ? (isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.neutral900.withValues(alpha: 0.8))
+        : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05));
 
     final titleColor = isSelected
-        ? Colors.white
-        : (isDark ? AppColors.pureWhite : AppColors.neutral900);
+        ? (isDark ? AppColors.pureWhite : AppColors.neutral900)
+        : (isDark ? AppColors.pureWhite.withValues(alpha: 0.7) : AppColors.neutral900.withValues(alpha: 0.7));
 
-    final subtitleColor = isSelected
-        ? Colors.white.withValues(alpha: 0.7)
-        : (isDark ? AppColors.textSecondaryLight : AppColors.neutral400);
+    final subtitleColor = isDark 
+        ? AppColors.textSecondaryLight.withValues(alpha: 0.6) 
+        : AppColors.neutral400;
+
+    final iconColor = isSelected
+        ? (isDark ? Colors.white : Colors.black)
+        : (isDark ? Colors.white54 : Colors.black54);
 
     return GestureDetector(
       onTap: () {
@@ -120,7 +121,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
             fillColor: cardBgColor,
             borderColor: borderColor,
             isSelected: isSelected,
-            accentColor: accentColor,
+            isDark: isDark,
           ),
           child: Padding(
             padding: EdgeInsets.fromLTRB(14.0.w, 20.0.h, 14.0.w, 14.0.h),
@@ -130,15 +131,28 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    FluxIcon(
-                      fluxIcon,
-                      size: 28.0.r,
+                    Container(
+                      width: 28.0.r,
+                      height: 28.0.r,
+                      decoration: BoxDecoration(
+                        color: isDark 
+                            ? Colors.white.withValues(alpha: 0.06) 
+                            : Colors.black.withValues(alpha: 0.04),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: FluxIcon(
+                          fluxIcon,
+                          size: 14.0.r,
+                          color: iconColor,
+                        ),
+                      ),
                     ),
                     Icon(
                       Icons.more_vert,
                       size: 16.0.r,
                       color: isSelected 
-                          ? Colors.white70 
+                          ? (isDark ? Colors.white70 : Colors.black87) 
                           : (isDark ? Colors.white38 : Colors.black38),
                     ),
                   ],
@@ -149,7 +163,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 13.0.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                     color: titleColor,
                   ),
                 ),
@@ -176,14 +190,14 @@ class FolderCardPainter extends CustomPainter {
   final Color fillColor;
   final Color borderColor;
   final bool isSelected;
-  final Color accentColor;
+  final bool isDark;
   final double borderWidth;
 
   FolderCardPainter({
     required this.fillColor,
     required this.borderColor,
     required this.isSelected,
-    required this.accentColor,
+    required this.isDark,
     this.borderWidth = 1.5,
   });
 
@@ -192,7 +206,7 @@ class FolderCardPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // Configurable shape parameters (adjusted for perfect proportions)
+    // Shape proportions
     final r = 16.0.r; // corner radius of the main body
     final tabH = 12.0.h; // tab height
     final tabW = w * 0.38; // tab width
@@ -235,18 +249,15 @@ class FolderCardPainter extends CustomPainter {
     
     path.close();
 
-    // 1. Draw soft glow shadow if selected
-    if (isSelected) {
-      final shadowPaint = Paint()
-        ..color = accentColor.withValues(alpha: 0.25)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 12.0.r);
-      canvas.drawPath(path, shadowPaint);
-    } else {
-      final shadowPaint = Paint()
-        ..color = Colors.black.withValues(alpha: 0.02)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 6.0.r);
-      canvas.drawPath(path, shadowPaint);
-    }
+    // 1. Draw subtle shadow (slightly stronger if selected)
+    final shadowColor = isDark 
+        ? Colors.black.withValues(alpha: 0.15) 
+        : Colors.black.withValues(alpha: 0.04);
+    final shadowBlur = isSelected ? 8.0.r : 4.0.r;
+    final shadowPaint = Paint()
+      ..color = shadowColor
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, shadowBlur);
+    canvas.drawPath(path, shadowPaint);
 
     // 2. Draw Folder Fill
     final fillPaint = Paint()
@@ -254,22 +265,21 @@ class FolderCardPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     canvas.drawPath(path, fillPaint);
 
-    // 3. Draw Folder Border (if not selected)
-    if (!isSelected) {
-      final borderPaint = Paint()
-        ..color = borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = borderWidth
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round;
-      canvas.drawPath(path, borderPaint);
-    }
+    // 3. Draw Folder Border
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = isSelected ? 1.8.r : borderWidth
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, borderPaint);
   }
 
   @override
   bool shouldRepaint(covariant FolderCardPainter oldDelegate) {
     return oldDelegate.fillColor != fillColor ||
         oldDelegate.borderColor != borderColor ||
-        oldDelegate.isSelected != isSelected;
+        oldDelegate.isSelected != isSelected ||
+        oldDelegate.isDark != isDark;
   }
 }

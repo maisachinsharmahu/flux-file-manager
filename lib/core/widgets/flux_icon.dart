@@ -51,11 +51,6 @@ enum FluxIconType {
   videoFileOn,
   waze,
   yahooMail,
-  icon01,
-  icon02,
-  icon03,
-  icon04,
-  icon05,
 }
 
 class FluxIcon extends StatelessWidget {
@@ -170,33 +165,16 @@ class FluxIcon extends StatelessWidget {
         return 'assets/icons/Property 1=icons8_waze 1, Fill=on, Color=on.svg';
       case FluxIconType.yahooMail:
         return 'assets/icons/Property 1=icons8_yahoo_mail_app 1, Fill=on, Color=on.svg';
-      case FluxIconType.icon01:
-        return 'assets/icons/Property 1=Icon 01.svg';
-      case FluxIconType.icon02:
-        return 'assets/icons/Property 1=Icon 02.svg';
-      case FluxIconType.icon03:
-        return 'assets/icons/Property 1=Icon 03.svg';
-      case FluxIconType.icon04:
-        return 'assets/icons/Property 1=Icon 04.svg';
-      case FluxIconType.icon05:
-        return 'assets/icons/Property 1=Icon 05.svg';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasColorOverride = color != null &&
-        icon != FluxIconType.icon01 &&
-        icon != FluxIconType.icon02 &&
-        icon != FluxIconType.icon03 &&
-        icon != FluxIconType.icon04 &&
-        icon != FluxIconType.icon05;
-
     return SvgPicture.asset(
       _assetPath,
       width: size,
       height: size,
-      colorFilter: hasColorOverride ? ColorFilter.mode(color!, BlendMode.srcIn) : null,
+      colorFilter: color != null ? ColorFilter.mode(color!, BlendMode.srcIn) : null,
     );
   }
 }
