@@ -145,37 +145,31 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     // Reorder: Render the selected tab last in the children list of Stack so it is painted on top!
     // Non-selected tabs will keep their normal stacking positions, but the selected tab rises to the front.
     final List<Widget> positionedWidgets = [];
-
-    // We want to map static visual offsets: top positions should still be indices: 0, 1, 2, 3
-    // Photos: top: 0
-    // Videos: top: 52.h
-    // Documents: top: 104.h
-    // Audio: top: 156.h
     final List<double> topOffsets = [0, 52.0.h, 104.0.h, 156.0.h];
 
-    // Map each tab to its original visual index
-    final List<_TabWithOffset> tabsWithOffsets = [];
+    final List<Widget> backgroundTabs = [];
+    Widget? foregroundTab;
+
     for (int i = 0; i < allTabs.length; i++) {
-      tabsWithOffsets.add(
-        _TabWithOffset(
-          name: allTabs[i].name,
-          topOffset: topOffsets[i],
-          child: allTabs[i].child,
-        ),
+      final tab = allTabs[i];
+      final offset = topOffsets[i];
+      final widget = Positioned(
+        top: offset,
+        left: 0,
+        right: 0,
+        child: tab.child,
       );
+
+      if (tab.name == selectedCategory) {
+        foregroundTab = widget;
+      } else {
+        backgroundTabs.add(widget);
+      }
     }
 
-    // Sort: any tab whose name matches selectedCategory goes to the end of the list (so it paints last and overlaps others)
-    tabsWithOffsets.sort((a, b) {
-      if (a.name == selectedCategory) return 1;
-      if (b.name == selectedCategory) return -1;
-      return 0; // maintain relative layout
-    });
-
-    for (final item in tabsWithOffsets) {
-      positionedWidgets.add(
-        Positioned(top: item.topOffset, left: 0, right: 0, child: item.child),
-      );
+    positionedWidgets.addAll(backgroundTabs);
+    if (foregroundTab != null) {
+      positionedWidgets.add(foregroundTab);
     }
 
     return Scaffold(
@@ -450,17 +444,6 @@ class _TabItemData {
   final String name;
   final Widget child;
   _TabItemData({required this.name, required this.child});
-}
-
-class _TabWithOffset {
-  final String name;
-  final double topOffset;
-  final Widget child;
-  _TabWithOffset({
-    required this.name,
-    required this.topOffset,
-    required this.child,
-  });
 }
 
 // Concentric Circular Rings custom painter
