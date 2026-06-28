@@ -87,8 +87,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           color: const Color(0xFFFFD020),
           isDark: isDark,
           onTap: () {
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Photos';
+            ref.read(selectedAnalyticsCategoryProvider.notifier).state = 'Photos';
+            ref.read(selectedBrowserCategoryProvider.notifier).state = 'Photos';
             ref.read(activeIndexProvider.notifier).state = 3; // Go to browser
           },
         ),
@@ -101,8 +101,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           color: const Color(0xFFFF9010),
           isDark: isDark,
           onTap: () {
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Videos';
+            ref.read(selectedAnalyticsCategoryProvider.notifier).state = 'Videos';
+            ref.read(selectedBrowserCategoryProvider.notifier).state = 'Videos';
             ref.read(activeIndexProvider.notifier).state = 3;
           },
         ),
@@ -115,8 +115,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           color: const Color(0xFFA020F0),
           isDark: isDark,
           onTap: () {
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Documents';
+            ref.read(selectedAnalyticsCategoryProvider.notifier).state = 'Documents';
+            ref.read(selectedBrowserCategoryProvider.notifier).state = 'Documents';
             ref.read(activeIndexProvider.notifier).state = 3;
           },
         ),
@@ -129,8 +129,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           color: const Color(0xFFFF40A0),
           isDark: isDark,
           onTap: () {
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Audio';
+            ref.read(selectedAnalyticsCategoryProvider.notifier).state = 'Audio';
+            ref.read(selectedBrowserCategoryProvider.notifier).state = 'Audio';
             ref.read(activeIndexProvider.notifier).state = 3;
           },
         ),

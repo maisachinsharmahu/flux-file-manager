@@ -101,6 +101,8 @@ class FluxNavigationDrawer extends ConsumerWidget {
                             onTap: () {
                               if (itemIndex == 1) {
                                 ref.read(selectedAnalyticsCategoryProvider.notifier).state = title;
+                              } else if (itemIndex == 3) {
+                                ref.read(selectedBrowserCategoryProvider.notifier).state = null;
                               }
                               ref.read(activeIndexProvider.notifier).state = itemIndex;
                               Navigator.of(context).pop(); // Close drawer

@@ -7,3 +7,7 @@ final activeIndexProvider = StateProvider<int>((ref) {
 final selectedAnalyticsCategoryProvider = StateProvider<String>((ref) {
   return 'Photos';
 });
+
+final selectedBrowserCategoryProvider = StateProvider<String?>((ref) {
+  return null;
+});

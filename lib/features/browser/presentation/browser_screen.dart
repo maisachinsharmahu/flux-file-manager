@@ -9,6 +9,7 @@ class BrowserScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final activeCategory = ref.watch(selectedBrowserCategoryProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -18,7 +19,36 @@ class BrowserScreen extends ConsumerWidget {
     final iconColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
     final dividerColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05);
 
-    // Mock folder list matching the screenshot
+    // Mock category file lists
+    final List<Map<String, dynamic>> photosFiles = [
+      {'name': 'vacation_pic_1.jpg', 'size': '2.4 MB', 'type': 'JPEG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
+      {'name': 'screenshot_2.png', 'size': '850 KB', 'type': 'PNG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
+      {'name': 'profile_3.jpg', 'size': '1.2 MB', 'type': 'JPEG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
+      {'name': 'insta_story_4.jpeg', 'size': '3.1 MB', 'type': 'JPEG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
+      {'name': 'avatar_glowing.png', 'size': '400 KB', 'type': 'PNG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
+    ];
+
+    final List<Map<String, dynamic>> videosFiles = [
+      {'name': 'vlog_v3.mp4', 'size': '48 MB', 'type': 'MP4 Video', 'color': const Color(0xFFFF9010), 'icon': Icons.play_circle_outline},
+      {'name': 'tutorial_flutter.mov', 'size': '125 MB', 'type': 'MOV Video', 'color': const Color(0xFFFF9010), 'icon': Icons.play_circle_outline},
+      {'name': 'movie_sample.mkv', 'size': '820 MB', 'type': 'MKV Video', 'color': const Color(0xFFFF9010), 'icon': Icons.play_circle_outline},
+      {'name': 'screen_recording.mp4', 'size': '12 MB', 'type': 'MP4 Video', 'color': const Color(0xFFFF9010), 'icon': Icons.play_circle_outline},
+    ];
+
+    final List<Map<String, dynamic>> docsFiles = [
+      {'name': 'resume_sachin.pdf', 'size': '1.2 MB', 'type': 'PDF Document', 'color': const Color(0xFFA020F0), 'icon': Icons.description_outlined},
+      {'name': 'invoice_flux.docx', 'size': '240 KB', 'type': 'Word Document', 'color': const Color(0xFFA020F0), 'icon': Icons.description_outlined},
+      {'name': 'budget_june.xlsx', 'size': '670 KB', 'type': 'Excel Sheet', 'color': const Color(0xFFA020F0), 'icon': Icons.description_outlined},
+      {'name': 'project_proposal.pdf', 'size': '4.2 MB', 'type': 'PDF Document', 'color': const Color(0xFFA020F0), 'icon': Icons.description_outlined},
+    ];
+
+    final List<Map<String, dynamic>> audioFiles = [
+      {'name': 'audio_recording.wav', 'size': '15 MB', 'type': 'WAV Audio', 'color': const Color(0xFFFF40A0), 'icon': Icons.music_note_outlined},
+      {'name': 'song_remix.mp3', 'size': '8.2 MB', 'type': 'MP3 Audio', 'color': const Color(0xFFFF40A0), 'icon': Icons.music_note_outlined},
+      {'name': 'podcast_e1.m4a', 'size': '42 MB', 'type': 'M4A Audio', 'color': const Color(0xFFFF40A0), 'icon': Icons.music_note_outlined},
+    ];
+
+    // Mock folder list for root "Internal Storage"
     final List<Map<String, dynamic>> folders = [
       {'name': 'Alarms', 'items': 1, 'size': '1 KB', 'heart': false},
       {'name': 'Android', 'items': 6, 'size': '12 MB', 'heart': false},
@@ -31,6 +61,25 @@ class BrowserScreen extends ConsumerWidget {
       {'name': 'Notifications', 'items': 1, 'size': '4 KB', 'heart': false},
     ];
 
+    // Determine current display configuration
+    final String pageTitle = activeCategory ?? 'Internal Storage';
+    
+    List<Map<String, dynamic>> currentList = folders;
+    bool isFolderList = true;
+
+    if (activeCategory != null) {
+      isFolderList = false;
+      if (activeCategory == 'Photos') {
+        currentList = photosFiles;
+      } else if (activeCategory == 'Videos') {
+        currentList = videosFiles;
+      } else if (activeCategory == 'Documents') {
+        currentList = docsFiles;
+      } else if (activeCategory == 'Audio') {
+        currentList = audioFiles;
+      }
+    }
+
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
@@ -39,14 +88,21 @@ class BrowserScreen extends ConsumerWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Row: Back button, Title, Add, Search
+                // Header Row
                 Padding(
                   padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
                   child: Row(
                     children: [
                       GestureDetector(
                         onTap: () {
-                          ref.read(activeIndexProvider.notifier).state = 0; // Back to Home
+                          if (activeCategory != null) {
+                            // If viewing a category, go back to Analytics and clear category filter
+                            ref.read(selectedBrowserCategoryProvider.notifier).state = null;
+                            ref.read(activeIndexProvider.notifier).state = 1; // Back to Analytics
+                          } else {
+                            // If root folders, go back to Home
+                            ref.read(activeIndexProvider.notifier).state = 0; // Back to Home
+                          }
                         },
                         child: Container(
                           padding: EdgeInsets.all(8.0.r),
@@ -59,7 +115,7 @@ class BrowserScreen extends ConsumerWidget {
                       ),
                       SizedBox(width: 8.0.w),
                       Text(
-                        'Internal Storage',
+                        pageTitle,
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 24.0.sp,
@@ -118,84 +174,149 @@ class BrowserScreen extends ConsumerWidget {
                   ),
                 ),
                 SizedBox(height: 8.0.h),
-                // Folders ListView
+                // Dynamic Files/Folders ListView
                 Expanded(
                   child: ListView.separated(
                     padding: EdgeInsets.symmetric(horizontal: 24.0.w),
                     physics: const BouncingScrollPhysics(),
-                    itemCount: folders.length,
+                    itemCount: currentList.length,
                     separatorBuilder: (context, index) => Divider(
                       color: dividerColor,
                       height: 1.0.h,
                       thickness: 1.0.r,
                     ),
                     itemBuilder: (context, index) {
-                      final folder = folders[index];
-                      final hasHeart = folder['heart'] as bool;
-                      final name = folder['name'] as String;
-                      final items = folder['items'] as int;
-                      final size = folder['size'] as String;
+                      final item = currentList[index];
 
-                      return Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                        child: Row(
-                          children: [
-                            // Folder icon with optional heart badge in the center
-                            Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Icon(
-                                  Icons.folder,
-                                  size: 44.0.r,
-                                  color: const Color(0xFFFFB020), // Exact yellow folder color from screenshot
-                                ),
-                                if (hasHeart)
-                                  Padding(
-                                    padding: EdgeInsets.only(top: 6.0.h),
-                                    child: Icon(
-                                      Icons.favorite,
-                                      size: 11.0.r,
-                                      color: Colors.red, // Heart icon badge matching screen
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            SizedBox(width: 16.0.w),
-                            // Folder Details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                      if (isFolderList) {
+                        // Render standard folder row
+                        final hasHeart = item['heart'] as bool;
+                        final name = item['name'] as String;
+                        final itemsCount = item['items'] as int;
+                        final size = item['size'] as String;
+
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                          child: Row(
+                            children: [
+                              Stack(
+                                alignment: Alignment.center,
                                 children: [
-                                  Text(
-                                    name,
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 16.0.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: textColor,
-                                    ),
+                                  Icon(
+                                    Icons.folder,
+                                    size: 44.0.r,
+                                    color: const Color(0xFFFFB020),
                                   ),
-                                  SizedBox(height: 4.0.h),
-                                  Text(
-                                    '$items ${items == 1 ? 'item' : 'items'} • $size',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 13.0.sp,
-                                      fontWeight: FontWeight.w500,
-                                      color: subtitleColor,
+                                  if (hasHeart)
+                                    Padding(
+                                      padding: EdgeInsets.only(top: 6.0.h),
+                                      child: Icon(
+                                        Icons.favorite,
+                                        size: 11.0.r,
+                                        color: Colors.red,
+                                      ),
                                     ),
-                                  ),
                                 ],
                               ),
-                            ),
-                            Icon(
-                              Icons.more_vert,
-                              size: 20.0.r,
-                              color: isDark ? Colors.white38 : Colors.black38,
-                            ),
-                          ],
-                        ),
-                      );
+                              SizedBox(width: 16.0.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 16.0.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.0.h),
+                                    Text(
+                                      '$itemsCount ${itemsCount == 1 ? 'item' : 'items'} • $size',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 13.0.sp,
+                                        fontWeight: FontWeight.w500,
+                                        color: subtitleColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.more_vert,
+                                size: 20.0.r,
+                                color: isDark ? Colors.white38 : Colors.black38,
+                              ),
+                            ],
+                          ),
+                        );
+                      } else {
+                        // Render files list row
+                        final name = item['name'] as String;
+                        final size = item['size'] as String;
+                        final type = item['type'] as String;
+                        final color = item['color'] as Color;
+                        final icon = item['icon'] as IconData;
+
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                          child: Row(
+                            children: [
+                              // File Category Icon inside circular frame
+                              Container(
+                                width: 44.0.r,
+                                height: 44.0.r,
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    icon,
+                                    size: 22.0.r,
+                                    color: color,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 16.0.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 16.0.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.0.h),
+                                    Text(
+                                      '$size • $type',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 13.0.sp,
+                                        fontWeight: FontWeight.w500,
+                                        color: subtitleColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.more_vert,
+                                size: 20.0.r,
+                                color: isDark ? Colors.white38 : Colors.black38,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),
@@ -225,7 +346,7 @@ class BrowserScreen extends ConsumerWidget {
                 ),
                 child: Center(
                   child: Icon(
-                    Icons.fit_screen_outlined, // scanner/alignment icon matching button
+                    Icons.fit_screen_outlined,
                     size: 22.0.r,
                     color: iconColor,
                   ),
