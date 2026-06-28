@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/widgets/flux_icon.dart';
@@ -53,21 +52,24 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
             ],
           ),
         ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
-          child: GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16.0.w,
-            mainAxisSpacing: 16.0.h,
-            childAspectRatio: 1.35,
-            children: [
-              _buildFolderCard(0, 'Images', '9,128 Items', FluxIconType.imageFileColor, AppColors.storageSkyBlue, isDark),
-              _buildFolderCard(1, 'Videos', '823 Items', FluxIconType.videoFileColor, AppColors.mintAccent, isDark),
-              _buildFolderCard(2, 'Docs', '135 Items', FluxIconType.documentColor, AppColors.storageYellow, isDark),
-              _buildFolderCard(3, 'Audio', '12 Items', FluxIconType.audioColor, AppColors.storageCoral, isDark),
-            ],
+        SizedBox(height: 12.0.h),
+        SizedBox(
+          height: 120.0.h,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 24.0.w),
+            child: Row(
+              children: [
+                _buildFolderCard(0, 'Images', '9,128 Items', FluxIconType.imageFileColor, AppColors.storageSkyBlue, isDark),
+                SizedBox(width: 14.0.w),
+                _buildFolderCard(1, 'Videos', '823 Items', FluxIconType.videoFileColor, AppColors.mintAccent, isDark),
+                SizedBox(width: 14.0.w),
+                _buildFolderCard(2, 'Docs', '135 Items', FluxIconType.documentColor, AppColors.storageYellow, isDark),
+                SizedBox(width: 14.0.w),
+                _buildFolderCard(3, 'Audio', '12 Items', FluxIconType.audioColor, AppColors.storageCoral, isDark),
+              ],
+            ),
           ),
         ),
       ],
@@ -110,68 +112,72 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
           _selectedCategoryIndex = index;
         });
       },
-      child: CustomPaint(
-        painter: FolderCardPainter(
-          fillColor: cardBgColor,
-          borderColor: borderColor,
-          isSelected: isSelected,
-          accentColor: accentColor,
-        ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.0.w, 24.0.h, 16.0.w, 16.0.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 32.0.r,
-                    height: 32.0.r,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.white.withValues(alpha: 0.2)
-                          : accentColor.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: FluxIcon(
-                        fluxIcon,
-                        size: 16.0.r,
-                        color: isSelected ? Colors.white : accentColor,
+      child: SizedBox(
+        width: 140.0.w,
+        height: 105.0.h,
+        child: CustomPaint(
+          painter: FolderCardPainter(
+            fillColor: cardBgColor,
+            borderColor: borderColor,
+            isSelected: isSelected,
+            accentColor: accentColor,
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(14.0.w, 20.0.h, 14.0.w, 14.0.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 28.0.r,
+                      height: 28.0.r,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : accentColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: FluxIcon(
+                          fluxIcon,
+                          size: 14.0.r,
+                          color: isSelected ? Colors.white : accentColor,
+                        ),
                       ),
                     ),
-                  ),
-                  Icon(
-                    Icons.more_vert,
-                    size: 18.0.r,
-                    color: isSelected 
-                        ? Colors.white70 
-                        : (isDark ? Colors.white38 : Colors.black38),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              Text(
-                title,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14.0.sp,
-                  fontWeight: FontWeight.w700,
-                  color: titleColor,
+                    Icon(
+                      Icons.more_vert,
+                      size: 16.0.r,
+                      color: isSelected 
+                          ? Colors.white70 
+                          : (isDark ? Colors.white38 : Colors.black38),
+                    ),
+                  ],
                 ),
-              ),
-              SizedBox(height: 2.0.h),
-              Text(
-                count,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 11.0.sp,
-                  fontWeight: FontWeight.w500,
-                  color: subtitleColor,
+                const Spacer(),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13.0.sp,
+                    fontWeight: FontWeight.w700,
+                    color: titleColor,
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(height: 2.0.h),
+                Text(
+                  count,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10.5.sp,
+                    fontWeight: FontWeight.w500,
+                    color: subtitleColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
