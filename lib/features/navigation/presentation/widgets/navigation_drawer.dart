@@ -11,7 +11,7 @@ class FluxNavigationDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activeIndex = ref.watch(activeIndexProvider);
-    final selectedCategory = ref.watch(selectedAnalyticsCategoryProvider);
+    final browserCategory = ref.watch(selectedBrowserCategoryProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -28,10 +28,10 @@ class FluxNavigationDrawer extends ConsumerWidget {
         : Colors.black.withValues(alpha: 0.04);
 
     final List<Map<String, dynamic>> menuItems = [
-      {'index': 3, 'title': 'Internal', 'icon': Icons.storage_outlined},
-      {'index': 1, 'title': 'Photos', 'icon': Icons.image_outlined},
-      {'index': 1, 'title': 'Videos', 'icon': Icons.play_circle_outline},
-      {'index': 0, 'title': 'Recent', 'icon': Icons.access_time_rounded},
+      {'index': 3, 'title': 'Internal', 'category': null, 'icon': Icons.storage_outlined},
+      {'index': 3, 'title': 'Photos', 'category': 'Photos', 'icon': Icons.image_outlined},
+      {'index': 3, 'title': 'Videos', 'category': 'Videos', 'icon': Icons.play_circle_outline},
+      {'index': 0, 'title': 'Recent', 'category': null, 'icon': Icons.access_time_rounded},
     ];
 
     return Drawer(
@@ -85,12 +85,13 @@ class FluxNavigationDrawer extends ConsumerWidget {
                         final item = menuItems[index];
                         final itemIndex = item['index'] as int;
                         final title = item['title'] as String;
+                        final category = item['category'] as String?;
                         final icon = item['icon'] as IconData;
                         
-                        // Smart highlight check
+                        // Highlight check
                         bool isActive = false;
-                        if (itemIndex == 1) {
-                          isActive = (activeIndex == 1 && selectedCategory == title);
+                        if (itemIndex == 3) {
+                          isActive = (activeIndex == 3 && browserCategory == category);
                         } else {
                           isActive = (activeIndex == itemIndex);
                         }
@@ -99,11 +100,7 @@ class FluxNavigationDrawer extends ConsumerWidget {
                           padding: EdgeInsets.symmetric(vertical: 4.0.h),
                           child: InkWell(
                             onTap: () {
-                              if (itemIndex == 1) {
-                                ref.read(selectedAnalyticsCategoryProvider.notifier).state = title;
-                              } else if (itemIndex == 3) {
-                                ref.read(selectedBrowserCategoryProvider.notifier).state = null;
-                              }
+                              ref.read(selectedBrowserCategoryProvider.notifier).state = category;
                               ref.read(activeIndexProvider.notifier).state = itemIndex;
                               Navigator.of(context).pop(); // Close drawer
                             },
