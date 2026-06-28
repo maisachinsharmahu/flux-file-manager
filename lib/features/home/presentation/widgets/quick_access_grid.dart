@@ -61,13 +61,13 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
             padding: EdgeInsets.symmetric(horizontal: 24.0.w),
             child: Row(
               children: [
-                _buildFolderCard(0, 'Images', '9,128 Items', FluxIconType.imageFileColor, AppColors.storageSkyBlue, isDark),
+                _buildFolderCard(0, 'Images', '9,128 Items', FluxIconType.icon03, AppColors.storageSkyBlue, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(1, 'Videos', '823 Items', FluxIconType.videoFileColor, AppColors.mintAccent, isDark),
+                _buildFolderCard(1, 'Videos', '823 Items', FluxIconType.icon04, AppColors.mintAccent, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(2, 'Docs', '135 Items', FluxIconType.documentColor, AppColors.storageYellow, isDark),
+                _buildFolderCard(2, 'Docs', '135 Items', FluxIconType.icon01, AppColors.storageYellow, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(3, 'Audio', '12 Items', FluxIconType.audioColor, AppColors.storageCoral, isDark),
+                _buildFolderCard(3, 'Audio', '12 Items', FluxIconType.icon02, AppColors.storageCoral, isDark),
               ],
             ),
           ),
@@ -130,22 +130,9 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      width: 28.0.r,
-                      height: 28.0.r,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.white.withValues(alpha: 0.2)
-                            : accentColor.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: FluxIcon(
-                          fluxIcon,
-                          size: 14.0.r,
-                          color: isSelected ? Colors.white : accentColor,
-                        ),
-                      ),
+                    FluxIcon(
+                      fluxIcon,
+                      size: 28.0.r,
                     ),
                     Icon(
                       Icons.more_vert,
