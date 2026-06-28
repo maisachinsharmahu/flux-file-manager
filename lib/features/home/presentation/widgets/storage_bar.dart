@@ -44,52 +44,31 @@ class StorageBar extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Row: 48 GB of 120 GB Used + Upgrade Plan Button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      RichText(
-                        text: TextSpan(
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                          ),
-                          children: [
-                            TextSpan(
-                              text: '48 GB ',
-                              style: TextStyle(
-                                fontSize: 32.0.sp,
-                                fontWeight: FontWeight.w700,
-                                color: usedTextColor,
-                              ),
-                            ),
-                            TextSpan(
-                              text: 'of 120 GB Used',
-                              style: TextStyle(
-                                fontSize: 13.0.sp,
-                                fontWeight: FontWeight.w400,
-                                color: totalTextColor,
-                              ),
-                            ),
-                          ],
-                        ),
+                  // Top Row: 48 GB of 120 GB Used
+                  RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
                       ),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 8.0.h),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20.0.r),
-                        ),
-                        child: Text(
-                          'Upgrade Plan',
+                      children: [
+                        TextSpan(
+                          text: '48 GB ',
                           style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 12.0.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                            fontSize: 24.0.sp,
+                            fontWeight: FontWeight.w700,
+                            color: usedTextColor,
                           ),
                         ),
-                      ),
-                    ],
+                        TextSpan(
+                          text: 'of 120 GB Used',
+                          style: TextStyle(
+                            fontSize: 14.0.sp,
+                            fontWeight: FontWeight.w400,
+                            color: totalTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   SizedBox(height: 18.0.h),
                   // Segmented Horizontal Progress Bar (individual capsules with gaps)
