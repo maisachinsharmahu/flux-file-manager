@@ -16,9 +16,9 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      backgroundColor: Colors.transparent, // Let main navigation radial glow backdrop show through
-      body: SafeArea(
+    return Material(
+      color: Colors.transparent, // Let main navigation radial glow backdrop show through
+      child: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
           padding: EdgeInsets.only(bottom: 120.0.h), // Spacing to prevent overlay collisions
