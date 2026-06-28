@@ -211,34 +211,19 @@ class AnalyticsScreen extends ConsumerWidget {
               // Rendered from bottom-to-top (Pink -> Purple -> Orange -> Yellow) so that
               // upper tabs overlap the lower ones naturally and pixel-perfectly.
               SizedBox(
-                height: 230.0.h,
+                height: 260.0.h,
                 width: double.infinity,
                 child: Stack(
                   children: [
-                    // 4. Audio (Pink) - Bottom-most layer
+                    // 1. Photos (Yellow) - Backmost layer
                     Positioned(
-                      top: 120.0.h,
+                      top: 0,
                       left: 0,
                       right: 0,
                       child: _StackedFolderTab(
-                        title: 'Audio',
-                        icon: Icons.music_note,
-                        color: const Color(0xFFFF40A0),
-                        isDark: isDark,
-                        onTap: () {
-                          ref.read(activeIndexProvider.notifier).state = 3;
-                        },
-                      ),
-                    ),
-                    // 3. Documents (Purple)
-                    Positioned(
-                      top: 80.0.h,
-                      left: 0,
-                      right: 0,
-                      child: _StackedFolderTab(
-                        title: 'Documents',
-                        icon: Icons.description_outlined,
-                        color: const Color(0xFFA020F0),
+                        title: 'Photos',
+                        icon: Icons.image,
+                        color: const Color(0xFFFFD020),
                         isDark: isDark,
                         onTap: () {
                           ref.read(activeIndexProvider.notifier).state = 3;
@@ -247,7 +232,7 @@ class AnalyticsScreen extends ConsumerWidget {
                     ),
                     // 2. Videos (Orange)
                     Positioned(
-                      top: 40.0.h,
+                      top: 52.0.h,
                       left: 0,
                       right: 0,
                       child: _StackedFolderTab(
@@ -260,15 +245,30 @@ class AnalyticsScreen extends ConsumerWidget {
                         },
                       ),
                     ),
-                    // 1. Photos (Yellow) - Top-most layer
+                    // 3. Documents (Purple)
                     Positioned(
-                      top: 0,
+                      top: 104.0.h,
                       left: 0,
                       right: 0,
                       child: _StackedFolderTab(
-                        title: 'Photos',
-                        icon: Icons.image,
-                        color: const Color(0xFFFFD020),
+                        title: 'Documents',
+                        icon: Icons.description_outlined,
+                        color: const Color(0xFFA020F0),
+                        isDark: isDark,
+                        onTap: () {
+                          ref.read(activeIndexProvider.notifier).state = 3;
+                        },
+                      ),
+                    ),
+                    // 4. Audio (Pink) - Frontmost layer
+                    Positioned(
+                      top: 156.0.h,
+                      left: 0,
+                      right: 0,
+                      child: _StackedFolderTab(
+                        title: 'Audio',
+                        icon: Icons.music_note,
+                        color: const Color(0xFFFF40A0),
                         isDark: isDark,
                         onTap: () {
                           ref.read(activeIndexProvider.notifier).state = 3;
@@ -436,70 +436,65 @@ class _StackedFolderTab extends StatelessWidget {
         clipper: FolderTabClipper(),
         child: Container(
           width: double.infinity,
-          height: 90.0.h,
+          height: 100.0.h,
           color: color,
-          padding: EdgeInsets.symmetric(horizontal: 20.0.w),
-          child: Align(
-            alignment: Alignment.center,
-            child: Padding(
-              padding: EdgeInsets.only(
-                top: 14.0.h,
-              ), // Offset content down below the tab S-curve slope
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Left side Circle with icon
-                  Row(
-                    children: [
-                      Container(
-                        width: 38.0.r,
-                        height: 38.0.r,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF171717),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Icon(
-                            icon,
-                            color:
-                                color, // Icon color matches tab folder background
-                            size: 20.0.r,
-                          ),
+          child: Stack(
+            children: [
+              // Left side circle icon and title: Placed high up in the Tab area (visible region)
+              Positioned(
+                top: 6.0.h,
+                left: 20.0.w,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38.0.r,
+                      height: 38.0.r,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF171717),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Icon(
+                          icon,
+                          color: color,
+                          size: 20.0.r,
                         ),
                       ),
-                      SizedBox(width: 14.0.w),
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 16.0.sp,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(
-                            0xFF171717,
-                          ), // Contrast dark color matching mockup
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Right side arrow button
-                  Container(
-                    width: 38.0.r,
-                    height: 38.0.r,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
                     ),
-                    child: Center(
-                      child: Icon(
-                        Icons.arrow_outward,
+                    SizedBox(width: 14.0.w),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 16.0.sp,
+                        fontWeight: FontWeight.w800,
                         color: const Color(0xFF171717),
-                        size: 20.0.r,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              // Right side outward diagonal arrow: Placed lower in the body area below the tab curve
+              Positioned(
+                top: 28.0.h,
+                right: 20.0.w,
+                child: Container(
+                  width: 38.0.r,
+                  height: 38.0.r,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_outward,
+                      color: const Color(0xFF171717),
+                      size: 20.0.r,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
