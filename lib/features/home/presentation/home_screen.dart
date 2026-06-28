@@ -2,17 +2,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../core/theme/theme_provider.dart';
 import '../../../core/widgets/flux_icon.dart';
 import 'widgets/storage_bar.dart';
 import 'widgets/quick_access_grid.dart';
 import 'widgets/recents_list.dart';
 import 'widgets/smart_cards_list.dart';
-import 'widgets/flux_for_you_card.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/copy_task_provider.dart';
-import '../../navigation/providers/navigation_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -34,7 +31,6 @@ class HomeScreen extends ConsumerWidget {
               const QuickAccessGrid(),
               const RecentsList(),
               const SmartCardsList(),
-              const FluxForYouCard(),
               SizedBox(height: 12.0.h),
               const _DevSimulationConsole(),
             ],
@@ -55,9 +51,6 @@ class _HomeHeader extends ConsumerWidget {
 
     final titleColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
     final subtitleColor = isDark ? AppColors.textSecondaryLight : AppColors.neutral400;
-    final borderColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05);
-    final iconColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final btnBgColor = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(24.0.w, 16.0.h, 24.0.w, 16.0.h),
@@ -93,92 +86,54 @@ class _HomeHeader extends ConsumerWidget {
             ),
           ),
           SizedBox(width: 12.0.w),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  ref.read(themeModeProvider.notifier).toggleTheme(isDark);
-                },
-                child: Container(
-                  width: 44.0.w,
-                  height: 44.0.h,
-                  decoration: BoxDecoration(
-                    color: btnBgColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: borderColor, width: 1.0.r),
-                  ),
-                  child: Icon(
-                    isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                    color: iconColor,
-                    size: 22.0.r,
-                  ),
-                ),
-              ),
-              SizedBox(width: 8.0.w),
-              Container(
+          Builder(
+            builder: (context) => GestureDetector(
+              onTap: () {
+                Scaffold.of(context).openDrawer(); // Tapping Profile Avatar opens Sidebar Drawer!
+              },
+              child: Container(
                 width: 44.0.w,
                 height: 44.0.h,
                 decoration: BoxDecoration(
-                  color: btnBgColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: borderColor, width: 1.0.r),
-                ),
-                child: Icon(
-                  Icons.notifications_none_outlined,
-                  color: iconColor,
-                  size: 22.0.r,
-                ),
-              ),
-              SizedBox(width: 12.0.w),
-              // Glowing Cyberpunk Profile Avatar
-              GestureDetector(
-                onTap: () {
-                  ref.read(activeIndexProvider.notifier).state = 4; // Navigate to SettingsScreen
-                },
-                child: Container(
-                  width: 44.0.w,
-                  height: 44.0.h,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [
-                        AppColors.mintAccent,
-                        Color(0xFF059669),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.mintAccent.withValues(alpha: 0.3),
-                        blurRadius: 8.r,
-                        spreadRadius: 1.r,
-                      ),
+                  gradient: const LinearGradient(
+                    colors: [
+                      AppColors.mintAccent,
+                      Color(0xFF059669),
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  child: Padding(
-                    padding: EdgeInsets.all(2.0.r),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.neutral900,
-                      ),
-                      child: Center(
-                        child: Text(
-                          'S',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 16.0.sp,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.mintAccent,
-                          ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.mintAccent.withValues(alpha: 0.3),
+                      blurRadius: 8.r,
+                      spreadRadius: 1.r,
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(2.0.r),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.neutral900,
+                    ),
+                    child: Center(
+                      child: Text(
+                        'S',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 16.0.sp,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.mintAccent,
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ],
       ),

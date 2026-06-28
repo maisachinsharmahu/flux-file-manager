@@ -5,7 +5,9 @@ import '../../home/presentation/home_screen.dart';
 import '../../browser/presentation/browser_screen.dart';
 import '../../analytics/presentation/analytics_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
+import '../../trash/presentation/trash_screen.dart';
 import '../../home/presentation/widgets/copy_progress_overlay.dart';
+import 'widgets/navigation_drawer.dart';
 import '../../../core/theme/app_colors.dart';
 
 class MainNavigationShell extends ConsumerWidget {
@@ -22,6 +24,7 @@ class MainNavigationShell extends ConsumerWidget {
       SizedBox.shrink(), // Center Add placeholder
       BrowserScreen(),
       SettingsScreen(),
+      TrashScreen(), // Index 5
     ];
 
     final bgGradient = isDark
@@ -49,6 +52,7 @@ class MainNavigationShell extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         extendBody: true,
+        drawer: const FluxNavigationDrawer(),
         body: Stack(
           children: [
             IndexedStack(index: activeIndex, children: screens),
