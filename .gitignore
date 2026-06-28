@@ -56,7 +56,7 @@ docs/
 # Exclude entire Flutter project codebase and platforms from Git
 android/
 ios/
-lib/
+# lib/
 linux/
 macos/
 test/
