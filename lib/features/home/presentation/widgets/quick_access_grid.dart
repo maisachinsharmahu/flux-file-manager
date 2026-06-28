@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../core/widgets/flux_icon.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class QuickAccessGrid extends StatefulWidget {
@@ -61,13 +60,13 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
             padding: EdgeInsets.symmetric(horizontal: 24.0.w),
             child: Row(
               children: [
-                _buildFolderCard(0, 'Images', '9,128 Items', FluxIconType.imageFileColor, isDark),
+                _buildFolderCard(0, 'Images', '9,128 Items', Icons.image_outlined, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(1, 'Videos', '823 Items', FluxIconType.videoFileColor, isDark),
+                _buildFolderCard(1, 'Videos', '823 Items', Icons.play_circle_outline, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(2, 'Docs', '135 Items', FluxIconType.documentColor, isDark),
+                _buildFolderCard(2, 'Docs', '135 Items', Icons.description_outlined, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(3, 'Audio', '12 Items', FluxIconType.audioColor, isDark),
+                _buildFolderCard(3, 'Audio', '12 Items', Icons.music_note_outlined, isDark),
               ],
             ),
           ),
@@ -80,7 +79,7 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
     int index,
     String title,
     String count,
-    FluxIconType fluxIcon,
+    IconData materialIcon,
     bool isDark,
   ) {
     final isSelected = _selectedCategoryIndex == index;
@@ -90,17 +89,17 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
         ? AppColors.neutral900.withValues(alpha: 0.6) 
         : Colors.white.withValues(alpha: 0.6);
 
-    // Selected folder has a solid visual outline border
-    final borderColor = isSelected
-        ? (isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.neutral900.withValues(alpha: 0.8))
-        : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05));
+    // Uniform border for both selected and unselected (no selected border highlight)
+    final borderColor = isDark 
+        ? Colors.white.withValues(alpha: 0.08) 
+        : Colors.black.withValues(alpha: 0.05);
 
     final titleColor = isSelected
         ? (isDark ? AppColors.pureWhite : AppColors.neutral900)
-        : (isDark ? AppColors.pureWhite.withValues(alpha: 0.7) : AppColors.neutral900.withValues(alpha: 0.7));
+        : (isDark ? AppColors.pureWhite.withValues(alpha: 0.6) : AppColors.neutral900.withValues(alpha: 0.6));
 
     final subtitleColor = isDark 
-        ? AppColors.textSecondaryLight.withValues(alpha: 0.6) 
+        ? AppColors.textSecondaryLight.withValues(alpha: 0.5) 
         : AppColors.neutral400;
 
     final iconColor = isSelected
@@ -141,9 +140,9 @@ class _QuickAccessGridState extends State<QuickAccessGrid> {
                         shape: BoxShape.circle,
                       ),
                       child: Center(
-                        child: FluxIcon(
-                          fluxIcon,
-                          size: 14.0.r,
+                        child: Icon(
+                          materialIcon,
+                          size: 16.0.r,
                           color: iconColor,
                         ),
                       ),
@@ -198,7 +197,7 @@ class FolderCardPainter extends CustomPainter {
     required this.borderColor,
     required this.isSelected,
     required this.isDark,
-    this.borderWidth = 1.5,
+    this.borderWidth = 1.2, // Clean subtle border width
   });
 
   @override
@@ -253,7 +252,7 @@ class FolderCardPainter extends CustomPainter {
     final shadowColor = isDark 
         ? Colors.black.withValues(alpha: 0.15) 
         : Colors.black.withValues(alpha: 0.04);
-    final shadowBlur = isSelected ? 8.0.r : 4.0.r;
+    final shadowBlur = isSelected ? 6.0.r : 4.0.r;
     final shadowPaint = Paint()
       ..color = shadowColor
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, shadowBlur);
@@ -269,7 +268,7 @@ class FolderCardPainter extends CustomPainter {
     final borderPaint = Paint()
       ..color = borderColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = isSelected ? 1.8.r : borderWidth
+      ..strokeWidth = borderWidth
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(path, borderPaint);
