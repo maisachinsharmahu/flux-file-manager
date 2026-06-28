@@ -5,61 +5,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../navigation/providers/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class AnalyticsScreen extends ConsumerStatefulWidget {
+class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<AnalyticsScreen> createState() => _AnalyticsScreenState();
-}
-
-class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-
-    // Slide transition: Slide up from bottom (offset 0.25 on Y axis)
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 0.25),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-
-    // Fade transition: Fade in from transparent to opaque
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final activeIndex = ref.watch(activeIndexProvider);
-
-    // Safely trigger the slide-up animation after the build phase completes
-    if (activeIndex == 1) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_controller.isAnimating && _controller.value == 0.0) {
-          _controller.forward();
-        }
-      });
-    } else {
-      // Reset the animation value when the screen is not active, so it is ready to slide up next time
-      _controller.reset();
-    }
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -160,204 +110,193 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     return Scaffold(
       backgroundColor: bgColor,
       body: SafeArea(
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.symmetric(
-                horizontal: 24.0.w,
-                vertical: 16.0.h,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 16.0.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row
+              Row(
                 children: [
-                  // Header Row
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          ref.read(activeIndexProvider.notifier).state =
-                              0; // Back to Home
-                        },
-                        child: Container(
-                          padding: EdgeInsets.all(8.0.r),
-                          child: Icon(
-                            Icons.arrow_back_ios_new,
-                            size: 20.0.r,
-                            color: textColor,
-                          ),
-                        ),
+                  GestureDetector(
+                    onTap: () {
+                      ref.read(activeIndexProvider.notifier).state =
+                          0; // Back to Home
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(8.0.r),
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 20.0.r,
+                        color: textColor,
                       ),
-                      SizedBox(width: 8.0.w),
-                      Text(
-                        'My Storage',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 24.0.sp,
-                          fontWeight: FontWeight.w800,
-                          color: textColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20.0.h),
-
-                  // Concentric Donut Analytics Card
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(20.0.r),
-                    decoration: BoxDecoration(
-                      color: cardBgColor,
-                      borderRadius: BorderRadius.circular(24.0.r),
-                      border: Border.all(color: borderColor, width: 1.2.r),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                  SizedBox(width: 8.0.w),
+                  Text(
+                    'My Storage',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 24.0.sp,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20.0.h),
+
+              // Concentric Donut Analytics Card
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(20.0.r),
+                decoration: BoxDecoration(
+                  color: cardBgColor,
+                  borderRadius: BorderRadius.circular(24.0.r),
+                  border: Border.all(color: borderColor, width: 1.2.r),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Top Row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '48 GB',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 24.0.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: textColor,
-                                  ),
-                                ),
-                                SizedBox(height: 4.0.h),
-                                Text(
-                                  'of 120 GB Used',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 13.0.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: subtitleColor,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              '48 GB',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 24.0.sp,
+                                fontWeight: FontWeight.w800,
+                                color: textColor,
+                              ),
                             ),
-                            // Upgrade Button
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16.0.w,
-                                vertical: 8.0.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.neutral900,
-                                borderRadius: BorderRadius.circular(20.0.r),
-                              ),
-                              child: Text(
-                                'Upgrade Plan',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 12.0.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark ? Colors.black : Colors.white,
-                                ),
+                            SizedBox(height: 4.0.h),
+                            Text(
+                              'of 120 GB Used',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13.0.sp,
+                                fontWeight: FontWeight.w500,
+                                color: subtitleColor,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 24.0.h),
+                        // Upgrade Button
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.0.w,
+                            vertical: 8.0.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white : AppColors.neutral900,
+                            borderRadius: BorderRadius.circular(20.0.r),
+                          ),
+                          child: Text(
+                            'Upgrade Plan',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12.0.sp,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.black : Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 24.0.h),
 
-                        // Concentric Circular Progress Chart
-                        Center(
-                          child: SizedBox(
-                            width: 180.0.r,
-                            height: 180.0.r,
-                            child: CustomPaint(
-                              painter: ConcentricRingsPainter(isDark: isDark),
-                              child: Center(
-                                child: Text(
-                                  '86%',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 26.0.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: textColor,
-                                  ),
-                                ),
+                    // Concentric Circular Progress Chart
+                    Center(
+                      child: SizedBox(
+                        width: 180.0.r,
+                        height: 180.0.r,
+                        child: CustomPaint(
+                          painter: ConcentricRingsPainter(isDark: isDark),
+                          child: Center(
+                            child: Text(
+                              '86%',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 26.0.sp,
+                                fontWeight: FontWeight.w800,
+                                color: textColor,
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(height: 24.0.h),
-
-                        // Legend category details
-                        _buildLegendRow(
-                          textColor,
-                          subtitleColor,
-                          borderColor,
-                          'Images',
-                          '601 MB',
-                          '28%',
-                          const Color(0xFFFFD020),
-                        ),
-                        Divider(
-                          color: borderColor,
-                          height: 24.0.h,
-                          thickness: 1.0.r,
-                        ),
-                        _buildLegendRow(
-                          textColor,
-                          subtitleColor,
-                          borderColor,
-                          'Videos',
-                          '123 MB',
-                          '15%',
-                          const Color(0xFFFF9010),
-                        ),
-                        Divider(
-                          color: borderColor,
-                          height: 24.0.h,
-                          thickness: 1.0.r,
-                        ),
-                        _buildLegendRow(
-                          textColor,
-                          subtitleColor,
-                          borderColor,
-                          'Docs',
-                          '674 MB',
-                          '32%',
-                          const Color(0xFFA020F0),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 24.0.h),
+                    SizedBox(height: 24.0.h),
 
-                  // Categories Header
-                  Text(
-                    'Categories',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 18.0.sp,
-                      fontWeight: FontWeight.w700,
-                      color: textColor,
+                    // Legend category details
+                    _buildLegendRow(
+                      textColor,
+                      subtitleColor,
+                      borderColor,
+                      'Images',
+                      '601 MB',
+                      '28%',
+                      const Color(0xFFFFD020),
                     ),
-                  ),
-                  SizedBox(height: 16.0.h),
-
-                  // Overlapping Stack with dynamic painter index sorting
-                  SizedBox(
-                    height: 260.0.h,
-                    width: double.infinity,
-                    child: Stack(children: positionedWidgets),
-                  ),
-                  SizedBox(height: 20.0.h),
-                ],
+                    Divider(
+                      color: borderColor,
+                      height: 24.0.h,
+                      thickness: 1.0.r,
+                    ),
+                    _buildLegendRow(
+                      textColor,
+                      subtitleColor,
+                      borderColor,
+                      'Videos',
+                      '123 MB',
+                      '15%',
+                      const Color(0xFFFF9010),
+                    ),
+                    Divider(
+                      color: borderColor,
+                      height: 24.0.h,
+                      thickness: 1.0.r,
+                    ),
+                    _buildLegendRow(
+                      textColor,
+                      subtitleColor,
+                      borderColor,
+                      'Docs',
+                      '674 MB',
+                      '32%',
+                      const Color(0xFFA020F0),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              SizedBox(height: 24.0.h),
+
+              // Categories Header
+              Text(
+                'Categories',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18.0.sp,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+              ),
+              SizedBox(height: 16.0.h),
+
+              // Overlapping Stack
+              SizedBox(
+                height: 260.0.h,
+                width: double.infinity,
+                child: Stack(children: positionedWidgets),
+              ),
+              SizedBox(height: 20.0.h),
+            ],
           ),
         ),
       ),
@@ -424,7 +363,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
   }
 }
 
-// Data holder classes for dynamic reordering
+// Data holder classes
 class _TabItemData {
   final String name;
   final Widget child;
