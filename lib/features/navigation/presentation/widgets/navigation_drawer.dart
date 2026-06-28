@@ -11,6 +11,7 @@ class FluxNavigationDrawer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activeIndex = ref.watch(activeIndexProvider);
+    final selectedCategory = ref.watch(selectedAnalyticsCategoryProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -28,8 +29,8 @@ class FluxNavigationDrawer extends ConsumerWidget {
 
     final List<Map<String, dynamic>> menuItems = [
       {'index': 3, 'title': 'Internal', 'icon': Icons.storage_outlined},
-      {'index': 3, 'title': 'Photos', 'icon': Icons.image_outlined},
-      {'index': 3, 'title': 'Videos', 'icon': Icons.play_circle_outline},
+      {'index': 1, 'title': 'Photos', 'icon': Icons.image_outlined},
+      {'index': 1, 'title': 'Videos', 'icon': Icons.play_circle_outline},
       {'index': 0, 'title': 'Recent', 'icon': Icons.access_time_rounded},
     ];
 
@@ -75,7 +76,7 @@ class FluxNavigationDrawer extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  // Navigation items directly list
+                  // Navigation items list
                   Expanded(
                     child: ListView.builder(
                       padding: EdgeInsets.symmetric(horizontal: 16.0.w),
@@ -86,15 +87,21 @@ class FluxNavigationDrawer extends ConsumerWidget {
                         final title = item['title'] as String;
                         final icon = item['icon'] as IconData;
                         
-                        // Active check: If activeIndex matches itemIndex.
-                        // Since multiple items map to index 3 (Internal, Photos, Videos),
-                        // we can also track which item is active if we want, but checking itemIndex is simple.
-                        final isActive = activeIndex == itemIndex;
+                        // Smart highlight check
+                        bool isActive = false;
+                        if (itemIndex == 1) {
+                          isActive = (activeIndex == 1 && selectedCategory == title);
+                        } else {
+                          isActive = (activeIndex == itemIndex);
+                        }
 
                         return Padding(
                           padding: EdgeInsets.symmetric(vertical: 4.0.h),
                           child: InkWell(
                             onTap: () {
+                              if (itemIndex == 1) {
+                                ref.read(selectedAnalyticsCategoryProvider.notifier).state = title;
+                              }
                               ref.read(activeIndexProvider.notifier).state = itemIndex;
                               Navigator.of(context).pop(); // Close drawer
                             },
