@@ -35,6 +35,7 @@ class HomeScreen extends ConsumerWidget {
               const SmartCardsList(),
               SizedBox(height: 12.0.h),
               const _DevSimulationConsole(),
+              const _HomeScreenFooter(),
             ],
           ),
         ),
@@ -380,6 +381,66 @@ class _DevSimulationConsoleState extends State<_DevSimulationConsole> {
                 fontSize: 11.0.sp,
                 fontWeight: FontWeight.w600,
                 color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeScreenFooter extends StatelessWidget {
+  const _HomeScreenFooter({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white30 : Colors.black26;
+    final iconColor = isDark ? Colors.white24 : Colors.black12;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 36.0.h),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.all_inclusive_rounded,
+              size: 22.0.r,
+              color: iconColor,
+            ),
+            SizedBox(height: 8.0.h),
+            Text(
+              "You're all caught up! ✨",
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13.0.sp,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white54 : Colors.black54,
+                letterSpacing: 0.2,
+              ),
+            ),
+            SizedBox(height: 4.0.h),
+            Text(
+              'Crafted with precision & ❤️ for Sachin',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 10.5.sp,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+                letterSpacing: 0.4,
+              ),
+            ),
+            SizedBox(height: 2.0.h),
+            Text(
+              'FLUX v1.0.0 • All systems functional',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 9.0.sp,
+                fontWeight: FontWeight.w500,
+                color: textColor.withValues(alpha: 0.7),
+                letterSpacing: 0.3,
               ),
             ),
           ],

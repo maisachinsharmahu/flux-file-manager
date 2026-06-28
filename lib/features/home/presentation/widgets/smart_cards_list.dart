@@ -11,14 +11,16 @@ class SmartCardsList extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final headerColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final cardBgColor = isDark 
-        ? AppColors.neutral900.withValues(alpha: 0.6) 
+    final cardBgColor = isDark
+        ? AppColors.neutral900.withValues(alpha: 0.6)
         : Colors.white.withValues(alpha: 0.6);
-    final borderColor = isDark 
-        ? Colors.white.withValues(alpha: 0.08) 
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
     final titleColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final descriptionColor = isDark ? AppColors.textSecondaryLight.withValues(alpha: 0.6) : AppColors.neutral400;
+    final descriptionColor = isDark
+        ? AppColors.textSecondaryLight.withValues(alpha: 0.6)
+        : AppColors.neutral400;
 
     final List<Map<String, dynamic>> cards = [
       {
@@ -87,8 +89,8 @@ class SmartCardsList extends StatelessWidget {
                             width: 28.0.r,
                             height: 28.0.r,
                             decoration: BoxDecoration(
-                              color: isDark 
-                                  ? Colors.white.withValues(alpha: 0.06) 
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.06)
                                   : Colors.black.withValues(alpha: 0.04),
                               shape: BoxShape.circle,
                             ),
@@ -133,9 +135,14 @@ class SmartCardsList extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12.0.w, vertical: 6.0.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.0.w,
+                              vertical: 6.0.h,
+                            ),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white : AppColors.neutral900,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.neutral900,
                               borderRadius: BorderRadius.circular(12.0.r),
                             ),
                             child: Text(
