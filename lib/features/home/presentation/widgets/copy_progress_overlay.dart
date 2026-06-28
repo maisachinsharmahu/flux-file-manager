@@ -84,9 +84,9 @@ class CopyProgressOverlay extends ConsumerWidget {
     // Define dimensions based on current state mode
     double width = 180.0.w;
     double height = 36.0.h;
-    
+
     if (state.isActive) {
-      if (state.displayMode == CopyTaskDisplayMode.compact || 
+      if (state.displayMode == CopyTaskDisplayMode.compact ||
           state.displayMode == CopyTaskDisplayMode.completedCompact) {
         width = 180.0.w;
         height = 36.0.h;
@@ -133,12 +133,14 @@ class CopyProgressOverlay extends ConsumerWidget {
               ),
             ),
             padding: EdgeInsets.symmetric(
-              horizontal: (state.displayMode == CopyTaskDisplayMode.compact || 
-                           state.displayMode == CopyTaskDisplayMode.completedCompact)
+              horizontal:
+                  (state.displayMode == CopyTaskDisplayMode.compact ||
+                      state.displayMode == CopyTaskDisplayMode.completedCompact)
                   ? 16.0.w
                   : 14.0.w,
-              vertical: (state.displayMode == CopyTaskDisplayMode.compact || 
-                         state.displayMode == CopyTaskDisplayMode.completedCompact)
+              vertical:
+                  (state.displayMode == CopyTaskDisplayMode.compact ||
+                      state.displayMode == CopyTaskDisplayMode.completedCompact)
                   ? 8.0.h
                   : 12.0.h,
             ),
@@ -198,7 +200,9 @@ class CopyProgressOverlay extends ConsumerWidget {
               fontFamily: 'Inter',
               fontSize: 13.0.sp,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF10B981), // Neon green completion highlighting
+              color: const Color(
+                0xFF10B981,
+              ), // Neon green completion highlighting
             ),
           ),
         ],
@@ -216,10 +220,7 @@ class CopyProgressOverlay extends ConsumerWidget {
                 width: 38.0.w,
                 height: 38.0.h,
                 child: CustomPaint(
-                  painter: _FolderIconPainter(
-                    isDark: isDark,
-                    style: style,
-                  ),
+                  painter: _FolderIconPainter(isDark: isDark, style: style),
                 ),
               ),
               SizedBox(width: 12.0.w),
@@ -290,10 +291,7 @@ class CopyProgressOverlay extends ConsumerWidget {
           width: 38.0.w,
           height: 38.0.h,
           child: CustomPaint(
-            painter: _FolderIconPainter(
-              isDark: isDark,
-              style: style,
-            ),
+            painter: _FolderIconPainter(isDark: isDark, style: style),
           ),
         ),
         SizedBox(width: 12.0.w),
@@ -346,10 +344,7 @@ class _FolderIconPainter extends CustomPainter {
   final bool isDark;
   final _TaskStyle style;
 
-  _FolderIconPainter({
-    required this.isDark,
-    required this.style,
-  });
+  _FolderIconPainter({required this.isDark, required this.style});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -364,7 +359,10 @@ class _FolderIconPainter extends CustomPainter {
         end: Alignment.bottomRight,
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, h), Radius.circular(w * 0.28)),
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, w, h),
+        Radius.circular(w * 0.28),
+      ),
       backPaint,
     );
 
@@ -400,9 +398,21 @@ class _FolderIconPainter extends CustomPainter {
     final stripePaint = Paint()
       ..color = Colors.grey.shade300
       ..strokeWidth = 1.5;
-    canvas.drawLine(Offset(w * 0.36, h * 0.32), Offset(w * 0.64, h * 0.32), stripePaint);
-    canvas.drawLine(Offset(w * 0.36, h * 0.40), Offset(w * 0.64, h * 0.40), stripePaint);
-    canvas.drawLine(Offset(w * 0.36, h * 0.48), Offset(w * 0.54, h * 0.48), stripePaint);
+    canvas.drawLine(
+      Offset(w * 0.36, h * 0.32),
+      Offset(w * 0.64, h * 0.32),
+      stripePaint,
+    );
+    canvas.drawLine(
+      Offset(w * 0.36, h * 0.40),
+      Offset(w * 0.64, h * 0.40),
+      stripePaint,
+    );
+    canvas.drawLine(
+      Offset(w * 0.36, h * 0.48),
+      Offset(w * 0.54, h * 0.48),
+      stripePaint,
+    );
 
     // 4. Draw Front Folder Flap (Pocket cover) with task gradient
     final folderFrontPaint = Paint()

@@ -54,14 +54,14 @@ app.*.map.json
 docs/
 
 # Exclude entire Flutter project codebase and platforms from Git
-android/
-ios/
+# android/
+# ios/
 # lib/
-linux/
-macos/
-test/
-web/
-windows/
+# linux/
+# macos/
+# test/
+# web/
+# windows/
 
 
 
