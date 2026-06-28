@@ -17,6 +17,7 @@ class MainNavigationShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeIndex = ref.watch(activeIndexProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppColors.pureBlack : AppColors.pureWhite;
 
     final List<Widget> screens = const [
       HomeScreen(),
@@ -27,38 +28,15 @@ class MainNavigationShell extends ConsumerWidget {
       TrashScreen(), // Index 5
     ];
 
-    final bgGradient = isDark
-        ? const RadialGradient(
-            center: Alignment(0.0, -1.2),
-            radius: 1.4,
-            colors: [
-              AppColors.indigoHaze,
-              AppColors.pureBlack,
-            ],
-          )
-        : const RadialGradient(
-            center: Alignment(0.0, -1.2),
-            radius: 1.4,
-            colors: [
-              AppColors.lightHaze,
-              AppColors.pureWhite,
-            ],
-          );
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: bgGradient,
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        extendBody: true,
-        drawer: const FluxNavigationDrawer(),
-        body: Stack(
-          children: [
-            IndexedStack(index: activeIndex, children: screens),
-            const CopyProgressOverlay(),
-          ],
-        ),
+    return Scaffold(
+      backgroundColor: bgColor,
+      extendBody: true,
+      drawer: const FluxNavigationDrawer(),
+      body: Stack(
+        children: [
+          IndexedStack(index: activeIndex, children: screens),
+          const CopyProgressOverlay(),
+        ],
       ),
     );
   }

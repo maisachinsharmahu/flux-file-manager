@@ -17,11 +17,14 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Material(
-      color: Colors.transparent, // Let main navigation radial glow backdrop show through
+      color: Colors
+          .transparent, // Let main navigation radial glow backdrop show through
       child: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: 120.0.h), // Spacing to prevent overlay collisions
+          padding: EdgeInsets.only(
+            bottom: 120.0.h,
+          ), // Spacing to prevent overlay collisions
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -50,7 +53,9 @@ class _HomeHeader extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final titleColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final subtitleColor = isDark ? AppColors.textSecondaryLight : AppColors.neutral400;
+    final subtitleColor = isDark
+        ? AppColors.textSecondaryLight
+        : AppColors.neutral400;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(24.0.w, 16.0.h, 24.0.w, 16.0.h),
@@ -89,7 +94,9 @@ class _HomeHeader extends ConsumerWidget {
           Builder(
             builder: (context) => GestureDetector(
               onTap: () {
-                Scaffold.of(context).openDrawer(); // Tapping Profile Avatar opens Sidebar Drawer!
+                Scaffold.of(
+                  context,
+                ).openDrawer(); // Tapping Profile Avatar opens Sidebar Drawer!
               },
               child: Container(
                 width: 44.0.w,
@@ -97,10 +104,7 @@ class _HomeHeader extends ConsumerWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
-                    colors: [
-                      AppColors.mintAccent,
-                      Color(0xFF059669),
-                    ],
+                    colors: [AppColors.mintAccent, Color(0xFF059669)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -149,9 +153,15 @@ class _HomeSearchBar extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final bgColor = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03);
-    final borderColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05);
-    final iconColor = isDark ? AppColors.textSecondaryLight : AppColors.neutral400;
+    final bgColor = isDark
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.black.withValues(alpha: 0.03);
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.05);
+    final iconColor = isDark
+        ? AppColors.textSecondaryLight
+        : AppColors.neutral400;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 8.0.h),
@@ -220,11 +230,11 @@ class _DevSimulationConsoleState extends State<_DevSimulationConsole> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final cardBgColor = isDark 
-        ? AppColors.neutral900.withValues(alpha: 0.6) 
+    final cardBgColor = isDark
+        ? AppColors.neutral900.withValues(alpha: 0.6)
         : Colors.white.withValues(alpha: 0.6);
-    final borderColor = isDark 
-        ? Colors.white.withValues(alpha: 0.08) 
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
 
     return Padding(
@@ -270,13 +280,17 @@ class _DevSimulationConsoleState extends State<_DevSimulationConsole> {
                               fontFamily: 'Inter',
                               fontSize: 12.0.sp,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+                              color: isDark
+                                  ? AppColors.pureWhite
+                                  : AppColors.neutral900,
                             ),
                           ),
                         ],
                       ),
                       Icon(
-                        _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        _isExpanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
                         size: 16.0.r,
                         color: isDark ? Colors.white60 : Colors.black54,
                       ),
@@ -292,11 +306,36 @@ class _DevSimulationConsoleState extends State<_DevSimulationConsole> {
                         runSpacing: 8.0.h,
                         alignment: WrapAlignment.start,
                         children: [
-                          _buildTaskPill(ref, 'Copy', GlobalTaskType.copy, AppColors.mintAccent),
-                          _buildTaskPill(ref, 'Delete', GlobalTaskType.delete, AppColors.errorRed),
-                          _buildTaskPill(ref, 'Move', GlobalTaskType.move, const Color(0xFF8B5CF6)),
-                          _buildTaskPill(ref, 'Archive', GlobalTaskType.archive, const Color(0xFFF59E0B)),
-                          _buildTaskPill(ref, 'Unarchive', GlobalTaskType.unarchive, const Color(0xFF14B8A6)),
+                          _buildTaskPill(
+                            ref,
+                            'Copy',
+                            GlobalTaskType.copy,
+                            AppColors.mintAccent,
+                          ),
+                          _buildTaskPill(
+                            ref,
+                            'Delete',
+                            GlobalTaskType.delete,
+                            AppColors.errorRed,
+                          ),
+                          _buildTaskPill(
+                            ref,
+                            'Move',
+                            GlobalTaskType.move,
+                            const Color(0xFF8B5CF6),
+                          ),
+                          _buildTaskPill(
+                            ref,
+                            'Archive',
+                            GlobalTaskType.archive,
+                            const Color(0xFFF59E0B),
+                          ),
+                          _buildTaskPill(
+                            ref,
+                            'Unarchive',
+                            GlobalTaskType.unarchive,
+                            const Color(0xFF14B8A6),
+                          ),
                         ],
                       );
                     },
@@ -310,7 +349,12 @@ class _DevSimulationConsoleState extends State<_DevSimulationConsole> {
     );
   }
 
-  Widget _buildTaskPill(WidgetRef ref, String label, GlobalTaskType type, Color color) {
+  Widget _buildTaskPill(
+    WidgetRef ref,
+    String label,
+    GlobalTaskType type,
+    Color color,
+  ) {
     return GestureDetector(
       onTap: () {
         ref.read(copyTaskProvider.notifier).startMockTask(type);
@@ -320,10 +364,7 @@ class _DevSimulationConsoleState extends State<_DevSimulationConsole> {
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12.0.r),
-          border: Border.all(
-            color: color.withValues(alpha: 0.2),
-            width: 1.0.r,
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.2), width: 1.0.r),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
