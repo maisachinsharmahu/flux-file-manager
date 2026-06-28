@@ -34,7 +34,7 @@ class AnalyticsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Custom Header Row with Back Button and Title
+              // Header Row
               Row(
                 children: [
                   GestureDetector(
@@ -77,7 +77,7 @@ class AnalyticsScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Card Top Row: Capacity & Upgrade button
+                    // Top Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -129,7 +129,7 @@ class AnalyticsScreen extends ConsumerWidget {
                     ),
                     SizedBox(height: 24.0.h),
 
-                    // Concentric Circular Progress Chart
+                    // Concentric Circular Progress Chart with space-dust stars
                     Center(
                       child: SizedBox(
                         width: 180.0.r,
@@ -195,7 +195,7 @@ class AnalyticsScreen extends ConsumerWidget {
               ),
               SizedBox(height: 24.0.h),
 
-              // Overlapping Curved Category Stack
+              // Categories Header
               Text(
                 'Categories',
                 style: TextStyle(
@@ -207,51 +207,75 @@ class AnalyticsScreen extends ConsumerWidget {
               ),
               SizedBox(height: 16.0.h),
 
-              // Stacking folder shapes with negative margin offset translations
-              _StackedFolderTab(
-                title: 'Photos',
-                icon: Icons.image,
-                color: const Color(0xFFFFD020),
-                isDark: isDark,
-                onTap: () {
-                  ref.read(activeIndexProvider.notifier).state =
-                      3; // Navigate to browser
-                },
-              ),
-              Transform.translate(
-                offset: Offset(0, -20.0.h),
-                child: _StackedFolderTab(
-                  title: 'Videos',
-                  icon: Icons.play_arrow,
-                  color: const Color(0xFFFF9010),
-                  isDark: isDark,
-                  onTap: () {
-                    ref.read(activeIndexProvider.notifier).state = 3;
-                  },
-                ),
-              ),
-              Transform.translate(
-                offset: Offset(0, -40.0.h),
-                child: _StackedFolderTab(
-                  title: 'Documents',
-                  icon: Icons.description_outlined,
-                  color: const Color(0xFFA020F0),
-                  isDark: isDark,
-                  onTap: () {
-                    ref.read(activeIndexProvider.notifier).state = 3;
-                  },
-                ),
-              ),
-              Transform.translate(
-                offset: Offset(0, -60.0.h),
-                child: _StackedFolderTab(
-                  title: 'Audio',
-                  icon: Icons.music_note,
-                  color: const Color(0xFFFF40A0),
-                  isDark: isDark,
-                  onTap: () {
-                    ref.read(activeIndexProvider.notifier).state = 3;
-                  },
+              // Overlapping Stack of curved folder tabs (Yellow, Orange, Purple, Pink)
+              // Rendered from bottom-to-top (Pink -> Purple -> Orange -> Yellow) so that
+              // upper tabs overlap the lower ones naturally and pixel-perfectly.
+              SizedBox(
+                height: 230.0.h,
+                width: double.infinity,
+                child: Stack(
+                  children: [
+                    // 4. Audio (Pink) - Bottom-most layer
+                    Positioned(
+                      top: 120.0.h,
+                      left: 0,
+                      right: 0,
+                      child: _StackedFolderTab(
+                        title: 'Audio',
+                        icon: Icons.music_note,
+                        color: const Color(0xFFFF40A0),
+                        isDark: isDark,
+                        onTap: () {
+                          ref.read(activeIndexProvider.notifier).state = 3;
+                        },
+                      ),
+                    ),
+                    // 3. Documents (Purple)
+                    Positioned(
+                      top: 80.0.h,
+                      left: 0,
+                      right: 0,
+                      child: _StackedFolderTab(
+                        title: 'Documents',
+                        icon: Icons.description_outlined,
+                        color: const Color(0xFFA020F0),
+                        isDark: isDark,
+                        onTap: () {
+                          ref.read(activeIndexProvider.notifier).state = 3;
+                        },
+                      ),
+                    ),
+                    // 2. Videos (Orange)
+                    Positioned(
+                      top: 40.0.h,
+                      left: 0,
+                      right: 0,
+                      child: _StackedFolderTab(
+                        title: 'Videos',
+                        icon: Icons.play_arrow,
+                        color: const Color(0xFFFF9010),
+                        isDark: isDark,
+                        onTap: () {
+                          ref.read(activeIndexProvider.notifier).state = 3;
+                        },
+                      ),
+                    ),
+                    // 1. Photos (Yellow) - Top-most layer
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: _StackedFolderTab(
+                        title: 'Photos',
+                        icon: Icons.image,
+                        color: const Color(0xFFFFD020),
+                        isDark: isDark,
+                        onTap: () {
+                          ref.read(activeIndexProvider.notifier).state = 3;
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
               SizedBox(height: 20.0.h),
@@ -274,11 +298,11 @@ class AnalyticsScreen extends ConsumerWidget {
     return Row(
       children: [
         Container(
-          width: 3.0.w,
+          width: 4.0.w,
           height: 24.0.h,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(1.5.r),
+            borderRadius: BorderRadius.circular(2.0.r),
           ),
         ),
         SizedBox(width: 12.0.w),
@@ -332,6 +356,18 @@ class ConcentricRingsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
 
+    // Tiny deterministic starry background matching mockup
+    final rand = math.Random(42);
+    final starPaint = Paint()..style = PaintingStyle.fill;
+    for (int i = 0; i < 40; i++) {
+      final x = rand.nextDouble() * size.width;
+      final y = rand.nextDouble() * size.height;
+      starPaint.color = Colors.white.withValues(
+        alpha: rand.nextDouble() * 0.25,
+      );
+      canvas.drawCircle(Offset(x, y), rand.nextDouble() * 1.5, starPaint);
+    }
+
     // Radii of concentric circles
     final radii = [76.0.r, 62.0.r, 48.0.r];
     final colors = [
@@ -339,12 +375,14 @@ class ConcentricRingsPainter extends CustomPainter {
       const Color(0xFFFF9010),
       const Color(0xFFA020F0),
     ];
-    // Arc fills (sweep angles in radians)
-    final progress = [0.72, 0.45, 0.65];
+
+    // Standard starting positions and sweep angle values to mimic chart offsets
+    final startAngles = [math.pi * 0.65, math.pi * 0.8, math.pi * 0.95];
+    final sweepProgress = [0.72, 0.45, 0.65];
 
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6.0.r
+      ..strokeWidth = 10.0.r
       ..color = isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05);
 
     for (int i = 0; i < radii.length; i++) {
@@ -355,15 +393,14 @@ class ConcentricRingsPainter extends CustomPainter {
       // Draw progress arc
       final fillPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 6.0.r
+        ..strokeWidth = 10.0.r
         ..strokeCap = StrokeCap.round
         ..color = colors[i];
 
-      // Starting sweep angle from top (-pi / 2)
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: r),
-        -math.pi / 2,
-        progress[i] * 2 * math.pi,
+        startAngles[i],
+        sweepProgress[i] * 2 * math.pi,
         false,
         fillPaint,
       );
@@ -407,11 +444,11 @@ class _StackedFolderTab extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.only(
                 top: 14.0.h,
-              ), // Offset content down slightly below the tab slope
+              ), // Offset content down below the tab S-curve slope
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Left side Circle with monochrome icon inside
+                  // Left side Circle with icon
                   Row(
                     children: [
                       Container(
@@ -425,7 +462,7 @@ class _StackedFolderTab extends StatelessWidget {
                           child: Icon(
                             icon,
                             color:
-                                color, // Matching tab color inside dark circle
+                                color, // Icon color matches tab folder background
                             size: 20.0.r,
                           ),
                         ),
@@ -439,12 +476,12 @@ class _StackedFolderTab extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                           color: const Color(
                             0xFF171717,
-                          ), // Contrast dark color matching screenshot text
+                          ), // Contrast dark color matching mockup
                         ),
                       ),
                     ],
                   ),
-                  // Right side Translucent arrow outwards button
+                  // Right side arrow button
                   Container(
                     width: 38.0.r,
                     height: 38.0.r,
@@ -470,7 +507,7 @@ class _StackedFolderTab extends StatelessWidget {
   }
 }
 
-// Clipper path for horizontal folder shape
+// Custom Clipper path for rounded overlapping horizontal folder shapes
 class FolderTabClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -478,20 +515,53 @@ class FolderTabClipper extends CustomClipper<Path> {
     final tabW = size.width * 0.42;
     const slopeW = 60.0;
     const tabH = 22.0;
+    const r = 16.0; // Rounded corners radius matching mockup exactly
 
-    path.moveTo(0, 0);
-    path.lineTo(tabW, 0);
+    // Start at left edge, below top-left corner
+    path.moveTo(0, r);
+
+    // Round top-left corner of the tab
+    path.quadraticBezierTo(0, 0, r, 0);
+
+    // Line to start of tab flat top edge
+    path.lineTo(tabW - r, 0);
+
+    // Round tab outer corner down into the slope transition
+    path.quadraticBezierTo(tabW, 0, tabW + 8, 4);
+
+    // S-curve slope down to the folder body top edge
     path.cubicTo(
       tabW + slopeW * 0.4,
-      0,
+      4,
       tabW + slopeW * 0.1,
       tabH,
       tabW + slopeW,
       tabH,
     );
-    path.lineTo(size.width, tabH);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
+
+    // Line to top-right corner of body (before corner curve)
+    path.lineTo(size.width - r, tabH);
+
+    // Round top-right corner of the folder body
+    path.quadraticBezierTo(size.width, tabH, size.width, tabH + r);
+
+    // Line to bottom-right corner of body (before corner curve)
+    path.lineTo(size.width, size.height - r);
+
+    // Round bottom-right corner of the folder body
+    path.quadraticBezierTo(
+      size.width,
+      size.height,
+      size.width - r,
+      size.height,
+    );
+
+    // Line to bottom-left corner of body (before corner curve)
+    path.lineTo(r, size.height);
+
+    // Round bottom-left corner of the folder body
+    path.quadraticBezierTo(0, size.height, 0, size.height - r);
+
     path.close();
     return path;
   }
