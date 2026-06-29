@@ -142,7 +142,7 @@ class _RecentItemRow extends StatelessWidget {
         type: 'PowerPoint Presentation',
         themeColor: iconColor,
         fallbackIcon: fallbackIcon,
-        fluxIcon: fluxIcon,
+        fluxIcon: null,
       );
     } else if (title.contains('Brief')) {
       detail = FileDetail(
@@ -153,7 +153,7 @@ class _RecentItemRow extends StatelessWidget {
         type: 'PDF Document',
         themeColor: iconColor,
         fallbackIcon: fallbackIcon,
-        fluxIcon: fluxIcon,
+        fluxIcon: null,
       );
     } else {
       detail = FileDetail(
