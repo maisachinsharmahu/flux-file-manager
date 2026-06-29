@@ -84,7 +84,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
 
-    // Define all 4 tabs with their names and Positions
+    // Define all 6 tabs in our static back-to-front stacking deck
     final List<_TabItemData> allTabs = [
       _TabItemData(
         name: 'Photos',
@@ -147,13 +147,43 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           },
         ),
       ),
+      _TabItemData(
+        name: 'Application',
+        child: _StackedFolderTab(
+          title: 'Application',
+          icon: Icons.apps,
+          color: const Color(0xFFFF4D4D),
+          isDark: isDark,
+          onTap: () {
+            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
+                'Application';
+            ref.read(selectedBrowserCategoryProvider.notifier).state =
+                'Application';
+            ref.read(activeIndexProvider.notifier).state = 3;
+          },
+        ),
+      ),
+      _TabItemData(
+        name: 'Others',
+        child: _StackedFolderTab(
+          title: 'Others',
+          icon: Icons.folder_open,
+          color: const Color(0xFF9E9E9E),
+          isDark: isDark,
+          onTap: () {
+            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
+                'Others';
+            ref.read(selectedBrowserCategoryProvider.notifier).state = 'Others';
+            ref.read(activeIndexProvider.notifier).state = 3;
+          },
+        ),
+      ),
     ];
 
     // Static back-to-front stacking order: lower folders overlap the upper ones, forming a clean tabbed deck.
-    // Photos is at the back, Videos on top of Photos, Documents on top of Videos, and Audio on top of Documents.
-    // This ensures all 4 folder tabs are always visible and positioned perfectly.
+    // Photos is at the back, followed by Videos, Documents, Audio, Application, and Others on top.
     final List<Widget> positionedWidgets = [];
-    final List<double> topOffsets = [0, 52.0.h, 104.0.h, 156.0.h];
+    final List<double> topOffsets = [0, 52.0.h, 104.0.h, 156.0.h, 208.0.h, 260.0.h];
 
     for (int i = 0; i < allTabs.length; i++) {
       positionedWidgets.add(
@@ -286,7 +316,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                           ),
                           SizedBox(height: 24.0.h),
 
-                          // Concentric Circular Progress Chart
+                          // Concentric Circular Progress Chart (now displaying 5 rings)
                           Center(
                             child: SizedBox(
                               width: 180.0.r,
@@ -312,13 +342,13 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                           ),
                           SizedBox(height: 24.0.h),
 
-                          // Legend category details
+                          // Legend category details list (featuring all 6 storage types)
                           _buildLegendRow(
                             textColor,
                             subtitleColor,
                             borderColor,
                             'Images',
-                            '601 MB',
+                            '312 MB',
                             '28%',
                             const Color(0xFFFFD020),
                           ),
@@ -332,7 +362,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             subtitleColor,
                             borderColor,
                             'Videos',
-                            '123 MB',
+                            '823 MB',
                             '15%',
                             const Color(0xFFFF9010),
                           ),
@@ -346,9 +376,51 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             subtitleColor,
                             borderColor,
                             'Docs',
-                            '674 MB',
+                            '124 MB',
                             '32%',
                             const Color(0xFFA020F0),
+                          ),
+                          Divider(
+                            color: borderColor,
+                            height: 24.0.h,
+                            thickness: 1.0.r,
+                          ),
+                          _buildLegendRow(
+                            textColor,
+                            subtitleColor,
+                            borderColor,
+                            'Audio',
+                            '14 MB',
+                            '5%',
+                            const Color(0xFFFF40A0),
+                          ),
+                          Divider(
+                            color: borderColor,
+                            height: 24.0.h,
+                            thickness: 1.0.r,
+                          ),
+                          _buildLegendRow(
+                            textColor,
+                            subtitleColor,
+                            borderColor,
+                            'Apps',
+                            '1.4 GB',
+                            '12%',
+                            const Color(0xFFFF4D4D),
+                          ),
+                          Divider(
+                            color: borderColor,
+                            height: 24.0.h,
+                            thickness: 1.0.r,
+                          ),
+                          _buildLegendRow(
+                            textColor,
+                            subtitleColor,
+                            borderColor,
+                            'Others',
+                            '512 MB',
+                            '8%',
+                            const Color(0xFF9E9E9E),
                           ),
                         ],
                       ),
@@ -367,9 +439,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                     ),
                     SizedBox(height: 16.0.h),
 
-                    // Overlapping Stack
+                    // Overlapping Stack (Height increased to 360.h to display 6 tabs)
                     SizedBox(
-                      height: 260.0.h,
+                      height: 360.0.h,
                       width: double.infinity,
                       child: Stack(children: positionedWidgets),
                     ),
@@ -451,13 +523,15 @@ class _TabItemData {
   _TabItemData({required this.name, required this.child});
 }
 
-// Concentric Circular Rings custom painter
+// Concentric Circular Rings custom painter (displaying 5 rings)
 class ConcentricRingsPainter extends CustomPainter {
   final bool isDark;
   final Animation<double> animation;
 
-  ConcentricRingsPainter({required this.isDark, required this.animation})
-    : super(repaint: animation);
+  ConcentricRingsPainter({
+    required this.isDark,
+    required this.animation,
+  }) : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -475,24 +549,34 @@ class ConcentricRingsPainter extends CustomPainter {
       canvas.drawCircle(Offset(x, y), rand.nextDouble() * 1.5, starPaint);
     }
 
-    // Radii of concentric circles
-    final radii = [76.0.r, 62.0.r, 48.0.r];
+    // Radii of concentric circles (5 rings)
+    final radii = [82.0.r, 70.0.r, 58.0.r, 46.0.r, 34.0.r];
     final colors = [
-      const Color(0xFFFFD020),
-      const Color(0xFFFF9010),
-      const Color(0xFFA020F0),
+      const Color(0xFFFFD020), // Photos Yellow
+      const Color(0xFFFF9010), // Videos Orange
+      const Color(0xFFA020F0), // Docs Purple
+      const Color(0xFFFF40A0), // Audio Pink
+      const Color(0xFFFF4D4D), // Application Red
     ];
 
-    final startAngles = [math.pi * 0.65, math.pi * 0.8, math.pi * 0.95];
+    final startAngles = [
+      math.pi * 0.65,
+      math.pi * 0.8,
+      math.pi * 0.95,
+      math.pi * 1.1,
+      math.pi * 1.25,
+    ];
     final sweepProgress = [
       0.72 * animation.value,
       0.45 * animation.value,
       0.65 * animation.value,
+      0.30 * animation.value,
+      0.55 * animation.value,
     ];
 
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 10.0.r
+      ..strokeWidth = 9.0.r
       ..color = isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05);
 
     for (int i = 0; i < radii.length; i++) {
@@ -501,7 +585,7 @@ class ConcentricRingsPainter extends CustomPainter {
 
       final fillPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 10.0.r
+        ..strokeWidth = 9.0.r
         ..strokeCap = StrokeCap.round
         ..color = colors[i];
 

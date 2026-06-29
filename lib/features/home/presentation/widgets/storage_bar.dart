@@ -39,7 +39,11 @@ class _StorageBarState extends ConsumerState<StorageBar>
     super.dispose();
   }
 
-  double _getSegmentProgress(double animationValue, double start, double duration) {
+  double _getSegmentProgress(
+    double animationValue,
+    double start,
+    double duration,
+  ) {
     if (animationValue < start) return 0.0;
     if (animationValue > start + duration) return 1.0;
     return (animationValue - start) / duration;
@@ -114,17 +118,19 @@ class _StorageBarState extends ConsumerState<StorageBar>
                     animation: _progressAnimation,
                     builder: (context, child) {
                       final val = _progressAnimation.value;
-                      
-                      // Segment thresholds matching their flex proportions (total flex sum = 90)
-                      final p1 = _getSegmentProgress(val, 0.0, 15 / 90);
-                      final p2 = _getSegmentProgress(val, 15 / 90, 55 / 90);
-                      final p3 = _getSegmentProgress(val, 70 / 90, 15 / 90);
-                      final p4 = _getSegmentProgress(val, 85 / 90, 5 / 90);
+
+                      // Staggered grow durations out of 100 total sum
+                      final p1 = _getSegmentProgress(val, 0.0, 10 / 100);
+                      final p2 = _getSegmentProgress(val, 10 / 100, 35 / 100);
+                      final p3 = _getSegmentProgress(val, 45 / 100, 15 / 100);
+                      final p4 = _getSegmentProgress(val, 60 / 100, 5 / 100);
+                      final p5 = _getSegmentProgress(val, 65 / 100, 25 / 100);
+                      final p6 = _getSegmentProgress(val, 90 / 100, 10 / 100);
 
                       return Row(
                         children: [
                           Expanded(
-                            flex: 15,
+                            flex: 10,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
                               widthFactor: p1,
@@ -137,9 +143,9 @@ class _StorageBarState extends ConsumerState<StorageBar>
                               ),
                             ),
                           ),
-                          SizedBox(width: 6.0.w),
+                          SizedBox(width: 4.0.w),
                           Expanded(
-                            flex: 55,
+                            flex: 35,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
                               widthFactor: p2,
@@ -152,7 +158,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                               ),
                             ),
                           ),
-                          SizedBox(width: 6.0.w),
+                          SizedBox(width: 4.0.w),
                           Expanded(
                             flex: 15,
                             child: FractionallySizedBox(
@@ -167,7 +173,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                               ),
                             ),
                           ),
-                          SizedBox(width: 6.0.w),
+                          SizedBox(width: 4.0.w),
                           Expanded(
                             flex: 5,
                             child: FractionallySizedBox(
@@ -182,38 +188,100 @@ class _StorageBarState extends ConsumerState<StorageBar>
                               ),
                             ),
                           ),
+                          SizedBox(width: 4.0.w),
+                          Expanded(
+                            flex: 25,
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: p5,
+                              child: Container(
+                                height: 10.0.h,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFF4D4D), // App Red
+                                  borderRadius: BorderRadius.circular(5.0.r),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 4.0.w),
+                          Expanded(
+                            flex: 10,
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: p6,
+                              child: Container(
+                                height: 10.0.h,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF9E9E9E), // Others Grey
+                                  borderRadius: BorderRadius.circular(5.0.r),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       );
                     },
                   ),
                   SizedBox(height: 24.0.h),
-                  // Bottom Row: Custom Legends (Vertical capsule indicator + Label & Size)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Bottom Grid: 2 rows of 3 legends
+                  Column(
                     children: [
-                      _buildLegendItem(
-                        isDark,
-                        'Docs',
-                        '124 MB',
-                        AppColors.storageYellow,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildLegendItem(
+                              isDark,
+                              'Docs',
+                              '124 MB',
+                              AppColors.storageYellow,
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildLegendItem(
+                              isDark,
+                              'Videos',
+                              '823 MB',
+                              AppColors.mintAccent,
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildLegendItem(
+                              isDark,
+                              'Images',
+                              '312 MB',
+                              AppColors.storageSkyBlue,
+                            ),
+                          ),
+                        ],
                       ),
-                      _buildLegendItem(
-                        isDark,
-                        'Videos',
-                        '823 MB',
-                        AppColors.mintAccent,
-                      ),
-                      _buildLegendItem(
-                        isDark,
-                        'Images',
-                        '312 MB',
-                        AppColors.storageSkyBlue,
-                      ),
-                      _buildLegendItem(
-                        isDark,
-                        'Audio',
-                        '14 MB',
-                        AppColors.storageOrange,
+                      SizedBox(height: 12.0.h),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildLegendItem(
+                              isDark,
+                              'Audio',
+                              '14 MB',
+                              AppColors.storageOrange,
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildLegendItem(
+                              isDark,
+                              'Apps',
+                              '1.4 GB',
+                              const Color(0xFFFF4D4D),
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildLegendItem(
+                              isDark,
+                              'Others',
+                              '512 MB',
+                              const Color(0xFF9E9E9E),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

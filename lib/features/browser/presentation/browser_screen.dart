@@ -105,6 +105,18 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
       {'name': 'podcast_e1.m4a', 'size': '42 MB', 'type': 'M4A Audio', 'color': const Color(0xFFFF40A0), 'icon': Icons.music_note_outlined},
     ];
 
+    final List<Map<String, dynamic>> appFiles = [
+      {'name': 'whatsapp_messenger.apk', 'size': '52 MB', 'type': 'Android Application Package', 'color': const Color(0xFFFF4D4D), 'icon': Icons.android_outlined},
+      {'name': 'flux_file_manager.apk', 'size': '18 MB', 'type': 'Android Application Package', 'color': const Color(0xFFFF4D4D), 'icon': Icons.android_outlined},
+      {'name': 'pubg_mobile_installer.apk', 'size': '1.2 GB', 'type': 'Android Application Package', 'color': const Color(0xFFFF4D4D), 'icon': Icons.android_outlined},
+    ];
+
+    final List<Map<String, dynamic>> othersFiles = [
+      {'name': 'backup_archive.zip', 'size': '420 MB', 'type': 'ZIP Archive', 'color': const Color(0xFF9E9E9E), 'icon': Icons.unarchive_outlined},
+      {'name': 'system_config.json', 'size': '12 KB', 'type': 'JSON Document', 'color': const Color(0xFF9E9E9E), 'icon': Icons.settings_ethernet_outlined},
+      {'name': 'encrypted_payload.bin', 'size': '92 MB', 'type': 'Binary Data File', 'color': const Color(0xFF9E9E9E), 'icon': Icons.lock_outline},
+    ];
+
     // Mock folder list for root "Internal Storage"
     final List<Map<String, dynamic>> folders = [
       {'name': 'Alarms', 'items': 1, 'size': '1 KB', 'heart': false},
@@ -134,6 +146,10 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
         currentList = docsFiles;
       } else if (activeCategory == 'Audio') {
         currentList = audioFiles;
+      } else if (activeCategory == 'Application') {
+        currentList = appFiles;
+      } else if (activeCategory == 'Others') {
+        currentList = othersFiles;
       }
     }
 
