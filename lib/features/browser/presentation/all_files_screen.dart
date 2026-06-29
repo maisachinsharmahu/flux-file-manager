@@ -8,11 +8,26 @@ import '../../home/presentation/widgets/file_detail_sheet.dart';
 import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
 import '../../../core/widgets/flux_icon.dart';
 
-class AllFilesScreen extends ConsumerWidget {
+class AllFilesScreen extends ConsumerStatefulWidget {
   const AllFilesScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AllFilesScreen> createState() => _AllFilesScreenState();
+}
+
+class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
+  bool _isSearching = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -26,8 +41,8 @@ class AllFilesScreen extends ConsumerWidget {
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
 
-    // Watch the unified sorted and filtered mixed files list
-    final filesList = ref.watch(filteredFilesProvider(''));
+    // Watch the unified sorted and filtered mixed files list (including search query)
+    final filesList = ref.watch(filteredFilesProvider(_searchQuery));
     final filterState = ref.watch(fileFilterProvider);
 
     return Scaffold(
@@ -36,49 +51,162 @@ class AllFilesScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Padding(
-              padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => context.pop(),
-                    child: Container(
-                      padding: EdgeInsets.all(8.0.r),
-                      child: Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 20.0.r,
-                        color: iconColor,
+            // Header Row with Animated Switcher for Search Mode
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.0, -0.2),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: _isSearching
+                  ? Padding(
+                      key: const ValueKey('searchHeader'),
+                      padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isSearching = false;
+                                _searchQuery = '';
+                                _searchController.clear();
+                              });
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(8.0.r),
+                              child: Icon(
+                                Icons.arrow_back_ios_new,
+                                size: 20.0.r,
+                                color: iconColor,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8.0.w),
+                          Expanded(
+                            child: Container(
+                              height: 40.0.h,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : Colors.black.withValues(alpha: 0.03),
+                                borderRadius: BorderRadius.circular(20.0.r),
+                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 16.0.w),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search,
+                                    size: 18.0.r,
+                                    color: subtitleColor,
+                                  ),
+                                  SizedBox(width: 8.0.w),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _searchController,
+                                      autofocus: true,
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _searchQuery = val;
+                                        });
+                                      },
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 14.0.sp,
+                                        color: textColor,
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: 'Search in All Files...',
+                                        hintStyle: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 14.0.sp,
+                                          color: subtitleColor,
+                                        ),
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_searchQuery.isNotEmpty)
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _searchQuery = '';
+                                          _searchController.clear();
+                                        });
+                                      },
+                                      child: Icon(
+                                        Icons.close_rounded,
+                                        size: 18.0.r,
+                                        color: subtitleColor,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Padding(
+                      key: const ValueKey('normalHeader'),
+                      padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => context.pop(),
+                            child: Container(
+                              padding: EdgeInsets.all(8.0.r),
+                              child: Icon(
+                                Icons.arrow_back_ios_new,
+                                size: 20.0.r,
+                                color: iconColor,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8.0.w),
+                          Text(
+                            'All Files',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 24.0.sp,
+                              fontWeight: FontWeight.w800,
+                              color: textColor,
+                            ),
+                          ),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isSearching = true;
+                              });
+                            },
+                            child: Icon(
+                              Icons.search,
+                              size: 26.0.r,
+                              color: iconColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  SizedBox(width: 8.0.w),
-                  Text(
-                    'All Files',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 24.0.sp,
-                      fontWeight: FontWeight.w800,
-                      color: textColor,
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => context.push('/search'),
-                    child: Icon(
-                      Icons.search,
-                      size: 26.0.r,
-                      color: iconColor,
-                    ),
-                  ),
-                ],
-              ),
             ),
             SizedBox(height: 16.0.h),
 
             // Sorting/Filter Row
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 8.0.h),
+              padding: EdgeInsets.symmetric(
+                horizontal: 24.0.w,
+                vertical: 8.0.h,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -106,7 +234,6 @@ class AllFilesScreen extends ConsumerWidget {
                   ),
                   GestureDetector(
                     onTap: () {
-                      // Show Quick Filter Sheet (with all mixed filters enabled - hideFileType is false!)
                       QuickSortFilterSheet.show(context, hideFileType: false);
                     },
                     child: Stack(
@@ -157,7 +284,10 @@ class AllFilesScreen extends ConsumerWidget {
                       ),
                     )
                   : ListView.separated(
-                      padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24.0.w,
+                        vertical: 12.0.h,
+                      ),
                       physics: const BouncingScrollPhysics(),
                       itemCount: filesList.length,
                       separatorBuilder: (context, index) => Divider(
@@ -173,7 +303,8 @@ class AllFilesScreen extends ConsumerWidget {
                               name: file.name,
                               size: file.sizeString,
                               createdDate: 'June 28, 2026, 12:14 PM',
-                              modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                              modifiedDate:
+                                  '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
                               type: file.category,
                               themeColor: file.themeColor,
                               fallbackIcon: file.fallbackIcon,
@@ -190,7 +321,9 @@ class AllFilesScreen extends ConsumerWidget {
                                   width: 44.0.r,
                                   height: 44.0.r,
                                   decoration: BoxDecoration(
-                                    color: file.themeColor.withValues(alpha: isDark ? 0.2 : 0.8),
+                                    color: file.themeColor.withValues(
+                                      alpha: isDark ? 0.2 : 0.8,
+                                    ),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Center(
@@ -206,7 +339,8 @@ class AllFilesScreen extends ConsumerWidget {
                                 SizedBox(width: 16.0.w),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         file.name,
@@ -235,7 +369,9 @@ class AllFilesScreen extends ConsumerWidget {
                                 Icon(
                                   Icons.more_vert,
                                   size: 20.0.r,
-                                  color: isDark ? Colors.white38 : Colors.black38,
+                                  color: isDark
+                                      ? Colors.white38
+                                      : Colors.black38,
                                 ),
                               ],
                             ),
