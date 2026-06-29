@@ -40,6 +40,31 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     super.dispose();
   }
 
+  Future<void> _handleRefresh() async {
+    // Simulate a network refresh delay
+    await Future.delayed(const Duration(milliseconds: 1200));
+    if (mounted) {
+      _controller.forward(from: 0.0);
+      final activeCategory = ref.read(selectedBrowserCategoryProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(activeCategory != null
+              ? '$activeCategory category refreshed successfully.'
+              : 'Internal storage directories refreshed.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1E1E)
+              : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0.r),
+          ),
+          elevation: 4,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Detect visibility changes inside IndexedStack (BrowserScreen is at index 3)
@@ -227,150 +252,158 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                       ),
                     ),
                     SizedBox(height: 8.0.h),
-                    // Dynamic Files/Folders ListView
+                    // Dynamic Files/Folders ListView wrapped in RefreshIndicator
                     Expanded(
-                      child: ListView.separated(
-                        padding: EdgeInsets.symmetric(horizontal: 24.0.w),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: currentList.length,
-                        separatorBuilder: (context, index) => Divider(
-                          color: dividerColor,
-                          height: 1.0.h,
-                          thickness: 1.0.r,
+                      child: RefreshIndicator(
+                        color: AppColors.mintAccent,
+                        backgroundColor: isDark ? AppColors.neutral900 : Colors.white,
+                        displacement: 20.h,
+                        onRefresh: _handleRefresh,
+                        child: ListView.separated(
+                          padding: EdgeInsets.symmetric(horizontal: 24.0.w),
+                          physics: const BouncingScrollPhysics(
+                            parent: AlwaysScrollableScrollPhysics(),
+                          ),
+                          itemCount: currentList.length,
+                          separatorBuilder: (context, index) => Divider(
+                            color: dividerColor,
+                            height: 1.0.h,
+                            thickness: 1.0.r,
+                          ),
+                          itemBuilder: (context, index) {
+                            final item = currentList[index];
+
+                            if (isFolderList) {
+                              // Render standard folder row
+                              final hasHeart = item['heart'] as bool;
+                              final name = item['name'] as String;
+                              final itemsCount = item['items'] as int;
+                              final size = item['size'] as String;
+
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                                child: Row(
+                                  children: [
+                                    Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.folder,
+                                          size: 44.0.r,
+                                          color: const Color(0xFFFFB020),
+                                        ),
+                                        if (hasHeart)
+                                          Padding(
+                                            padding: EdgeInsets.only(top: 6.0.h),
+                                            child: Icon(
+                                              Icons.favorite,
+                                              size: 11.0.r,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    SizedBox(width: 16.0.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            name,
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 16.0.sp,
+                                              fontWeight: FontWeight.w600,
+                                              color: textColor,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4.0.h),
+                                          Text(
+                                            '$itemsCount ${itemsCount == 1 ? 'item' : 'items'} • $size',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 13.0.sp,
+                                              fontWeight: FontWeight.w500,
+                                              color: subtitleColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.more_vert,
+                                      size: 20.0.r,
+                                      color: isDark ? Colors.white38 : Colors.black38,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } else {
+                              // Render files list row
+                              final name = item['name'] as String;
+                              final size = item['size'] as String;
+                              final type = item['type'] as String;
+                              final color = item['color'] as Color;
+                              final icon = item['icon'] as IconData;
+
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                                child: Row(
+                                  children: [
+                                    // File Category Icon inside circular frame
+                                    Container(
+                                      width: 44.0.r,
+                                      height: 44.0.r,
+                                      decoration: BoxDecoration(
+                                        color: color.withValues(alpha: 0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          icon,
+                                          size: 22.0.r,
+                                          color: color,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 16.0.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            name,
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 16.0.sp,
+                                              fontWeight: FontWeight.w600,
+                                              color: textColor,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4.0.h),
+                                          Text(
+                                            '$size • $type',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 13.0.sp,
+                                              fontWeight: FontWeight.w500,
+                                              color: subtitleColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.more_vert,
+                                      size: 20.0.r,
+                                      color: isDark ? Colors.white38 : Colors.black38,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
                         ),
-                        itemBuilder: (context, index) {
-                          final item = currentList[index];
-
-                          if (isFolderList) {
-                            // Render standard folder row
-                            final hasHeart = item['heart'] as bool;
-                            final name = item['name'] as String;
-                            final itemsCount = item['items'] as int;
-                            final size = item['size'] as String;
-
-                            return Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                              child: Row(
-                                children: [
-                                  Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.folder,
-                                        size: 44.0.r,
-                                        color: const Color(0xFFFFB020),
-                                      ),
-                                      if (hasHeart)
-                                        Padding(
-                                          padding: EdgeInsets.only(top: 6.0.h),
-                                          child: Icon(
-                                            Icons.favorite,
-                                            size: 11.0.r,
-                                            color: Colors.red,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  SizedBox(width: 16.0.w),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          name,
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 16.0.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4.0.h),
-                                        Text(
-                                          '$itemsCount ${itemsCount == 1 ? 'item' : 'items'} • $size',
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 13.0.sp,
-                                            fontWeight: FontWeight.w500,
-                                            color: subtitleColor,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.more_vert,
-                                    size: 20.0.r,
-                                    color: isDark ? Colors.white38 : Colors.black38,
-                                  ),
-                                ],
-                              ),
-                            );
-                          } else {
-                            // Render files list row
-                            final name = item['name'] as String;
-                            final size = item['size'] as String;
-                            final type = item['type'] as String;
-                            final color = item['color'] as Color;
-                            final icon = item['icon'] as IconData;
-
-                            return Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                              child: Row(
-                                children: [
-                                  // File Category Icon inside circular frame
-                                  Container(
-                                    width: 44.0.r,
-                                    height: 44.0.r,
-                                    decoration: BoxDecoration(
-                                      color: color.withValues(alpha: 0.1),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Center(
-                                      child: Icon(
-                                        icon,
-                                        size: 22.0.r,
-                                        color: color,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 16.0.w),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          name,
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 16.0.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4.0.h),
-                                        Text(
-                                          '$size • $type',
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 13.0.sp,
-                                            fontWeight: FontWeight.w500,
-                                            color: subtitleColor,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.more_vert,
-                                    size: 20.0.r,
-                                    color: isDark ? Colors.white38 : Colors.black38,
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                        },
                       ),
                     ),
                   ],
