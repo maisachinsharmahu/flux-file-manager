@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/storage_category_icon.dart';
 import '../../../navigation/providers/navigation_provider.dart';
 
 class QuickAccessGrid extends ConsumerWidget {
@@ -57,13 +58,13 @@ class QuickAccessGrid extends ConsumerWidget {
             padding: EdgeInsets.symmetric(horizontal: 24.0.w),
             child: Row(
               children: [
-                _buildFolderCard(ref, 'Images', '9,128 Items', Icons.image_outlined, isDark),
+                _buildFolderCard(ref, 'Images', '9,128 Items', StorageCategoryIcon.images, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'Videos', '823 Items', Icons.play_circle_outline, isDark),
+                _buildFolderCard(ref, 'Videos', '823 Items', StorageCategoryIcon.videos, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'Docs', '135 Items', Icons.description_outlined, isDark),
+                _buildFolderCard(ref, 'Docs', '135 Items', StorageCategoryIcon.documents, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'Audio', '12 Items', Icons.music_note_outlined, isDark),
+                _buildFolderCard(ref, 'Audio', '12 Items', StorageCategoryIcon.audio, isDark),
               ],
             ),
           ),
@@ -76,7 +77,7 @@ class QuickAccessGrid extends ConsumerWidget {
     WidgetRef ref,
     String title,
     String count,
-    IconData materialIcon,
+    StorageCategoryIcon categoryIcon,
     bool isDark,
   ) {
     // Achromatic glassmorphic colors
@@ -114,22 +115,9 @@ class QuickAccessGrid extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      width: 28.0.r,
-                      height: 28.0.r,
-                      decoration: BoxDecoration(
-                        color: isDark 
-                            ? Colors.white.withValues(alpha: 0.06) 
-                            : Colors.black.withValues(alpha: 0.04),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Icon(
-                          materialIcon,
-                          size: 16.0.r,
-                          color: iconColor,
-                        ),
-                      ),
+                    StorageCategoryIconWidget(
+                      icon: categoryIcon,
+                      size: 30.0.r,
                     ),
                     Icon(
                       Icons.more_vert,

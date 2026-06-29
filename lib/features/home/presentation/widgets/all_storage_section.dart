@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/storage_category_icon.dart';
 import '../../../navigation/providers/navigation_provider.dart';
 
 class AllStorageSection extends ConsumerWidget {
@@ -70,22 +71,9 @@ class AllStorageSection extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
-                                  width: 36.0.r,
-                                  height: 36.0.r,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.mintAccent.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.phone_android_outlined,
-                                      size: 18.0.r,
-                                      color: AppColors.mintAccent,
-                                    ),
-                                  ),
+                                StorageCategoryIconWidget(
+                                  icon: StorageCategoryIcon.internalStorage,
+                                  size: 36.0.r,
                                 ),
                                 Icon(
                                   Icons.arrow_forward_ios,
@@ -160,22 +148,9 @@ class AllStorageSection extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
-                                  width: 36.0.r,
-                                  height: 36.0.r,
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFFA020F0,
-                                    ).withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.sd_storage_outlined,
-                                      size: 18.0.r,
-                                      color: const Color(0xFFA020F0),
-                                    ),
-                                  ),
+                                StorageCategoryIconWidget(
+                                  icon: StorageCategoryIcon.sdCard,
+                                  size: 36.0.r,
                                 ),
                                 Icon(
                                   Icons.arrow_forward_ios,
