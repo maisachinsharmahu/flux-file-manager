@@ -6,15 +6,16 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/file_filter_provider.dart';
 
 class AdvancedFilterSheet extends ConsumerStatefulWidget {
-  const AdvancedFilterSheet({Key? key}) : super(key: key);
+  final bool hideFileType;
+  const AdvancedFilterSheet({Key? key, this.hideFileType = false}) : super(key: key);
 
-  static void show(BuildContext context) {
+  static void show(BuildContext context, {bool hideFileType = false}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.5),
       isScrollControlled: true,
-      builder: (context) => const AdvancedFilterSheet(),
+      builder: (context) => AdvancedFilterSheet(hideFileType: hideFileType),
     );
   }
 
@@ -25,14 +26,16 @@ class AdvancedFilterSheet extends ConsumerStatefulWidget {
 class _AdvancedFilterSheetState extends ConsumerState<AdvancedFilterSheet> {
   int _activeCategoryIndex = 0;
 
-  final List<String> _categories = [
-    'File Type',
-    'Size',
-    'Time',
-    'Location',
-    'Advanced',
-    'Sort By',
-  ];
+  List<String> get _categories {
+    return [
+      if (!widget.hideFileType) 'File Type',
+      'Size',
+      'Time',
+      'Location',
+      'Advanced',
+      'Sort By',
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -255,8 +258,9 @@ class _AdvancedFilterSheetState extends ConsumerState<AdvancedFilterSheet> {
     Color activeItemColor,
     Color inactiveItemColor,
   ) {
-    switch (_activeCategoryIndex) {
-      case 0: // File Type (Multi-select)
+    final categoryName = _categories[_activeCategoryIndex];
+    switch (categoryName) {
+      case 'File Type': // File Type (Multi-select)
         final categories = [
           'Photos',
           'Videos',
@@ -306,7 +310,7 @@ class _AdvancedFilterSheetState extends ConsumerState<AdvancedFilterSheet> {
             }).toList(),
           ),
         );
-      case 1: // Size Options
+      case 'Size': // Size Options
         final options = [
           'All',
           'Huge (>100MB)',
@@ -321,7 +325,7 @@ class _AdvancedFilterSheetState extends ConsumerState<AdvancedFilterSheet> {
           isDark,
           borderColor,
         );
-      case 2: // Time Options
+      case 'Time': // Time Options
         final options = ['All', 'Today', 'This Week', 'This Month', 'Older'];
         return _buildRadioList(
           options,
@@ -330,7 +334,7 @@ class _AdvancedFilterSheetState extends ConsumerState<AdvancedFilterSheet> {
           isDark,
           borderColor,
         );
-      case 3: // Location Options
+      case 'Location': // Location Options
         final options = ['All', 'Local', 'Cloud', 'SD Card'];
         return _buildRadioList(
           options,
@@ -339,7 +343,7 @@ class _AdvancedFilterSheetState extends ConsumerState<AdvancedFilterSheet> {
           isDark,
           borderColor,
         );
-      case 4: // Advanced Options
+      case 'Advanced': // Advanced Options
         return Column(
           children: [
             _buildSwitchTile(
@@ -359,14 +363,39 @@ class _AdvancedFilterSheetState extends ConsumerState<AdvancedFilterSheet> {
             ),
           ],
         );
-      case 5: // Sort By Options
-        final options = ['Name', 'Date', 'Size'];
-        return _buildRadioList(
-          options,
-          state.sortBy,
-          notifier.setSortBy,
-          isDark,
-          borderColor,
+      case 'Sort By': // Sort By Options
+        return Column(
+          children: [
+            _buildSortRow(
+              'Name Sort',
+              state.nameSort,
+              notifier.setNameSort,
+              ['Off', 'Ascending', 'Descending'],
+              ['Off', 'A to Z', 'Z to A'],
+              isDark,
+              borderColor,
+            ),
+            SizedBox(height: 14.0.h),
+            _buildSortRow(
+              'Date Sort',
+              state.dateSort,
+              notifier.setDateSort,
+              ['Off', 'Descending', 'Ascending'],
+              ['Off', 'Newest First', 'Oldest First'],
+              isDark,
+              borderColor,
+            ),
+            SizedBox(height: 14.0.h),
+            _buildSortRow(
+              'Size Sort',
+              state.sizeSort,
+              notifier.setSizeSort,
+              ['Off', 'Descending', 'Ascending'],
+              ['Off', 'High to Low', 'Low to High'],
+              isDark,
+              borderColor,
+            ),
+          ],
         );
       default:
         return const SizedBox.shrink();
@@ -485,6 +514,74 @@ class _AdvancedFilterSheetState extends ConsumerState<AdvancedFilterSheet> {
           onChanged: onChanged,
           activeColor: AppColors.mintAccent,
           activeTrackColor: AppColors.mintAccent.withValues(alpha: 0.2),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSortRow(
+    String title,
+    String currentValue,
+    Function(String) onChanged,
+    List<String> values,
+    List<String> labels,
+    bool isDark,
+    Color borderColor,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13.0.sp,
+            fontWeight: FontWeight.w700,
+            color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+          ),
+        ),
+        SizedBox(height: 8.0.h),
+        Row(
+          children: List.generate(values.length, (i) {
+            final val = values[i];
+            final label = labels[i];
+            final isSelected = currentValue == val;
+            return Padding(
+              padding: EdgeInsets.only(right: 8.0.w),
+              child: GestureDetector(
+                onTap: () => onChanged(val),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.0.w,
+                    vertical: 8.0.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.mintAccent
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.04)
+                            : Colors.black.withValues(alpha: 0.02)),
+                    borderRadius: BorderRadius.circular(16.0.r),
+                    border: Border.all(
+                      color: isSelected ? AppColors.mintAccent : borderColor,
+                      width: 1.0.r,
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11.0.sp,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? Colors.black
+                          : (isDark ? AppColors.pureWhite : AppColors.neutral900),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
         ),
       ],
     );

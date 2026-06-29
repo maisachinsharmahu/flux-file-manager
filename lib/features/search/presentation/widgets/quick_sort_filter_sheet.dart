@@ -7,15 +7,16 @@ import '../../../../core/providers/file_filter_provider.dart';
 import 'advanced_filter_sheet.dart';
 
 class QuickSortFilterSheet extends ConsumerWidget {
-  const QuickSortFilterSheet({Key? key}) : super(key: key);
+  final bool hideFileType;
+  const QuickSortFilterSheet({Key? key, this.hideFileType = false}) : super(key: key);
 
-  static void show(BuildContext context) {
+  static void show(BuildContext context, {bool hideFileType = false}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.5),
       isScrollControlled: true,
-      builder: (context) => const QuickSortFilterSheet(),
+      builder: (context) => QuickSortFilterSheet(hideFileType: hideFileType),
     );
   }
 
@@ -91,7 +92,7 @@ class QuickSortFilterSheet extends ConsumerWidget {
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      AdvancedFilterSheet.show(context);
+                      AdvancedFilterSheet.show(context, hideFileType: hideFileType);
                     },
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -135,7 +136,9 @@ class QuickSortFilterSheet extends ConsumerWidget {
                   _buildChoiceChip(
                     label: 'Name',
                     isSelected: nameActive,
-                    onTap: () => filterNotifier.setNameSort(nameActive ? 'Off' : 'Ascending'),
+                    onTap: () => filterNotifier.setNameSort(
+                      nameActive ? 'Off' : 'Ascending',
+                    ),
                     isDark: isDark,
                     borderColor: borderColor,
                   ),
@@ -143,7 +146,9 @@ class QuickSortFilterSheet extends ConsumerWidget {
                   _buildChoiceChip(
                     label: 'Date',
                     isSelected: dateActive,
-                    onTap: () => filterNotifier.setDateSort(dateActive ? 'Off' : 'Descending'),
+                    onTap: () => filterNotifier.setDateSort(
+                      dateActive ? 'Off' : 'Descending',
+                    ),
                     isDark: isDark,
                     borderColor: borderColor,
                   ),
@@ -151,13 +156,15 @@ class QuickSortFilterSheet extends ConsumerWidget {
                   _buildChoiceChip(
                     label: 'Size',
                     isSelected: sizeActive,
-                    onTap: () => filterNotifier.setSizeSort(sizeActive ? 'Off' : 'Descending'),
+                    onTap: () => filterNotifier.setSizeSort(
+                      sizeActive ? 'Off' : 'Descending',
+                    ),
                     isDark: isDark,
                     borderColor: borderColor,
                   ),
                 ],
               ),
-              
+
               // Animated expansion of order sub-options
               AnimatedSize(
                 duration: const Duration(milliseconds: 250),
@@ -183,7 +190,8 @@ class QuickSortFilterSheet extends ConsumerWidget {
                           _buildChoiceChip(
                             label: 'A to Z',
                             isSelected: filterState.nameSort == 'Ascending',
-                            onTap: () => filterNotifier.setNameSort('Ascending'),
+                            onTap: () =>
+                                filterNotifier.setNameSort('Ascending'),
                             isDark: isDark,
                             borderColor: borderColor,
                           ),
@@ -191,7 +199,8 @@ class QuickSortFilterSheet extends ConsumerWidget {
                           _buildChoiceChip(
                             label: 'Z to A',
                             isSelected: filterState.nameSort == 'Descending',
-                            onTap: () => filterNotifier.setNameSort('Descending'),
+                            onTap: () =>
+                                filterNotifier.setNameSort('Descending'),
                             isDark: isDark,
                             borderColor: borderColor,
                           ),
@@ -216,7 +225,8 @@ class QuickSortFilterSheet extends ConsumerWidget {
                           _buildChoiceChip(
                             label: 'Newest First',
                             isSelected: filterState.dateSort == 'Descending',
-                            onTap: () => filterNotifier.setDateSort('Descending'),
+                            onTap: () =>
+                                filterNotifier.setDateSort('Descending'),
                             isDark: isDark,
                             borderColor: borderColor,
                           ),
@@ -224,7 +234,8 @@ class QuickSortFilterSheet extends ConsumerWidget {
                           _buildChoiceChip(
                             label: 'Oldest First',
                             isSelected: filterState.dateSort == 'Ascending',
-                            onTap: () => filterNotifier.setDateSort('Ascending'),
+                            onTap: () =>
+                                filterNotifier.setDateSort('Ascending'),
                             isDark: isDark,
                             borderColor: borderColor,
                           ),
@@ -249,7 +260,8 @@ class QuickSortFilterSheet extends ConsumerWidget {
                           _buildChoiceChip(
                             label: 'High to Low',
                             isSelected: filterState.sizeSort == 'Descending',
-                            onTap: () => filterNotifier.setSizeSort('Descending'),
+                            onTap: () =>
+                                filterNotifier.setSizeSort('Descending'),
                             isDark: isDark,
                             borderColor: borderColor,
                           ),
@@ -257,7 +269,8 @@ class QuickSortFilterSheet extends ConsumerWidget {
                           _buildChoiceChip(
                             label: 'Low to High',
                             isSelected: filterState.sizeSort == 'Ascending',
-                            onTap: () => filterNotifier.setSizeSort('Ascending'),
+                            onTap: () =>
+                                filterNotifier.setSizeSort('Ascending'),
                             isDark: isDark,
                             borderColor: borderColor,
                           ),
@@ -285,7 +298,9 @@ class QuickSortFilterSheet extends ConsumerWidget {
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 child: Row(
-                  children: ['All', 'Today', 'This Week', 'This Month'].map((time) {
+                  children: ['All', 'Today', 'This Week', 'This Month'].map((
+                    time,
+                  ) {
                     final isSelected = filterState.dateRange == time;
                     return Padding(
                       padding: EdgeInsets.only(right: 10.0.w),
@@ -354,8 +369,8 @@ class QuickSortFilterSheet extends ConsumerWidget {
           color: isSelected
               ? AppColors.mintAccent
               : (isDark
-                  ? Colors.white.withValues(alpha: 0.04)
-                  : Colors.black.withValues(alpha: 0.02)),
+                    ? Colors.white.withValues(alpha: 0.04)
+                    : Colors.black.withValues(alpha: 0.02)),
           borderRadius: BorderRadius.circular(20.0.r),
           border: Border.all(
             color: isSelected ? AppColors.mintAccent : borderColor,

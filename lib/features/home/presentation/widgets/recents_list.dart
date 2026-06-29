@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/flux_icon.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -36,7 +37,7 @@ class RecentsList extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () => context.push('/search'),
                 child: Text(
                   'View All',
                   style: TextStyle(

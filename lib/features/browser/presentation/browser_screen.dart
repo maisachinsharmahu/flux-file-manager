@@ -82,23 +82,54 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
 
     // Mock folder list for root "Internal Storage"
     final List<Map<String, dynamic>> folders = [
-      {'name': 'Alarms', 'items': 1, 'size': '1 KB', 'heart': false},
-      {'name': 'Android', 'items': 6, 'size': '12 MB', 'heart': false},
-      {'name': 'Backups', 'items': 1, 'size': '821 MB', 'heart': false},
-      {'name': 'Browser', 'items': 3, 'size': '204 KB', 'heart': false},
-      {'name': 'Canva', 'items': 23, 'size': '98 MB', 'heart': true},
-      {'name': 'DCIM', 'items': 3, 'size': '18.4 GB', 'heart': false},
-      {'name': 'Documents', 'items': 6, 'size': '2.4 GB', 'heart': false},
-      {'name': 'Download', 'items': 5, 'size': '4.6 GB', 'heart': true},
-      {'name': 'Notifications', 'items': 1, 'size': '4 KB', 'heart': false},
+      {'name': 'Alarms', 'items': 1, 'size': '1 KB', 'heart': false, 'date': DateTime.now().subtract(const Duration(days: 10))},
+      {'name': 'Android', 'items': 6, 'size': '12 MB', 'heart': false, 'date': DateTime.now().subtract(const Duration(days: 1))},
+      {'name': 'Backups', 'items': 1, 'size': '821 MB', 'heart': false, 'date': DateTime.now().subtract(const Duration(days: 15))},
+      {'name': 'Browser', 'items': 3, 'size': '204 KB', 'heart': false, 'date': DateTime.now().subtract(const Duration(days: 3))},
+      {'name': 'Canva', 'items': 23, 'size': '98 MB', 'heart': true, 'date': DateTime.now().subtract(const Duration(hours: 4))},
+      {'name': 'DCIM', 'items': 3, 'size': '18.4 GB', 'heart': false, 'date': DateTime.now().subtract(const Duration(days: 20))},
+      {'name': 'Documents', 'items': 6, 'size': '2.4 GB', 'heart': false, 'date': DateTime.now().subtract(const Duration(days: 30))},
+      {'name': 'Download', 'items': 5, 'size': '4.6 GB', 'heart': true, 'date': DateTime.now().subtract(const Duration(hours: 1))},
+      {'name': 'Notifications', 'items': 1, 'size': '4 KB', 'heart': false, 'date': DateTime.now().subtract(const Duration(days: 8))},
     ];
 
-    // Determine current display configuration
-    final String pageTitle = activeCategory ?? 'Internal Storage';
     final filterState = ref.watch(fileFilterProvider);
+
+    // Sort folders dynamically if sorting parameters are active
+    double parseSizeToMb(String sizeStr) {
+      final parts = sizeStr.split(' ');
+      if (parts.length < 2) return 0.0;
+      final val = double.tryParse(parts[0]) ?? 0.0;
+      final unit = parts[1].toUpperCase();
+      if (unit == 'KB') return val / 1024.0;
+      if (unit == 'GB') return val * 1024.0;
+      return val;
+    }
+
+    folders.sort((a, b) {
+      if (filterState.nameSort != 'Off') {
+        final isDesc = filterState.nameSort == 'Descending';
+        final comp = (a['name'] as String).toLowerCase().compareTo((b['name'] as String).toLowerCase());
+        return isDesc ? -comp : comp;
+      }
+      if (filterState.dateSort != 'Off') {
+        final isDesc = filterState.dateSort == 'Descending';
+        final comp = (a['date'] as DateTime).compareTo(b['date'] as DateTime);
+        return isDesc ? -comp : comp;
+      }
+      if (filterState.sizeSort != 'Off') {
+        final isDesc = filterState.sizeSort == 'Descending';
+        final sizeA = parseSizeToMb(a['size'] as String);
+        final sizeB = parseSizeToMb(b['size'] as String);
+        final comp = sizeA.compareTo(sizeB);
+        return isDesc ? -comp : comp;
+      }
+      return 0;
+    });
     
     // Resolve dynamic list based on whether category view is active
     bool isFolderList = activeCategory == null;
+    final String pageTitle = activeCategory ?? 'Internal Storage';
     List<FluxFile> currentFileList = [];
     
     if (!isFolderList) {
@@ -203,10 +234,9 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (!isFolderList) ...[
                                 GestureDetector(
                                   onTap: () {
-                                    QuickSortFilterSheet.show(context);
+                                    QuickSortFilterSheet.show(context, hideFileType: true);
                                   },
                                   child: Stack(
                                     clipBehavior: Clip.none,
@@ -238,7 +268,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                   ),
                                 ),
                                 SizedBox(width: 16.0.w),
-                              ],
                               Icon(
                                 Icons.grid_view_outlined,
                                 size: 22.0.r,
