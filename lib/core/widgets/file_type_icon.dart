@@ -1,37 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-/// Returns the asset path for the colorful filetype PNG icon
+/// Returns the asset path for the colorful filetype SVG icon
 /// corresponding to [extension] (e.g. 'pdf', 'mp4', 'docx').
 ///
-/// All icons live under `assets/pngicons/`.
+/// All icons live under `assets/newsv/`.
 String fileTypeIconPath(String extension) {
   switch (extension.toLowerCase().trim()) {
     // Documents
     case 'pdf':
-      return 'assets/pngicons/PDF.png';
+      return 'assets/newsv/PDF.svg';
     case 'doc':
-      return 'assets/pngicons/DOC.png';
+      return 'assets/newsv/DOC.svg';
     case 'docx':
-      return 'assets/pngicons/DOCX.png';
+      return 'assets/newsv/DOCX.svg';
     case 'xls':
     case 'xlsx':
-      return 'assets/pngicons/XSL.png';
+      return 'assets/newsv/XSL.svg';
     case 'csv':
-      return 'assets/pngicons/CSV.png';
+      return 'assets/newsv/CSV.svg';
     case 'ppt':
     case 'pptx':
-      return 'assets/pngicons/PPT.png';
+      return 'assets/newsv/PPT.svg';
     case 'txt':
     case 'md':
     case 'log':
-      return 'assets/pngicons/TXT.png';
+      return 'assets/newsv/TXT.svg';
     case 'xml':
-      return 'assets/pngicons/XML.png';
+      return 'assets/newsv/XML.svg';
     case 'html':
     case 'htm':
-      return 'assets/pngicons/HTML.png';
+      return 'assets/newsv/HTML.svg';
     case 'svg':
-      return 'assets/pngicons/SVG.png';
+      return 'assets/newsv/SVG.svg';
     case 'java':
     case 'json':
     case 'yaml':
@@ -46,107 +47,110 @@ String fileTypeIconPath(String extension) {
     case 'c':
     case 'h':
     case 'sql':
-      return 'assets/pngicons/JAVA.png';
+      return 'assets/newsv/JAVA.svg';
     case 'pub':
-      return 'assets/pngicons/PUB.png';
+      return 'assets/newsv/PUB.svg';
     case 'rss':
-      return 'assets/pngicons/RSS.png';
+      return 'assets/newsv/RSS.svg';
 
     // Images
     case 'jpg':
     case 'jpeg':
-      return 'assets/pngicons/JPG.png';
+      return 'assets/newsv/JPG.svg';
     case 'png':
-      return 'assets/pngicons/PNG.png';
+      return 'assets/newsv/PNG.svg';
     case 'gif':
-      return 'assets/pngicons/GIFF.png';
+      return 'assets/newsv/GIFF.svg';
     case 'bmp':
-      return 'assets/pngicons/BMP.png';
+      return 'assets/newsv/BMP.svg';
     case 'tiff':
     case 'tif':
-      return 'assets/pngicons/TIFF.png';
+      return 'assets/newsv/TIFF.svg';
     case 'raw':
     case 'cr2':
     case 'nef':
-      return 'assets/pngicons/RAW.png';
+      return 'assets/newsv/RAW.svg';
     case 'psd':
-      return 'assets/pngicons/PSD.png';
+      return 'assets/newsv/PSD.svg';
     case 'ai':
-      return 'assets/pngicons/AI.png';
+      return 'assets/newsv/AI.svg';
     case 'eps':
-      return 'assets/pngicons/EPS.png';
+      return 'assets/newsv/EPS.svg';
     case 'cdr':
     case 'crd':
-      return 'assets/pngicons/CRD.png';
+      return 'assets/newsv/CRD.svg';
     case 'dwg':
-      return 'assets/pngicons/DWG.png';
+      return 'assets/newsv/DWG.svg';
     case 'ps':
-      return 'assets/pngicons/PS.png';
+      return 'assets/newsv/PS.svg';
 
     // Video
     case 'mp4':
     case 'm4v':
-      return 'assets/pngicons/MP4.png';
+      return 'assets/newsv/MP4.svg';
     case 'avi':
-      return 'assets/pngicons/AVI.png';
+      return 'assets/newsv/AVI.svg';
     case 'mov':
     case 'qt':
-      return 'assets/pngicons/MOV.png';
+      return 'assets/newsv/MOV.svg';
     case 'flv':
-      return 'assets/pngicons/FLV.png';
+      return 'assets/newsv/FLV.svg';
     case 'mpeg':
     case 'mpg':
-      return 'assets/pngicons/MPEG.png';
+      return 'assets/newsv/MPEG.svg';
     case 'mkv':
     case 'webm':
     case 'wmv':
-      return 'assets/pngicons/AVI.png';
+      return 'assets/newsv/AVI.svg';
 
     // Audio
     case 'mp3':
-      return 'assets/pngicons/MP3.png';
+      return 'assets/newsv/MP3.svg';
     case 'wav':
-      return 'assets/pngicons/WAV.png';
+      return 'assets/newsv/WAV.svg';
     case 'wma':
-      return 'assets/pngicons/WMA.png';
+      return 'assets/newsv/WMA.svg';
     case 'mid':
     case 'midi':
-      return 'assets/pngicons/MID.png';
+      return 'assets/newsv/MID.svg';
     case 'aac':
     case 'flac':
     case 'ogg':
     case 'm4a':
-      return 'assets/pngicons/MP3.png';
+      return 'assets/newsv/MP3.svg';
 
     // Archives
     case 'zip':
-      return 'assets/pngicons/ZIP.png';
+      return 'assets/newsv/ZIP.svg';
     case 'rar':
-      return 'assets/pngicons/RAR.png';
+      return 'assets/newsv/RAR.svg';
     case '7z':
     case 'tar':
     case 'gz':
     case 'bz2':
-      return 'assets/pngicons/ZIP.png';
+      return 'assets/newsv/ZIP.svg';
     case 'iso':
-      return 'assets/pngicons/ISO.png';
+      return 'assets/newsv/ISO.svg';
     case 'dll':
-      return 'assets/pngicons/DLL.png';
+      return 'assets/newsv/DLL.svg';
     case 'exe':
-      return 'assets/pngicons/EXE.png';
+      return 'assets/newsv/EXE.svg';
     case 'mdb':
     case 'db':
     case 'sqlite':
-      return 'assets/pngicons/MDB.png';
+      return 'assets/newsv/MDB.svg';
 
     // Default
     default:
-      return 'assets/pngicons/TXT.png';
+      return 'assets/newsv/TXT.svg';
   }
 }
 
 /// A widget that renders the correct colorful file-type icon
 /// for a given file [extension].
+///
+/// The SVGs have a transparent document body, so we wrap them in a
+/// white rounded container to match the original design reference.
 ///
 /// Usage:
 /// ```dart
@@ -164,11 +168,28 @@ class FileTypeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      fileTypeIconPath(extension),
+    return Container(
       width: size,
       height: size,
-      fit: BoxFit.contain,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(size * 0.18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: size * 0.12,
+            offset: Offset(0, size * 0.04),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: EdgeInsets.all(size * 0.04),
+        child: SvgPicture.asset(
+          fileTypeIconPath(extension),
+          fit: BoxFit.contain,
+        ),
+      ),
     );
   }
 }
