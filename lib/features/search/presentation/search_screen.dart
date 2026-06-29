@@ -12,9 +12,13 @@ class SearchScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen>
+    with SingleTickerProviderStateMixin {
   late final TextEditingController _searchController;
   late final FocusNode _focusNode;
+  late AnimationController _animationController;
+  late Animation<double> _opacityAnimation;
+  late Animation<double> _scaleAnimation;
 
   // Mock list of files representing query matches in layouts
   final List<Map<String, String>> _mockFiles = [
@@ -55,10 +59,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.initState();
     _searchController = TextEditingController();
     _focusNode = FocusNode();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
     
-    // Auto-focus search field on transition end
+    // Auto-focus search field on transition end and start animation
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
+      if (mounted) {
+        _focusNode.requestFocus();
+        _animationController.forward();
+      }
     });
   }
 
@@ -66,6 +86,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void dispose() {
     _searchController.dispose();
     _focusNode.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -113,131 +134,137 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           );
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: bgGradient,
-        ),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Navigation Search Row
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.0.w, vertical: 12.0.h),
-                child: Row(
-                  children: [
-                    // Back Circle Icon Button
-                    GestureDetector(
-                      onTap: () {
-                        context.pop();
-                      },
-                      child: Container(
-                        width: 44.0.w,
-                        height: 44.0.h,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isDark ? AppColors.neutral900 : AppColors.neutral100,
-                          border: Border.all(
-                            color: isDark ? AppColors.neutral800 : AppColors.neutral200,
-                            width: 1.0.r,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.arrow_back,
-                          color: isDark ? AppColors.neutral50 : AppColors.neutral900,
-                          size: 20.0.r,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12.0.w),
-                    // Input Bar wrapped in Hero tag 'search_bar_hero'
-                    Expanded(
-                      child: Hero(
-                        tag: 'search_bar_hero',
-                        child: Material(
-                          color: Colors.transparent,
+      body: FadeTransition(
+        opacity: _opacityAnimation,
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: bgGradient,
+            ),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top Navigation Search Row
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.0.w, vertical: 12.0.h),
+                    child: Row(
+                      children: [
+                        // Back Circle Icon Button
+                        GestureDetector(
+                          onTap: () {
+                            context.pop();
+                          },
                           child: Container(
-                            height: 48.0.h,
+                            width: 44.0.w,
+                            height: 44.0.h,
                             decoration: BoxDecoration(
+                              shape: BoxShape.circle,
                               color: isDark ? AppColors.neutral900 : AppColors.neutral100,
-                              borderRadius: BorderRadius.circular(24.0.r),
                               border: Border.all(
                                 color: isDark ? AppColors.neutral800 : AppColors.neutral200,
                                 width: 1.0.r,
                               ),
                             ),
-                            padding: EdgeInsets.symmetric(horizontal: 16.0.w),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.search,
-                                  color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
-                                  size: 20.0.r,
-                                ),
-                                SizedBox(width: 10.0.w),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _searchController,
-                                    focusNode: _focusNode,
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 14.0.sp,
-                                      color: isDark ? AppColors.neutral50 : AppColors.neutral900,
-                                      decoration: TextDecoration.none,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Search',
-                                      hintStyle: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 14.0.sp,
-                                        color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
-                                      ),
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                    onChanged: (val) {
-                                      ref.read(searchStateProvider.notifier).state = val;
-                                    },
-                                    onSubmitted: (val) {
-                                      if (val.trim().isNotEmpty) {
-                                        ref.read(searchHistoryProvider.notifier).add(val.trim());
-                                      }
-                                    },
-                                  ),
-                                ),
-                                if (query.isNotEmpty)
-                                  GestureDetector(
-                                    onTap: () {
-                                      _searchController.clear();
-                                      ref.read(searchStateProvider.notifier).state = '';
-                                    },
-                                    child: Icon(
-                                      Icons.close,
-                                      color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
-                                      size: 18.0.r,
-                                    ),
-                                  ),
-                              ],
+                            child: Icon(
+                              Icons.arrow_back,
+                              color: isDark ? AppColors.neutral50 : AppColors.neutral900,
+                              size: 20.0.r,
                             ),
                           ),
                         ),
-                      ),
+                        SizedBox(width: 12.0.w),
+                        // Input Bar wrapped in Hero tag 'search_bar_hero'
+                        Expanded(
+                          child: Hero(
+                            tag: 'search_bar_hero',
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Container(
+                                height: 48.0.h,
+                                decoration: BoxDecoration(
+                                  color: isDark ? AppColors.neutral900 : AppColors.neutral100,
+                                  borderRadius: BorderRadius.circular(24.0.r),
+                                  border: Border.all(
+                                    color: isDark ? AppColors.neutral800 : AppColors.neutral200,
+                                    width: 1.0.r,
+                                  ),
+                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 16.0.w),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.search,
+                                      color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                                      size: 20.0.r,
+                                    ),
+                                    SizedBox(width: 10.0.w),
+                                    Expanded(
+                                      child: TextField(
+                                        focusNode: _focusNode,
+                                        controller: _searchController,
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 14.0.sp,
+                                          color: isDark ? AppColors.neutral50 : AppColors.neutral900,
+                                          decoration: TextDecoration.none,
+                                        ),
+                                        decoration: InputDecoration(
+                                          hintText: 'Search',
+                                          hintStyle: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 14.0.sp,
+                                            color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                                          ),
+                                          border: InputBorder.none,
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                        onChanged: (val) {
+                                          ref.read(searchStateProvider.notifier).state = val;
+                                        },
+                                        onSubmitted: (val) {
+                                          if (val.trim().isNotEmpty) {
+                                            ref.read(searchHistoryProvider.notifier).add(val.trim());
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                    if (query.isNotEmpty)
+                                      GestureDetector(
+                                        onTap: () {
+                                          _searchController.clear();
+                                          ref.read(searchStateProvider.notifier).state = '';
+                                        },
+                                        child: Icon(
+                                          Icons.close,
+                                          color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                                          size: 18.0.r,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
 
-              // Dynamic Body switching states
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
-                  child: query.isEmpty
-                      ? _buildHistoryState(ref, isDark, titleColor, history)
-                      : _buildResultsState(isDark, titleColor, subColor, filteredFiles),
-                ),
+                  // Dynamic Body switching states
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
+                      child: query.isEmpty
+                          ? _buildHistoryState(ref, isDark, titleColor, history)
+                          : _buildResultsState(isDark, titleColor, subColor, filteredFiles),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
