@@ -7,6 +7,7 @@ import 'widgets/storage_bar.dart';
 import 'widgets/quick_access_grid.dart';
 import 'widgets/recents_list.dart';
 import 'widgets/smart_cards_list.dart';
+import 'widgets/all_storage_section.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/copy_task_provider.dart';
@@ -20,7 +21,6 @@ class HomeScreen extends ConsumerWidget {
       color: Colors
           .transparent, // Let main navigation radial glow backdrop show through
       child: SafeArea(
-        bottom: false,
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
             bottom: 120.0.h,
@@ -33,6 +33,7 @@ class HomeScreen extends ConsumerWidget {
               const StorageBar(),
               const QuickAccessGrid(),
               const RecentsList(),
+              const AllStorageSection(),
               const SmartCardsList(),
               SizedBox(height: 12.0.h),
               const _DevSimulationConsole(),
