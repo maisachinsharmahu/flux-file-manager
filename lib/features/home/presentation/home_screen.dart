@@ -58,9 +58,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 const _HomeSearchBar(),
                 StorageBar(key: _storageBarKey),
-                const QuickAccessGrid(),
                 const RecentsList(),
                 const AllStorageSection(),
+                const QuickAccessGrid(),
                 const SmartCardsList(),
                 SizedBox(height: 12.0.h),
                 const _DevSimulationConsole(),
