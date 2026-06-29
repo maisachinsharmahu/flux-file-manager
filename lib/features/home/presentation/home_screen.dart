@@ -85,43 +85,16 @@ class _HomeSearchBar extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: 14.0.w),
                   child: Row(
                     children: [
-                      // Clickable Sidebar open Avatar Icon on the Left
+                      // Clickable Sidebar open Menu Icon on the Left
                       GestureDetector(
                         onTap: () {
                           Scaffold.of(context).openDrawer();
                         },
                         behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          width: 32.0.r,
-                          height: 32.0.r,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [AppColors.mintAccent, Color(0xFF059669)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.all(1.5.r),
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.neutral900,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'S',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 12.0.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.mintAccent,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        child: Icon(
+                          Icons.menu_rounded,
+                          color: iconColor,
+                          size: 22.0.r,
                         ),
                       ),
                       SizedBox(width: 12.0.w),
