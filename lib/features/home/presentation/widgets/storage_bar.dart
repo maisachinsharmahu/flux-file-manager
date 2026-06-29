@@ -39,6 +39,12 @@ class _StorageBarState extends ConsumerState<StorageBar>
     super.dispose();
   }
 
+  double _getSegmentProgress(double animationValue, double start, double duration) {
+    if (animationValue < start) return 0.0;
+    if (animationValue > start + duration) return 1.0;
+    return (animationValue - start) / duration;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -103,18 +109,25 @@ class _StorageBarState extends ConsumerState<StorageBar>
                     ),
                   ),
                   SizedBox(height: 18.0.h),
-                  // Animated Segmented Horizontal Progress Bar (individual capsules with gaps)
+                  // Animated Segmented Horizontal Progress Bar (growing sequentially left-to-right)
                   AnimatedBuilder(
                     animation: _progressAnimation,
                     builder: (context, child) {
                       final val = _progressAnimation.value;
+                      
+                      // Segment thresholds matching their flex proportions (total flex sum = 90)
+                      final p1 = _getSegmentProgress(val, 0.0, 15 / 90);
+                      final p2 = _getSegmentProgress(val, 15 / 90, 55 / 90);
+                      final p3 = _getSegmentProgress(val, 70 / 90, 15 / 90);
+                      final p4 = _getSegmentProgress(val, 85 / 90, 5 / 90);
+
                       return Row(
                         children: [
                           Expanded(
                             flex: 15,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
-                              widthFactor: val,
+                              widthFactor: p1,
                               child: Container(
                                 height: 10.0.h,
                                 decoration: BoxDecoration(
@@ -129,7 +142,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                             flex: 55,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
-                              widthFactor: val,
+                              widthFactor: p2,
                               child: Container(
                                 height: 10.0.h,
                                 decoration: BoxDecoration(
@@ -144,7 +157,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                             flex: 15,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
-                              widthFactor: val,
+                              widthFactor: p3,
                               child: Container(
                                 height: 10.0.h,
                                 decoration: BoxDecoration(
@@ -159,7 +172,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                             flex: 5,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
-                              widthFactor: val,
+                              widthFactor: p4,
                               child: Container(
                                 height: 10.0.h,
                                 decoration: BoxDecoration(
