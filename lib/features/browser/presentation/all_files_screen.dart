@@ -9,7 +9,8 @@ import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
 import '../../../core/widgets/flux_icon.dart';
 
 class AllFilesScreen extends ConsumerStatefulWidget {
-  const AllFilesScreen({Key? key}) : super(key: key);
+  final String title;
+  const AllFilesScreen({Key? key, this.title = 'All Files'}) : super(key: key);
 
   @override
   ConsumerState<AllFilesScreen> createState() => _AllFilesScreenState();
@@ -197,7 +198,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                           ),
                           SizedBox(width: 8.0.w),
                           Text(
-                            'All Files',
+                            widget.title,
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 24.0.sp,

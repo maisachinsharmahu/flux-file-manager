@@ -139,7 +139,7 @@ class DownloadsGrid extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => context.push('/all_files'),
+                onTap: () => context.push('/all_files?title=Recent Downloads'),
                 child: Text(
                   'View All',
                   style: TextStyle(
@@ -169,7 +169,7 @@ class DownloadsGrid extends StatelessWidget {
               // The 6th spot is the "+ X more" card
               if (index == maxSpots - 1) {
                 return GestureDetector(
-                  onTap: () => context.push('/all_files'),
+                  onTap: () => context.push('/all_files?title=Recent Downloads'),
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.mintAccent.withValues(alpha: isDark ? 0.06 : 0.04),

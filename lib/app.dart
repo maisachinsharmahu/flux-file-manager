@@ -46,7 +46,8 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/all_files',
       builder: (BuildContext context, GoRouterState state) {
-        return const AllFilesScreen();
+        final title = state.uri.queryParameters['title'] ?? 'All Files';
+        return AllFilesScreen(title: title);
       },
     ),
   ],
