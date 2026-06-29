@@ -49,7 +49,8 @@ class AllStorageSection extends ConsumerWidget {
                 child: GestureDetector(
                   onTap: () {
                     // Navigate to Internal Storage (Root list view)
-                    ref.read(selectedBrowserCategoryProvider.notifier).state = null;
+                    ref.read(selectedBrowserCategoryProvider.notifier).state =
+                        null;
                     ref.read(activeIndexProvider.notifier).state = 3;
                   },
                   child: ClipRRect(
@@ -73,7 +74,9 @@ class AllStorageSection extends ConsumerWidget {
                                   width: 36.0.r,
                                   height: 36.0.r,
                                   decoration: BoxDecoration(
-                                    color: AppColors.mintAccent.withValues(alpha: 0.1),
+                                    color: AppColors.mintAccent.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Center(
@@ -118,8 +121,12 @@ class AllStorageSection extends ConsumerWidget {
                               child: LinearProgressIndicator(
                                 value: 48 / 120,
                                 minHeight: 4.0.h,
-                                backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.mintAccent),
+                                backgroundColor: isDark
+                                    ? Colors.white10
+                                    : Colors.black.withValues(alpha: 0.05),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  AppColors.mintAccent,
+                                ),
                               ),
                             ),
                           ],
@@ -157,7 +164,9 @@ class AllStorageSection extends ConsumerWidget {
                                   width: 36.0.r,
                                   height: 36.0.r,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFA020F0).withValues(alpha: 0.1),
+                                    color: const Color(
+                                      0xFFA020F0,
+                                    ).withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Center(
@@ -202,8 +211,12 @@ class AllStorageSection extends ConsumerWidget {
                               child: LinearProgressIndicator(
                                 value: 12 / 64,
                                 minHeight: 4.0.h,
-                                backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFA020F0)),
+                                backgroundColor: isDark
+                                    ? Colors.white10
+                                    : Colors.black.withValues(alpha: 0.05),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Color(0xFFA020F0),
+                                ),
                               ),
                             ),
                           ],

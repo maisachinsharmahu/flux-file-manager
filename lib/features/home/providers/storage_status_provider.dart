@@ -6,3 +6,4 @@ final storageStatusProvider = FutureProvider<Map<dynamic, dynamic>>((
 ) async {
   return await FluxBridge.getStorageStatistics();
 });
+ 

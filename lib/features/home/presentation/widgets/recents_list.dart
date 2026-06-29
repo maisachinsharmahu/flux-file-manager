@@ -1,48 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/widgets/flux_icon.dart';
 import '../../../../core/theme/app_colors.dart';
+
 import 'file_detail_sheet.dart';
 
 class RecentsList extends StatelessWidget {
   const RecentsList({Key? key}) : super(key: key);
-
-  // ── Static data (mirrors what was here before + adds detail fields)
-  static final List<RecentFileInfo> _files = [
-    RecentFileInfo(
-      name: 'Quarterly_Report.pptx',
-      type: 'PowerPoint Presentation',
-      size: '2.4 MB',
-      modified: '2 hours ago',
-      path: '/Documents/Reports/',
-      iconColor: AppColors.pptIcon,
-      iconBg: AppColors.pptLightBg,
-      fallbackIcon: Icons.slideshow_outlined,
-    ),
-    RecentFileInfo(
-      name: 'Project_Design_Brief.pdf',
-      type: 'PDF Document',
-      size: '4.8 MB',
-      modified: '5 hours ago',
-      path: '/Documents/Projects/',
-      iconColor: AppColors.pdfIcon,
-      iconBg: AppColors.pdfBackground,
-      fluxIcon: FluxIconType.adobeReader,
-      fallbackIcon: Icons.picture_as_pdf_outlined,
-    ),
-    RecentFileInfo(
-      name: 'Revenue_Model_2026.xlsx',
-      type: 'Excel Spreadsheet',
-      size: '1.1 MB',
-      modified: 'Yesterday',
-      path: '/Documents/Finance/',
-      iconColor: AppColors.excelIcon,
-      iconBg: AppColors.excelLightBg,
-      fluxIcon: FluxIconType.documentColor,
-      fallbackIcon: Icons.table_chart_outlined,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -90,16 +54,59 @@ class RecentsList extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 24.0.w),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _files.length,
+          itemCount: 3,
           separatorBuilder: (context, index) =>
               Divider(color: dividerColor, height: 1.0.h, thickness: 1.0.r),
           itemBuilder: (context, index) {
+            final titles = [
+              'Quarterly_Report.pptx',
+              'Project_Design_Brief.pdf',
+              'Revenue_Model_2026.xlsx',
+            ];
+            final subtitles = [
+              'PowerPoint • 2.4 MB • 2 hours ago',
+              'PDF Document • 4.8 MB • 5 hours ago',
+              'Excel Sheet • 1.1 MB • Yesterday',
+            ];
+
+            final lightColors = [
+              AppColors.pptLightBg,
+              AppColors.pdfBackground,
+              AppColors.excelLightBg,
+            ];
+            final darkColors = [
+              AppColors.pptDarkBg,
+              AppColors.pdfDarkBg,
+              AppColors.excelDarkBg,
+            ];
+
+            final iconColors = [
+              AppColors.pptIcon,
+              AppColors.pdfIcon,
+              AppColors.excelIcon,
+            ];
+
+            final fallbackIcons = [
+              Icons.slideshow_outlined,
+              Icons.picture_as_pdf_outlined,
+              Icons.table_chart_outlined,
+            ];
+
+            final fluxIcons = [
+              null, // Fallback to PowerPoint slides outline
+              FluxIconType.adobeReader, // Premium PDF icon SVG
+              FluxIconType.documentColor, // Premium Spreadsheet document SVG
+            ];
+
+            final bgColor = isDark ? darkColors[index] : lightColors[index];
+
             return _RecentItemRow(
-              file: _files[index],
-              onTap: () {
-                HapticFeedback.lightImpact();
-                showFileDetailSheet(context, _files[index]);
-              },
+              title: titles[index],
+              subtitle: subtitles[index],
+              bgColor: bgColor,
+              iconColor: iconColors[index],
+              fallbackIcon: fallbackIcons[index],
+              fluxIcon: fluxIcons[index],
             );
           },
         ),
@@ -108,42 +115,62 @@ class RecentsList extends StatelessWidget {
   }
 }
 
-class _RecentItemRow extends StatefulWidget {
-  final RecentFileInfo file;
-  final VoidCallback onTap;
+class _RecentItemRow extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Color bgColor;
+  final Color iconColor;
+  final IconData fallbackIcon;
+  final FluxIconType? fluxIcon;
 
   const _RecentItemRow({
     Key? key,
-    required this.file,
-    required this.onTap,
+    required this.title,
+    required this.subtitle,
+    required this.bgColor,
+    required this.iconColor,
+    required this.fallbackIcon,
+    this.fluxIcon,
   }) : super(key: key);
 
-  @override
-  State<_RecentItemRow> createState() => _RecentItemRowState();
-}
+  void _showDetails(BuildContext context) {
+    FileDetail detail;
+    if (title.contains('Report')) {
+      detail = FileDetail(
+        name: 'Quarterly_Report.pptx',
+        size: '2.4 MB',
+        createdDate: 'June 28, 2026, 12:14 PM',
+        modifiedDate: 'June 29, 2026, 12:20 PM',
+        type: 'PowerPoint Presentation',
+        themeColor: iconColor,
+        fallbackIcon: fallbackIcon,
+        fluxIcon: fluxIcon,
+      );
+    } else if (title.contains('Brief')) {
+      detail = FileDetail(
+        name: 'Project_Design_Brief.pdf',
+        size: '4.8 MB',
+        createdDate: 'June 28, 2026, 09:10 AM',
+        modifiedDate: 'June 29, 2026, 09:14 AM',
+        type: 'PDF Document',
+        themeColor: iconColor,
+        fallbackIcon: fallbackIcon,
+        fluxIcon: fluxIcon,
+      );
+    } else {
+      detail = FileDetail(
+        name: 'Revenue_Model_2026.xlsx',
+        size: '1.1 MB',
+        createdDate: 'June 27, 2026, 03:40 PM',
+        modifiedDate: 'June 28, 2026, 05:30 PM',
+        type: 'Excel Spreadsheet',
+        themeColor: iconColor,
+        fallbackIcon: fallbackIcon,
+        fluxIcon: fluxIcon,
+      );
+    }
 
-class _RecentItemRowState extends State<_RecentItemRow>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pressCtrl;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _pressCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 90),
-      reverseDuration: const Duration(milliseconds: 180),
-    );
-    _scale = Tween<double>(begin: 1.0, end: 0.96).animate(
-      CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _pressCtrl.dispose();
-    super.dispose();
+    FileDetailSheet.show(context, detail);
   }
 
   @override
@@ -156,84 +183,74 @@ class _RecentItemRowState extends State<_RecentItemRow>
         ? AppColors.textSecondaryLight.withValues(alpha: 0.6)
         : AppColors.neutral400;
 
-    final file = widget.file;
-    final bgColor = isDark ? _darkBgFor(file) : file.iconBg;
-
     return GestureDetector(
-      onTapDown: (_) => _pressCtrl.forward(),
-      onTapUp: (_) {
-        _pressCtrl.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _pressCtrl.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 12.0.h),
-          child: Row(
-            children: [
-              Container(
-                width: 44.0.r,
-                height: 44.0.r,
-                decoration: BoxDecoration(
-                  color: bgColor.withValues(alpha: isDark ? 0.35 : 0.8),
-                  borderRadius: BorderRadius.circular(12.0.r),
-                  border: Border.all(
-                    color: file.iconColor.withValues(alpha: 0.15),
-                    width: 1.0.r,
+      onTap: () => _showDetails(context),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 12.0.h),
+        child: Row(
+          children: [
+            Container(
+              width: 44.0.r,
+              height: 44.0.r,
+              decoration: BoxDecoration(
+                color: bgColor.withValues(alpha: isDark ? 0.35 : 0.8),
+                borderRadius: BorderRadius.circular(12.0.r),
+                border: Border.all(
+                  color: iconColor.withValues(alpha: 0.15),
+                  width: 1.0.r,
+                ),
+              ),
+              child: Center(
+                child: fluxIcon != null
+                    ? FluxIcon(fluxIcon!, size: 20.0.r)
+                    : Icon(fallbackIcon, color: iconColor, size: 20.0.r),
+              ),
+            ),
+            SizedBox(width: 16.0.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15.0.sp,
+                      fontWeight: FontWeight.w600,
+                      color: titleColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                child: Center(
-                  child: file.fluxIcon != null
-                      ? FluxIcon(file.fluxIcon!, size: 20.0.r)
-                      : Icon(file.fallbackIcon, color: file.iconColor, size: 20.0.r),
-                ),
-              ),
-              SizedBox(width: 16.0.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      file.name,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 15.0.sp,
-                        fontWeight: FontWeight.w600,
-                        color: titleColor,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  SizedBox(height: 4.0.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12.0.sp,
+                      fontWeight: FontWeight.w500,
+                      color: subtitleColor,
                     ),
-                    SizedBox(height: 4.0.h),
-                    Text(
-                      '${file.type} • ${file.size} • ${file.modified}',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12.0.sp,
-                        fontWeight: FontWeight.w500,
-                        color: subtitleColor,
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => _showDetails(context),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: EdgeInsets.all(8.0.r),
+                child: Icon(
+                  Icons.more_vert,
+                  size: 20.0.r,
+                  color: isDark ? Colors.white38 : Colors.black38,
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20.0.r,
-                color: isDark ? Colors.white24 : Colors.black26,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  Color _darkBgFor(RecentFileInfo file) {
-    if (file.iconColor == AppColors.pptIcon) return AppColors.pptDarkBg;
-    if (file.iconColor == AppColors.pdfIcon) return AppColors.pdfDarkBg;
-    if (file.iconColor == AppColors.excelIcon) return AppColors.excelDarkBg;
-    return AppColors.neutral800;
   }
 }
