@@ -30,21 +30,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // Force StorageBar state reset so its entry capsule animation plays again
         _storageBarKey = UniqueKey();
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Dashboard widgets updated successfully.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF1E1E1E)
-              : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0.r),
-          ),
-          elevation: 4,
-          duration: const Duration(seconds: 2),
-        ),
-      );
     }
   }
 

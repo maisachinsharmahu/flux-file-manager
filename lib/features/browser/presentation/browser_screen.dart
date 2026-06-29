@@ -45,23 +45,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     await Future.delayed(const Duration(milliseconds: 1200));
     if (mounted) {
       _controller.forward(from: 0.0);
-      final activeCategory = ref.read(selectedBrowserCategoryProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(activeCategory != null
-              ? '$activeCategory category refreshed successfully.'
-              : 'Internal storage directories refreshed.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF1E1E1E)
-              : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0.r),
-          ),
-          elevation: 4,
-          duration: const Duration(seconds: 2),
-        ),
-      );
     }
   }
 
