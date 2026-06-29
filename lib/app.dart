@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'core/theme/achromatic_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/search/presentation/search_screen.dart';
+import 'features/browser/presentation/all_files_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/navigation/presentation/main_navigation_shell.dart';
 
@@ -40,6 +41,12 @@ final GoRouter _router = GoRouter(
             );
           },
         );
+      },
+    ),
+    GoRoute(
+      path: '/all_files',
+      builder: (BuildContext context, GoRouterState state) {
+        return const AllFilesScreen();
       },
     ),
   ],

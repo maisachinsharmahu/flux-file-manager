@@ -1,0 +1,252 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../core/providers/file_filter_provider.dart';
+import '../../home/presentation/widgets/file_detail_sheet.dart';
+import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
+import '../../../core/widgets/flux_icon.dart';
+
+class AllFilesScreen extends ConsumerWidget {
+  const AllFilesScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgColor = isDark ? AppColors.pureBlack : AppColors.pureWhite;
+    final textColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
+    final subtitleColor = isDark
+        ? AppColors.textSecondaryLight.withValues(alpha: 0.6)
+        : AppColors.neutral400;
+    final iconColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
+    final dividerColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.05);
+
+    // Watch the unified sorted and filtered mixed files list
+    final filesList = ref.watch(filteredFilesProvider(''));
+    final filterState = ref.watch(fileFilterProvider);
+
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Container(
+                      padding: EdgeInsets.all(8.0.r),
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 20.0.r,
+                        color: iconColor,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.0.w),
+                  Text(
+                    'All Files',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 24.0.sp,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => context.push('/search'),
+                    child: Icon(
+                      Icons.search,
+                      size: 26.0.r,
+                      color: iconColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16.0.h),
+
+            // Sorting/Filter Row
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 8.0.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        filterState.nameSort != 'Off'
+                            ? 'Name'
+                            : (filterState.sizeSort != 'Off' ? 'Size' : 'Date'),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14.0.sp,
+                          fontWeight: FontWeight.w600,
+                          color: subtitleColor,
+                        ),
+                      ),
+                      SizedBox(width: 4.0.w),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        size: 20.0.r,
+                        color: subtitleColor,
+                      ),
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      // Show Quick Filter Sheet (with all mixed filters enabled - hideFileType is false!)
+                      QuickSortFilterSheet.show(context, hideFileType: false);
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          Icons.tune_rounded,
+                          size: 22.0.r,
+                          color: filterState.activeFiltersCount > 0
+                              ? AppColors.mintAccent
+                              : subtitleColor,
+                        ),
+                        if (filterState.activeFiltersCount > 0)
+                          Positioned(
+                            top: -3.0.r,
+                            right: -3.0.r,
+                            child: Container(
+                              padding: EdgeInsets.all(2.0.r),
+                              decoration: const BoxDecoration(
+                                color: Colors.redAccent,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: BoxConstraints(
+                                minWidth: 8.0.r,
+                                minHeight: 8.0.r,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 8.0.h),
+
+            // Files List View
+            Expanded(
+              child: filesList.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No files found',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15.0.sp,
+                          color: subtitleColor,
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: filesList.length,
+                      separatorBuilder: (context, index) => Divider(
+                        color: dividerColor,
+                        height: 1.0.h,
+                        thickness: 1.0.r,
+                      ),
+                      itemBuilder: (context, index) {
+                        final file = filesList[index];
+                        return GestureDetector(
+                          onTap: () {
+                            final detail = FileDetail(
+                              name: file.name,
+                              size: file.sizeString,
+                              createdDate: 'June 28, 2026, 12:14 PM',
+                              modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                              type: file.category,
+                              themeColor: file.themeColor,
+                              fallbackIcon: file.fallbackIcon,
+                              fluxIcon: file.fluxIcon,
+                            );
+                            FileDetailSheet.show(context, detail);
+                          },
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 44.0.r,
+                                  height: 44.0.r,
+                                  decoration: BoxDecoration(
+                                    color: file.themeColor.withValues(alpha: isDark ? 0.2 : 0.8),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: file.fluxIcon != null
+                                        ? FluxIcon(file.fluxIcon!, size: 22.0.r)
+                                        : Icon(
+                                            file.fallbackIcon,
+                                            size: 22.0.r,
+                                            color: file.themeColor,
+                                          ),
+                                  ),
+                                ),
+                                SizedBox(width: 16.0.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        file.name,
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 16.0.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: textColor,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      SizedBox(height: 4.0.h),
+                                      Text(
+                                        '${file.sizeString} • ${file.location}',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 13.0.sp,
+                                          fontWeight: FontWeight.w500,
+                                          color: subtitleColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.more_vert,
+                                  size: 20.0.r,
+                                  color: isDark ? Colors.white38 : Colors.black38,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

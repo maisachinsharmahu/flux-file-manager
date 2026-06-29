@@ -37,7 +37,7 @@ class RecentsList extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => context.push('/search'),
+                onTap: () => context.push('/all_files'),
                 child: Text(
                   'View All',
                   style: TextStyle(
