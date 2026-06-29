@@ -309,10 +309,10 @@ class _AdvancedFilterSheetState extends ConsumerState<AdvancedFilterSheet> {
       case 1: // Size Options
         final options = [
           'All',
-          'Small (<1MB)',
-          'Medium (1-10MB)',
+          'Huge (>100MB)',
           'Large (10-100MB)',
-          'Huge (>100MB)'
+          'Medium (1-10MB)',
+          'Small (<1MB)'
         ];
         return _buildRadioList(
           options,
