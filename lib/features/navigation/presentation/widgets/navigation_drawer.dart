@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../providers/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/theme_provider.dart';
 
 class FluxNavigationDrawer extends ConsumerWidget {
   const FluxNavigationDrawer({Key? key}) : super(key: key);
@@ -135,6 +136,48 @@ class FluxNavigationDrawer extends ConsumerWidget {
                           ),
                         );
                       },
+                    ),
+                  ),
+                  // Divider
+                  Divider(color: borderColor, height: 1.0.r, thickness: 1.0.r),
+                  // Dark/Light Theme Mode Toggle Switch row at the bottom
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 16.0.h),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                              size: 22.0.r,
+                              color: subtitleColor,
+                            ),
+                            SizedBox(width: 12.0.w),
+                            Text(
+                              'Dark Mode',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 14.0.sp,
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Switch.adaptive(
+                          value: isDark,
+                          activeThumbColor: AppColors.mintAccent,
+                          activeTrackColor: AppColors.mintAccent.withValues(alpha: 0.3),
+                          inactiveThumbColor: AppColors.neutral400,
+                          inactiveTrackColor: isDark 
+                              ? Colors.white.withValues(alpha: 0.1) 
+                              : Colors.black.withValues(alpha: 0.05),
+                          onChanged: (bool value) {
+                            ref.read(themeModeProvider.notifier).toggleTheme(isDark);
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ],
