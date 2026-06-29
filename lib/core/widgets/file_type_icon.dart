@@ -1,38 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-/// Returns the asset path for the colorful filetype SVG icon
+/// Returns the asset path for the colorful filetype PNG icon
 /// corresponding to [extension] (e.g. 'pdf', 'mp4', 'docx').
 ///
-/// All icons live under `assets/filetype/`.
+/// All icons live under `assets/pngicons/`.
 String fileTypeIconPath(String extension) {
   switch (extension.toLowerCase().trim()) {
     // Documents
     case 'pdf':
-      return 'assets/filetype/PDF.svg';
+      return 'assets/pngicons/PDF.png';
     case 'doc':
-      return 'assets/filetype/DOC.svg';
+      return 'assets/pngicons/DOC.png';
     case 'docx':
-      return 'assets/filetype/DOCX.svg';
+      return 'assets/pngicons/DOCX.png';
     case 'xls':
     case 'xlsx':
-      return 'assets/filetype/XSL.svg';
+      return 'assets/pngicons/XSL.png';
     case 'csv':
-      return 'assets/filetype/CSV.svg';
+      return 'assets/pngicons/CSV.png';
     case 'ppt':
     case 'pptx':
-      return 'assets/filetype/PPT.svg';
+      return 'assets/pngicons/PPT.png';
     case 'txt':
     case 'md':
     case 'log':
-      return 'assets/filetype/TXT.svg';
+      return 'assets/pngicons/TXT.png';
     case 'xml':
-      return 'assets/filetype/XML.svg';
+      return 'assets/pngicons/XML.png';
     case 'html':
     case 'htm':
-      return 'assets/filetype/HTML.svg';
+      return 'assets/pngicons/HTML.png';
     case 'svg':
-      return 'assets/filetype/SVG.svg';
+      return 'assets/pngicons/SVG.png';
     case 'java':
     case 'json':
     case 'yaml':
@@ -47,102 +46,102 @@ String fileTypeIconPath(String extension) {
     case 'c':
     case 'h':
     case 'sql':
-      return 'assets/filetype/JAVA.svg';
+      return 'assets/pngicons/JAVA.png';
     case 'pub':
-      return 'assets/filetype/PUB.svg';
+      return 'assets/pngicons/PUB.png';
     case 'rss':
-      return 'assets/filetype/RSS.svg';
+      return 'assets/pngicons/RSS.png';
 
     // Images
     case 'jpg':
     case 'jpeg':
-      return 'assets/filetype/JPG.svg';
+      return 'assets/pngicons/JPG.png';
     case 'png':
-      return 'assets/filetype/PNG.svg';
+      return 'assets/pngicons/PNG.png';
     case 'gif':
-      return 'assets/filetype/GIFF.svg';
+      return 'assets/pngicons/GIFF.png';
     case 'bmp':
-      return 'assets/filetype/BMP.svg';
+      return 'assets/pngicons/BMP.png';
     case 'tiff':
     case 'tif':
-      return 'assets/filetype/TIFF.svg';
+      return 'assets/pngicons/TIFF.png';
     case 'raw':
     case 'cr2':
     case 'nef':
-      return 'assets/filetype/RAW.svg';
+      return 'assets/pngicons/RAW.png';
     case 'psd':
-      return 'assets/filetype/PSD.svg';
+      return 'assets/pngicons/PSD.png';
     case 'ai':
-      return 'assets/filetype/AI.svg';
+      return 'assets/pngicons/AI.png';
     case 'eps':
-      return 'assets/filetype/EPS.svg';
+      return 'assets/pngicons/EPS.png';
     case 'cdr':
     case 'crd':
-      return 'assets/filetype/CRD.svg';
+      return 'assets/pngicons/CRD.png';
     case 'dwg':
-      return 'assets/filetype/DWG.svg';
+      return 'assets/pngicons/DWG.png';
     case 'ps':
-      return 'assets/filetype/PS.svg';
+      return 'assets/pngicons/PS.png';
 
     // Video
     case 'mp4':
     case 'm4v':
-      return 'assets/filetype/MP4.svg';
+      return 'assets/pngicons/MP4.png';
     case 'avi':
-      return 'assets/filetype/AVI.svg';
+      return 'assets/pngicons/AVI.png';
     case 'mov':
     case 'qt':
-      return 'assets/filetype/MOV.svg';
+      return 'assets/pngicons/MOV.png';
     case 'flv':
-      return 'assets/filetype/FLV.svg';
+      return 'assets/pngicons/FLV.png';
     case 'mpeg':
     case 'mpg':
-      return 'assets/filetype/MPEG.svg';
+      return 'assets/pngicons/MPEG.png';
     case 'mkv':
     case 'webm':
     case 'wmv':
-      return 'assets/filetype/AVI.svg';
+      return 'assets/pngicons/AVI.png';
 
     // Audio
     case 'mp3':
-      return 'assets/filetype/MP3.svg';
+      return 'assets/pngicons/MP3.png';
     case 'wav':
-      return 'assets/filetype/WAV.svg';
+      return 'assets/pngicons/WAV.png';
     case 'wma':
-      return 'assets/filetype/WMA.svg';
+      return 'assets/pngicons/WMA.png';
     case 'mid':
     case 'midi':
-      return 'assets/filetype/MID.svg';
+      return 'assets/pngicons/MID.png';
     case 'aac':
     case 'flac':
     case 'ogg':
     case 'm4a':
-      return 'assets/filetype/MP3.svg';
+      return 'assets/pngicons/MP3.png';
 
     // Archives
     case 'zip':
-      return 'assets/filetype/ZIP.svg';
+      return 'assets/pngicons/ZIP.png';
     case 'rar':
-      return 'assets/filetype/RAR.svg';
+      return 'assets/pngicons/RAR.png';
     case '7z':
     case 'tar':
     case 'gz':
     case 'bz2':
-      return 'assets/filetype/ZIP.svg';
+      return 'assets/pngicons/ZIP.png';
     case 'iso':
-      return 'assets/filetype/ISO.svg';
+      return 'assets/pngicons/ISO.png';
     case 'dll':
-      return 'assets/filetype/DLL.svg';
+      return 'assets/pngicons/DLL.png';
     case 'exe':
-      return 'assets/filetype/EXE.svg';
+      return 'assets/pngicons/EXE.png';
     case 'mdb':
     case 'db':
     case 'sqlite':
-      return 'assets/filetype/MDB.svg';
+      return 'assets/pngicons/MDB.png';
 
-    // Default — use the generic document icon
+    // Default
     default:
-      return 'assets/filetype/TXT.svg';
+      return 'assets/pngicons/TXT.png';
   }
 }
 
@@ -165,29 +164,11 @@ class FileTypeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Image.asset(
+      fileTypeIconPath(extension),
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(size * 0.18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: size * 0.1,
-            offset: Offset(0, size * 0.04),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: EdgeInsets.all(size * 0.04),
-        child: SvgPicture.asset(
-          fileTypeIconPath(extension),
-          fit: BoxFit.contain,
-          colorFilter: null,
-        ),
-      ),
+      fit: BoxFit.contain,
     );
   }
 }

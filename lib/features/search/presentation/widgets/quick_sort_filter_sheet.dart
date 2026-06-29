@@ -8,7 +8,8 @@ import 'advanced_filter_sheet.dart';
 
 class QuickSortFilterSheet extends ConsumerWidget {
   final bool hideFileType;
-  const QuickSortFilterSheet({Key? key, this.hideFileType = false}) : super(key: key);
+  const QuickSortFilterSheet({Key? key, this.hideFileType = false})
+    : super(key: key);
 
   static void show(BuildContext context, {bool hideFileType = false}) {
     showModalBottomSheet(
@@ -92,7 +93,10 @@ class QuickSortFilterSheet extends ConsumerWidget {
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      AdvancedFilterSheet.show(context, hideFileType: hideFileType);
+                      AdvancedFilterSheet.show(
+                        context,
+                        hideFileType: hideFileType,
+                      );
                     },
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
