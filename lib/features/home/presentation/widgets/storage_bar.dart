@@ -5,23 +5,55 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../navigation/providers/navigation_provider.dart';
 
-class StorageBar extends ConsumerWidget {
+class StorageBar extends ConsumerStatefulWidget {
   const StorageBar({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StorageBar> createState() => _StorageBarState();
+}
+
+class _StorageBarState extends ConsumerState<StorageBar>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _progressAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+
+    _progressAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final cardBgColor = isDark 
-        ? AppColors.neutral900.withValues(alpha: 0.9) 
+    final cardBgColor = isDark
+        ? AppColors.neutral900.withValues(alpha: 0.9)
         : Colors.white.withValues(alpha: 0.95);
-    final borderColor = isDark 
-        ? Colors.white.withValues(alpha: 0.08) 
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
 
     final usedTextColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final totalTextColor = isDark ? AppColors.textSecondaryDark : AppColors.neutral400;
+    final totalTextColor =
+        isDark ? AppColors.textSecondaryDark : AppColors.neutral400;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
@@ -71,63 +103,105 @@ class StorageBar extends ConsumerWidget {
                     ),
                   ),
                   SizedBox(height: 18.0.h),
-                  // Segmented Horizontal Progress Bar (individual capsules with gaps)
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 15,
-                        child: Container(
-                          height: 10.0.h,
-                          decoration: BoxDecoration(
-                            color: AppColors.storageYellow,
-                            borderRadius: BorderRadius.circular(5.0.r),
+                  // Animated Segmented Horizontal Progress Bar (individual capsules with gaps)
+                  AnimatedBuilder(
+                    animation: _progressAnimation,
+                    builder: (context, child) {
+                      final val = _progressAnimation.value;
+                      return Row(
+                        children: [
+                          Expanded(
+                            flex: 15,
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: val,
+                              child: Container(
+                                height: 10.0.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.storageYellow,
+                                  borderRadius: BorderRadius.circular(5.0.r),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      SizedBox(width: 6.0.w),
-                      Expanded(
-                        flex: 55,
-                        child: Container(
-                          height: 10.0.h,
-                          decoration: BoxDecoration(
-                            color: AppColors.mintAccent,
-                            borderRadius: BorderRadius.circular(5.0.r),
+                          SizedBox(width: 6.0.w),
+                          Expanded(
+                            flex: 55,
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: val,
+                              child: Container(
+                                height: 10.0.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.mintAccent,
+                                  borderRadius: BorderRadius.circular(5.0.r),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      SizedBox(width: 6.0.w),
-                      Expanded(
-                        flex: 15,
-                        child: Container(
-                          height: 10.0.h,
-                          decoration: BoxDecoration(
-                            color: AppColors.storageSkyBlue,
-                            borderRadius: BorderRadius.circular(5.0.r),
+                          SizedBox(width: 6.0.w),
+                          Expanded(
+                            flex: 15,
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: val,
+                              child: Container(
+                                height: 10.0.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.storageSkyBlue,
+                                  borderRadius: BorderRadius.circular(5.0.r),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      SizedBox(width: 6.0.w),
-                      Expanded(
-                        flex: 5,
-                        child: Container(
-                          height: 10.0.h,
-                          decoration: BoxDecoration(
-                            color: AppColors.storageOrange,
-                            borderRadius: BorderRadius.circular(5.0.r),
+                          SizedBox(width: 6.0.w),
+                          Expanded(
+                            flex: 5,
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: val,
+                              child: Container(
+                                height: 10.0.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.storageOrange,
+                                  borderRadius: BorderRadius.circular(5.0.r),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   ),
                   SizedBox(height: 24.0.h),
                   // Bottom Row: Custom Legends (Vertical capsule indicator + Label & Size)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildLegendItem(isDark, 'Docs', '124 MB', AppColors.storageYellow),
-                      _buildLegendItem(isDark, 'Videos', '823 MB', AppColors.mintAccent),
-                      _buildLegendItem(isDark, 'Images', '312 MB', AppColors.storageSkyBlue),
-                      _buildLegendItem(isDark, 'Audio', '14 MB', AppColors.storageOrange),
+                      _buildLegendItem(
+                        isDark,
+                        'Docs',
+                        '124 MB',
+                        AppColors.storageYellow,
+                      ),
+                      _buildLegendItem(
+                        isDark,
+                        'Videos',
+                        '823 MB',
+                        AppColors.mintAccent,
+                      ),
+                      _buildLegendItem(
+                        isDark,
+                        'Images',
+                        '312 MB',
+                        AppColors.storageSkyBlue,
+                      ),
+                      _buildLegendItem(
+                        isDark,
+                        'Audio',
+                        '14 MB',
+                        AppColors.storageOrange,
+                      ),
                     ],
                   ),
                 ],
@@ -139,7 +213,12 @@ class StorageBar extends ConsumerWidget {
     );
   }
 
-  Widget _buildLegendItem(bool isDark, String label, String value, Color color) {
+  Widget _buildLegendItem(
+    bool isDark,
+    String label,
+    String value,
+    Color color,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -161,7 +240,9 @@ class StorageBar extends ConsumerWidget {
                 fontFamily: 'Inter',
                 fontSize: 10.0.sp,
                 fontWeight: FontWeight.w400,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
               ),
             ),
             SizedBox(height: 1.0.h),

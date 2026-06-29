@@ -470,10 +470,8 @@ class ConcentricRingsPainter extends CustomPainter {
   final bool isDark;
   final Animation<double> animation;
 
-  ConcentricRingsPainter({
-    required this.isDark,
-    required this.animation,
-  }) : super(repaint: animation);
+  ConcentricRingsPainter({required this.isDark, required this.animation})
+    : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {

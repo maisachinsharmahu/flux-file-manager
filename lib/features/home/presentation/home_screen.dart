@@ -12,30 +12,75 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/copy_task_provider.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Key _storageBarKey = UniqueKey();
+
+  Future<void> _handleRefresh() async {
+    // Simulate a network refresh delay
+    await Future.delayed(const Duration(milliseconds: 1200));
+    if (mounted) {
+      setState(() {
+        // Force StorageBar state reset so its entry capsule animation plays again
+        _storageBarKey = UniqueKey();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Dashboard widgets updated successfully.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1E1E)
+              : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0.r),
+          ),
+          elevation: 4,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Material(
       color: Colors.transparent, // Let main navigation radial glow backdrop show through
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            bottom: 120.0.h,
-          ), // Spacing to prevent overlay collisions
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _HomeSearchBar(),
-              const StorageBar(),
-              const QuickAccessGrid(),
-              const RecentsList(),
-              const AllStorageSection(),
-              const SmartCardsList(),
-              SizedBox(height: 12.0.h),
-              const _DevSimulationConsole(),
-            ],
+        child: RefreshIndicator(
+          color: AppColors.mintAccent,
+          backgroundColor: isDark ? AppColors.neutral900 : Colors.white,
+          displacement: 20.h,
+          onRefresh: _handleRefresh,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            padding: EdgeInsets.only(
+              bottom: 120.0.h,
+            ), // Spacing to prevent overlay collisions
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _HomeSearchBar(),
+                StorageBar(key: _storageBarKey),
+                const QuickAccessGrid(),
+                const RecentsList(),
+                const AllStorageSection(),
+                const SmartCardsList(),
+                SizedBox(height: 12.0.h),
+                const _DevSimulationConsole(),
+              ],
+            ),
           ),
         ),
       ),
