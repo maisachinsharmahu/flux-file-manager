@@ -236,30 +236,29 @@ class _ThemePillToggle extends StatelessWidget {
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
               alignment: isDark ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                width: 36.0.w,
-                height: 28.0.h,
-                decoration: BoxDecoration(
-                  color: sliderBg,
-                  borderRadius: BorderRadius.circular(14.0.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 3.r,
-                      offset: const Offset(0, 1.5),
-                    ),
-                  ],
+              child: FractionallySizedBox(
+                widthFactor: 0.5,
+                heightFactor: 1.0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: sliderBg,
+                    borderRadius: BorderRadius.circular(14.0.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 3.r,
+                        offset: const Offset(0, 1.5),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
             // Icons Row
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Light mode side
-                SizedBox(
-                  width: 36.0.w,
-                  height: 28.0.h,
+                Expanded(
                   child: Center(
                     child: Icon(
                       Icons.light_mode_rounded,
@@ -271,9 +270,7 @@ class _ThemePillToggle extends StatelessWidget {
                   ),
                 ),
                 // Dark mode side
-                SizedBox(
-                  width: 36.0.w,
-                  height: 28.0.h,
+                Expanded(
                   child: Center(
                     child: Icon(
                       Icons.dark_mode_rounded,
