@@ -308,8 +308,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                               child: CustomPaint(
                                 painter: ConcentricRingsPainter(
                                   isDark: isDark,
-                                  animationValue: _controller.value,
-                                  repaint: _controller,
+                                  animation: _controller,
                                 ),
                                 child: Center(
                                   child: Text(
@@ -469,13 +468,12 @@ class _TabItemData {
 // Concentric Circular Rings custom painter
 class ConcentricRingsPainter extends CustomPainter {
   final bool isDark;
-  final double animationValue;
+  final Animation<double> animation;
 
   ConcentricRingsPainter({
     required this.isDark,
-    required this.animationValue,
-    required Listenable repaint,
-  }) : super(repaint: repaint);
+    required this.animation,
+  }) : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -503,9 +501,9 @@ class ConcentricRingsPainter extends CustomPainter {
 
     final startAngles = [math.pi * 0.65, math.pi * 0.8, math.pi * 0.95];
     final sweepProgress = [
-      0.72 * animationValue,
-      0.45 * animationValue,
-      0.65 * animationValue,
+      0.72 * animation.value,
+      0.45 * animation.value,
+      0.65 * animation.value,
     ];
 
     final trackPaint = Paint()
@@ -535,7 +533,7 @@ class ConcentricRingsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant ConcentricRingsPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue ||
+    return oldDelegate.animation.value != animation.value ||
         oldDelegate.isDark != isDark;
   }
 }
