@@ -146,25 +146,32 @@ class FluxNavigationDrawer extends ConsumerWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                              size: 22.0.r,
-                              color: subtitleColor,
-                            ),
-                            SizedBox(width: 12.0.w),
-                            Text(
-                              isDark ? 'Dark Mode' : 'Light Mode',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 14.0.sp,
-                                fontWeight: FontWeight.w700,
-                                color: textColor,
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                                size: 22.0.r,
+                                color: subtitleColor,
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 12.0.w),
+                              Expanded(
+                                child: Text(
+                                  isDark ? 'Dark Mode' : 'Light Mode',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 14.0.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: textColor,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        SizedBox(width: 12.0.w),
                         _ThemePillToggle(
                           isDark: isDark,
                           onTap: () {
