@@ -5,7 +5,6 @@ import '../../navigation/providers/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../home/presentation/widgets/file_detail_sheet.dart';
 import '../../../core/providers/file_filter_provider.dart';
-import '../../search/presentation/widgets/advanced_filter_sheet.dart';
 import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
 import '../../../core/widgets/flux_icon.dart';
 
@@ -181,9 +180,9 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                filterState.sortBy == 'Name'
-                                    ? 'A - Z'
-                                    : (filterState.sortBy == 'Size' ? 'Size' : 'Date'),
+                                filterState.nameSort != 'Off'
+                                    ? 'Name'
+                                    : (filterState.sizeSort != 'Off' ? 'Size' : 'Date'),
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 14.0.sp,

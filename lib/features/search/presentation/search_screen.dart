@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../providers/search_state_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/file_filter_provider.dart';
-import 'widgets/advanced_filter_sheet.dart';
 import 'widgets/quick_sort_filter_sheet.dart';
 import '../../home/presentation/widgets/file_detail_sheet.dart';
 import '../../../core/widgets/flux_icon.dart';
