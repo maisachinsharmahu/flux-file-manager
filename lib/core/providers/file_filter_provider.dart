@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../widgets/flux_icon.dart';
 
 class FluxFile {
   final String name;
   final String path;
-  final String category; // 'Photos', 'Videos', 'Documents', 'Audio', 'Application', 'Others'
+  final String
+  category; // 'Photos', 'Videos', 'Documents', 'Audio', 'Application', 'Others'
   final String sizeString;
   final double sizeInMb;
   final DateTime modifiedDate;
@@ -47,7 +49,8 @@ class FluxFile {
 
 class FileFilterState {
   final Set<String> categories;
-  final String sizeRange; // 'All', 'Small (<1MB)', 'Medium (1-10MB)', 'Large (10-100MB)', 'Huge (>100MB)'
+  final String
+  sizeRange; // 'All', 'Small (<1MB)', 'Medium (1-10MB)', 'Large (10-100MB)', 'Huge (>100MB)'
   final String dateRange; // 'All', 'Today', 'This Week', 'This Month', 'Older'
   final String sortBy; // 'Name', 'Date', 'Size'
   final String location; // 'All', 'Local', 'Cloud', 'SD Card'
@@ -99,17 +102,17 @@ class FileFilterState {
 // Default filter state notifier
 class FileFilterNotifier extends StateNotifier<FileFilterState> {
   FileFilterNotifier()
-      : super(
-          FileFilterState(
-            categories: {},
-            sizeRange: 'All',
-            dateRange: 'All',
-            sortBy: 'Date',
-            location: 'All',
-            showVaultOnly: false,
-            showDuplicatesOnly: false,
-          ),
-        );
+    : super(
+        FileFilterState(
+          categories: {},
+          sizeRange: 'All',
+          dateRange: 'All',
+          sortBy: 'Date',
+          location: 'All',
+          showVaultOnly: false,
+          showDuplicatesOnly: false,
+        ),
+      );
 
   void toggleCategory(String category) {
     final updated = Set<String>.from(state.categories);
@@ -164,8 +167,8 @@ class FileFilterNotifier extends StateNotifier<FileFilterState> {
 
 final fileFilterProvider =
     StateNotifierProvider<FileFilterNotifier, FileFilterState>((ref) {
-  return FileFilterNotifier();
-});
+      return FileFilterNotifier();
+    });
 
 // All files source database provider
 final allFilesProvider = Provider<List<FluxFile>>((ref) {
@@ -474,7 +477,10 @@ final allFilesProvider = Provider<List<FluxFile>>((ref) {
 });
 
 // Helper selector to apply both query and active filters to the files database
-final filteredFilesProvider = Provider.family<List<FluxFile>, String>((ref, query) {
+final filteredFilesProvider = Provider.family<List<FluxFile>, String>((
+  ref,
+  query,
+) {
   final allFiles = ref.watch(allFilesProvider);
   final filter = ref.watch(fileFilterProvider);
 
@@ -483,12 +489,16 @@ final filteredFilesProvider = Provider.family<List<FluxFile>, String>((ref, quer
   // 1. Text Search Filter
   if (query.isNotEmpty) {
     final lower = query.toLowerCase();
-    list = list.where((file) => file.name.toLowerCase().contains(lower)).toList();
+    list = list
+        .where((file) => file.name.toLowerCase().contains(lower))
+        .toList();
   }
 
   // 2. Categories Filter
   if (filter.categories.isNotEmpty) {
-    list = list.where((file) => filter.categories.contains(file.category)).toList();
+    list = list
+        .where((file) => filter.categories.contains(file.category))
+        .toList();
   }
 
   // 3. Location Filter
@@ -510,8 +520,10 @@ final filteredFilesProvider = Provider.family<List<FluxFile>, String>((ref, quer
   if (filter.sizeRange != 'All') {
     list = list.where((file) {
       if (filter.sizeRange == 'Small (<1MB)') return file.sizeInMb < 1.0;
-      if (filter.sizeRange == 'Medium (1-10MB)') return file.sizeInMb >= 1.0 && file.sizeInMb <= 10.0;
-      if (filter.sizeRange == 'Large (10-100MB)') return file.sizeInMb >= 10.0 && file.sizeInMb <= 100.0;
+      if (filter.sizeRange == 'Medium (1-10MB)')
+        return file.sizeInMb >= 1.0 && file.sizeInMb <= 10.0;
+      if (filter.sizeRange == 'Large (10-100MB)')
+        return file.sizeInMb >= 10.0 && file.sizeInMb <= 100.0;
       if (filter.sizeRange == 'Huge (>100MB)') return file.sizeInMb > 100.0;
       return true;
     }).toList();
