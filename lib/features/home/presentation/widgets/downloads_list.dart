@@ -14,19 +14,53 @@ class DownloadsList extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final headerColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
+    final cardBgColor = isDark
+        ? AppColors.neutral900
+        : AppColors.neutral100;
     final titleColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
     final subtitleColor = isDark
         ? AppColors.textSecondaryLight.withValues(alpha: 0.6)
         : AppColors.neutral400;
-    final dividerColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.05);
+    final borderCol = isDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.black.withValues(alpha: 0.04);
+
+    final titles = [
+      'invoice_flux.docx',
+      'resume_sachin.pdf',
+      'tutorial_flutter.mov',
+      'vacation_pic.jpg',
+    ];
+    final sizeStrings = ['240 KB', '1.2 MB', '125 MB', '2.4 MB'];
+    final formatLabels = ['Word', 'PDF', 'Video', 'Image'];
+    final dates = ['2026-06-29', '2026-06-29', '2026-06-29', '2026-06-29'];
+
+    final lightColors = [
+      AppColors.excelLightBg,
+      AppColors.pdfBackground,
+      AppColors.pptLightBg,
+      AppColors.excelLightBg,
+    ];
+    final darkColors = [
+      AppColors.excelDarkBg,
+      AppColors.pdfDarkBg,
+      AppColors.pptDarkBg,
+      AppColors.excelDarkBg,
+    ];
+    final colors = isDark ? darkColors : lightColors;
+
+    final icons = [
+      FluxIconType.documentColor,
+      FluxIconType.adobeReader,
+      FluxIconType.videoFileColor,
+      FluxIconType.imageFileColor,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(24.0.w, 24.0.h, 24.0.w, 12.0.h),
+          padding: EdgeInsets.fromLTRB(24.0.w, 24.0.h, 24.0.w, 16.0.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -54,123 +88,125 @@ class DownloadsList extends StatelessWidget {
             ],
           ),
         ),
-        ListView.separated(
-          padding: EdgeInsets.symmetric(horizontal: 24.0.w),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: 3,
-          separatorBuilder: (context, index) =>
-              Divider(color: dividerColor, height: 1.0.h, thickness: 1.0.r),
-          itemBuilder: (context, index) {
-            final titles = [
-              'invoice_flux.docx',
-              'resume_sachin.pdf',
-              'tutorial_flutter.mov',
-            ];
-            final subtitles = [
-              'Word Document • 240 KB • 1 hour ago',
-              'PDF Document • 1.2 MB • 3 hours ago',
-              'Video File • 125 MB • 6 hours ago',
-            ];
+        SizedBox(
+          height: 176.0.h,
+          child: ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: 24.0.w),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: titles.length,
+            separatorBuilder: (context, index) => SizedBox(width: 14.0.w),
+            itemBuilder: (context, index) {
+              final title = titles[index];
+              final sizeStr = sizeStrings[index];
+              final formatLabel = formatLabels[index];
+              final itemColor = colors[index];
+              final iconType = icons[index];
 
-            // Reuse existing AppColors definitions
-            final lightColors = [
-              AppColors.excelLightBg,  // light green for docx
-              AppColors.pdfBackground, // light red for pdf
-              AppColors.pptLightBg,    // light yellow for mov
-            ];
-            final darkColors = [
-              AppColors.excelDarkBg,
-              AppColors.pdfDarkBg,
-              AppColors.pptDarkBg,
-            ];
-            final colors = isDark ? darkColors : lightColors;
-
-            final icons = [
-              FluxIconType.documentColor,
-              FluxIconType.adobeReader,
-              FluxIconType.videoFileColor,
-            ];
-
-            final itemColor = colors[index];
-            final title = titles[index];
-            final subtitle = subtitles[index];
-            final iconType = icons[index];
-
-            return InkWell(
-              onTap: () {
-                // Determine file details
-                final categories = ['Documents', 'Documents', 'Videos'];
-                final sizeStrings = ['240 KB', '1.2 MB', '125 MB'];
-                final dateStrings = ['2026-06-29', '2026-06-29', '2026-06-29'];
-
-                final detail = FileDetail(
-                  name: title,
-                  size: sizeStrings[index],
-                  createdDate: 'June 28, 2026, 12:14 PM',
-                  modifiedDate: dateStrings[index],
-                  type: categories[index],
-                  themeColor: itemColor,
-                  fallbackIcon: categories[index] == 'Videos'
-                      ? Icons.play_circle_outline
-                      : Icons.description_outlined,
-                  fluxIcon: iconType,
-                );
-
-                FileDetailSheet.show(context, detail);
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 14.0.h),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44.0.r,
-                      height: 44.0.r,
-                      decoration: BoxDecoration(
-                        color: itemColor.withValues(alpha: isDark ? 0.2 : 0.8),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: FluxIcon(iconType, size: 22.0.r),
-                      ),
-                    ),
-                    SizedBox(width: 16.0.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 15.0.sp,
-                              fontWeight: FontWeight.w600,
-                              color: titleColor,
+              return GestureDetector(
+                onTap: () {
+                  final categories = ['Documents', 'Documents', 'Videos', 'Photos'];
+                  final detail = FileDetail(
+                    name: title,
+                    size: sizeStr,
+                    createdDate: 'June 28, 2026, 12:14 PM',
+                    modifiedDate: dates[index],
+                    type: categories[index],
+                    themeColor: itemColor,
+                    fallbackIcon: categories[index] == 'Videos'
+                        ? Icons.play_circle_outline
+                        : Icons.description_outlined,
+                    fluxIcon: iconType,
+                  );
+                  FileDetailSheet.show(context, detail);
+                },
+                child: Container(
+                  width: 140.0.w,
+                  decoration: BoxDecoration(
+                    color: cardBgColor,
+                    borderRadius: BorderRadius.circular(20.0.r),
+                    border: Border.all(color: borderCol, width: 1.0.r),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Upper preview part (Large illustration/icon placeholder)
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: itemColor.withValues(alpha: isDark ? 0.08 : 0.3),
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(20.0.r)),
+                          ),
+                          child: Center(
+                            child: Hero(
+                              tag: 'download_icon_$index',
+                              child: FluxIcon(
+                                iconType,
+                                size: 36.0.r,
+                              ),
                             ),
                           ),
-                          SizedBox(height: 4.0.h),
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 12.0.sp,
-                              fontWeight: FontWeight.w500,
-                              color: subtitleColor,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.more_vert,
-                      size: 20.0.r,
-                      color: isDark ? Colors.white38 : Colors.black38,
-                    ),
-                  ],
+                      // Card details
+                      Padding(
+                        padding: EdgeInsets.all(12.0.r),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13.0.sp,
+                                fontWeight: FontWeight.w600,
+                                color: titleColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 3.0.h),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  sizeStr,
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11.0.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: subtitleColor,
+                                  ),
+                                ),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 5.0.w, vertical: 2.0.h),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.05)
+                                        : Colors.black.withValues(alpha: 0.04),
+                                    borderRadius: BorderRadius.circular(6.0.r),
+                                  ),
+                                  child: Text(
+                                    formatLabel,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 9.0.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: subtitleColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ],
     );
