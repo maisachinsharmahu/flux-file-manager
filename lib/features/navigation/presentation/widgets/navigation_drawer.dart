@@ -140,7 +140,7 @@ class FluxNavigationDrawer extends ConsumerWidget {
                   ),
                   // Divider
                   Divider(color: borderColor, height: 1.0.r, thickness: 1.0.r),
-                  // Dark/Light Theme Mode Toggle Switch row at the bottom
+                  // Dark/Light Theme Mode custom Toggle row at the bottom
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 16.0.h),
                     child: Row(
@@ -155,25 +155,19 @@ class FluxNavigationDrawer extends ConsumerWidget {
                             ),
                             SizedBox(width: 12.0.w),
                             Text(
-                              'Dark Mode',
+                              isDark ? 'Dark Mode' : 'Light Mode',
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 14.0.sp,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w700,
                                 color: textColor,
                               ),
                             ),
                           ],
                         ),
-                        Switch.adaptive(
-                          value: isDark,
-                          activeThumbColor: AppColors.mintAccent,
-                          activeTrackColor: AppColors.mintAccent.withValues(alpha: 0.3),
-                          inactiveThumbColor: AppColors.neutral400,
-                          inactiveTrackColor: isDark 
-                              ? Colors.white.withValues(alpha: 0.1) 
-                              : Colors.black.withValues(alpha: 0.05),
-                          onChanged: (bool value) {
+                        _ThemePillToggle(
+                          isDark: isDark,
+                          onTap: () {
                             ref.read(themeModeProvider.notifier).toggleTheme(isDark);
                           },
                         ),
@@ -184,6 +178,108 @@ class FluxNavigationDrawer extends ConsumerWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemePillToggle extends StatelessWidget {
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _ThemePillToggle({
+    Key? key,
+    required this.isDark,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkState = theme.brightness == Brightness.dark;
+
+    final containerBg = isDarkState
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.black.withValues(alpha: 0.04);
+    final borderColor = isDarkState
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.05);
+
+    final sliderBg = isDarkState
+        ? AppColors.mintAccent
+        : AppColors.neutral900;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 80.0.w,
+        height: 34.0.h,
+        padding: EdgeInsets.all(3.0.r),
+        decoration: BoxDecoration(
+          color: containerBg,
+          borderRadius: BorderRadius.circular(17.0.r),
+          border: Border.all(color: borderColor, width: 1.2.r),
+        ),
+        child: Stack(
+          children: [
+            // Sliding Capsule Selector
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              alignment: isDark ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: 36.0.w,
+                height: 28.0.h,
+                decoration: BoxDecoration(
+                  color: sliderBg,
+                  borderRadius: BorderRadius.circular(14.0.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 3.r,
+                      offset: const Offset(0, 1.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Icons Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Light mode side
+                SizedBox(
+                  width: 36.0.w,
+                  height: 28.0.h,
+                  child: Center(
+                    child: Icon(
+                      Icons.light_mode_rounded,
+                      size: 15.0.r,
+                      color: isDark
+                          ? AppColors.textSecondaryLight.withValues(alpha: 0.4)
+                          : Colors.white,
+                    ),
+                  ),
+                ),
+                // Dark mode side
+                SizedBox(
+                  width: 36.0.w,
+                  height: 28.0.h,
+                  child: Center(
+                    child: Icon(
+                      Icons.dark_mode_rounded,
+                      size: 15.0.r,
+                      color: isDark
+                          ? const Color(0xFF171717)
+                          : AppColors.textSecondaryLight.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
