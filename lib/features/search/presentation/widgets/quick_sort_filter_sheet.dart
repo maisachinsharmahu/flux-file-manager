@@ -36,19 +36,9 @@ class QuickSortFilterSheet extends ConsumerWidget {
     final titleColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
     final labelColor = isDark ? Colors.white70 : AppColors.neutral700;
 
-    // Dynamically labels for Order based on active SortBy
-    String ascLabel = 'Ascending';
-    String descLabel = 'Descending';
-    if (filterState.sortBy == 'Size') {
-      ascLabel = 'Low to High';
-      descLabel = 'High to Low';
-    } else if (filterState.sortBy == 'Date') {
-      ascLabel = 'Oldest First';
-      descLabel = 'Newest First';
-    } else if (filterState.sortBy == 'Name') {
-      ascLabel = 'A to Z';
-      descLabel = 'Z to A';
-    }
+    final nameActive = filterState.nameSort != 'Off';
+    final dateActive = filterState.dateSort != 'Off';
+    final sizeActive = filterState.sizeSort != 'Off';
 
     return ClipRRect(
       borderRadius: BorderRadius.vertical(top: Radius.circular(32.0.r)),
@@ -101,7 +91,6 @@ class QuickSortFilterSheet extends ConsumerWidget {
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      // Open Advanced Sheet
                       AdvancedFilterSheet.show(context);
                     },
                     child: Row(
@@ -129,7 +118,7 @@ class QuickSortFilterSheet extends ConsumerWidget {
               ),
               SizedBox(height: 24.0.h),
 
-              // 1. Sort By Section
+              // Sort By selection buttons
               Text(
                 'SORT BY',
                 style: TextStyle(
@@ -142,56 +131,145 @@ class QuickSortFilterSheet extends ConsumerWidget {
               ),
               SizedBox(height: 12.0.h),
               Row(
-                children: ['Name', 'Date', 'Size'].map((sort) {
-                  final isSelected = filterState.sortBy == sort;
-                  return Padding(
-                    padding: EdgeInsets.only(right: 10.0.w),
-                    child: _buildChoiceChip(
-                      label: sort,
-                      isSelected: isSelected,
-                      onTap: () => filterNotifier.setSortBy(sort),
-                      isDark: isDark,
-                      borderColor: borderColor,
-                    ),
-                  );
-                }).toList(),
-              ),
-              SizedBox(height: 24.0.h),
-
-              // 2. Order Section
-              Text(
-                'ORDER',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 11.0.sp,
-                  fontWeight: FontWeight.w800,
-                  color: labelColor,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              SizedBox(height: 12.0.h),
-              Row(
                 children: [
                   _buildChoiceChip(
-                    label: descLabel,
-                    isSelected: filterState.isDescending,
-                    onTap: () => filterNotifier.setIsDescending(true),
+                    label: 'Name',
+                    isSelected: nameActive,
+                    onTap: () => filterNotifier.setNameSort(nameActive ? 'Off' : 'Ascending'),
                     isDark: isDark,
                     borderColor: borderColor,
                   ),
                   SizedBox(width: 10.0.w),
                   _buildChoiceChip(
-                    label: ascLabel,
-                    isSelected: !filterState.isDescending,
-                    onTap: () => filterNotifier.setIsDescending(false),
+                    label: 'Date',
+                    isSelected: dateActive,
+                    onTap: () => filterNotifier.setDateSort(dateActive ? 'Off' : 'Descending'),
+                    isDark: isDark,
+                    borderColor: borderColor,
+                  ),
+                  SizedBox(width: 10.0.w),
+                  _buildChoiceChip(
+                    label: 'Size',
+                    isSelected: sizeActive,
+                    onTap: () => filterNotifier.setSizeSort(sizeActive ? 'Off' : 'Descending'),
                     isDark: isDark,
                     borderColor: borderColor,
                   ),
                 ],
               ),
+              
+              // Animated expansion of order sub-options
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (nameActive) ...[
+                      SizedBox(height: 20.0.h),
+                      Text(
+                        'NAME ORDER',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11.0.sp,
+                          fontWeight: FontWeight.w800,
+                          color: labelColor,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      SizedBox(height: 10.0.h),
+                      Row(
+                        children: [
+                          _buildChoiceChip(
+                            label: 'A to Z',
+                            isSelected: filterState.nameSort == 'Ascending',
+                            onTap: () => filterNotifier.setNameSort('Ascending'),
+                            isDark: isDark,
+                            borderColor: borderColor,
+                          ),
+                          SizedBox(width: 10.0.w),
+                          _buildChoiceChip(
+                            label: 'Z to A',
+                            isSelected: filterState.nameSort == 'Descending',
+                            onTap: () => filterNotifier.setNameSort('Descending'),
+                            isDark: isDark,
+                            borderColor: borderColor,
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (dateActive) ...[
+                      SizedBox(height: 20.0.h),
+                      Text(
+                        'DATE ORDER',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11.0.sp,
+                          fontWeight: FontWeight.w800,
+                          color: labelColor,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      SizedBox(height: 10.0.h),
+                      Row(
+                        children: [
+                          _buildChoiceChip(
+                            label: 'Newest First',
+                            isSelected: filterState.dateSort == 'Descending',
+                            onTap: () => filterNotifier.setDateSort('Descending'),
+                            isDark: isDark,
+                            borderColor: borderColor,
+                          ),
+                          SizedBox(width: 10.0.w),
+                          _buildChoiceChip(
+                            label: 'Oldest First',
+                            isSelected: filterState.dateSort == 'Ascending',
+                            onTap: () => filterNotifier.setDateSort('Ascending'),
+                            isDark: isDark,
+                            borderColor: borderColor,
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (sizeActive) ...[
+                      SizedBox(height: 20.0.h),
+                      Text(
+                        'SIZE ORDER',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11.0.sp,
+                          fontWeight: FontWeight.w800,
+                          color: labelColor,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      SizedBox(height: 10.0.h),
+                      Row(
+                        children: [
+                          _buildChoiceChip(
+                            label: 'High to Low',
+                            isSelected: filterState.sizeSort == 'Descending',
+                            onTap: () => filterNotifier.setSizeSort('Descending'),
+                            isDark: isDark,
+                            borderColor: borderColor,
+                          ),
+                          SizedBox(width: 10.0.w),
+                          _buildChoiceChip(
+                            label: 'Low to High',
+                            isSelected: filterState.sizeSort == 'Ascending',
+                            onTap: () => filterNotifier.setSizeSort('Ascending'),
+                            isDark: isDark,
+                            borderColor: borderColor,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
               SizedBox(height: 24.0.h),
 
-              // 3. Quick Time Filter Section
+              // 4. Quick Time Filter Section
               Text(
                 'QUICK TIME FILTER',
                 style: TextStyle(
@@ -207,9 +285,7 @@ class QuickSortFilterSheet extends ConsumerWidget {
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 child: Row(
-                  children: ['All', 'Today', 'This Week', 'This Month'].map((
-                    time,
-                  ) {
+                  children: ['All', 'Today', 'This Week', 'This Month'].map((time) {
                     final isSelected = filterState.dateRange == time;
                     return Padding(
                       padding: EdgeInsets.only(right: 10.0.w),
@@ -278,8 +354,8 @@ class QuickSortFilterSheet extends ConsumerWidget {
           color: isSelected
               ? AppColors.mintAccent
               : (isDark
-                    ? Colors.white.withValues(alpha: 0.04)
-                    : Colors.black.withValues(alpha: 0.02)),
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : Colors.black.withValues(alpha: 0.02)),
           borderRadius: BorderRadius.circular(20.0.r),
           border: Border.all(
             color: isSelected ? AppColors.mintAccent : borderColor,
