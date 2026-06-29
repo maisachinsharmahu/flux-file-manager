@@ -6,7 +6,7 @@ import '../../../core/widgets/flux_icon.dart';
 import 'widgets/storage_bar.dart';
 import 'widgets/quick_access_grid.dart';
 import 'widgets/recents_list.dart';
-import 'widgets/downloads_list.dart';
+import 'widgets/downloads_carousel.dart';
 import 'widgets/smart_cards_list.dart';
 import 'widgets/all_storage_section.dart';
 import 'package:go_router/go_router.dart';
@@ -60,7 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const _HomeSearchBar(),
                 StorageBar(key: _storageBarKey),
                 const RecentsList(),
-                const DownloadsList(),
+                const DownloadsCarousel(),
                 const AllStorageSection(),
                 const QuickAccessGrid(),
                 const SmartCardsList(),
