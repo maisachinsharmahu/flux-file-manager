@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../navigation/providers/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../home/presentation/widgets/file_detail_sheet.dart';
+import '../../../core/providers/file_filter_provider.dart';
+import '../../search/presentation/widgets/advanced_filter_sheet.dart';
+import '../../../core/widgets/flux_icon.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
   const BrowserScreen({Key? key}) : super(key: key);
@@ -76,47 +80,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     final iconColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
     final dividerColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05);
 
-    // Mock category file lists
-    final List<Map<String, dynamic>> photosFiles = [
-      {'name': 'vacation_pic_1.jpg', 'size': '2.4 MB', 'type': 'JPEG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
-      {'name': 'screenshot_2.png', 'size': '850 KB', 'type': 'PNG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
-      {'name': 'profile_3.jpg', 'size': '1.2 MB', 'type': 'JPEG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
-      {'name': 'insta_story_4.jpeg', 'size': '3.1 MB', 'type': 'JPEG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
-      {'name': 'avatar_glowing.png', 'size': '400 KB', 'type': 'PNG Image', 'color': const Color(0xFFFFD020), 'icon': Icons.image_outlined},
-    ];
-
-    final List<Map<String, dynamic>> videosFiles = [
-      {'name': 'vlog_v3.mp4', 'size': '48 MB', 'type': 'MP4 Video', 'color': const Color(0xFFFF9010), 'icon': Icons.play_circle_outline},
-      {'name': 'tutorial_flutter.mov', 'size': '125 MB', 'type': 'MOV Video', 'color': const Color(0xFFFF9010), 'icon': Icons.play_circle_outline},
-      {'name': 'movie_sample.mkv', 'size': '820 MB', 'type': 'MKV Video', 'color': const Color(0xFFFF9010), 'icon': Icons.play_circle_outline},
-      {'name': 'screen_recording.mp4', 'size': '12 MB', 'type': 'MP4 Video', 'color': const Color(0xFFFF9010), 'icon': Icons.play_circle_outline},
-    ];
-
-    final List<Map<String, dynamic>> docsFiles = [
-      {'name': 'resume_sachin.pdf', 'size': '1.2 MB', 'type': 'PDF Document', 'color': const Color(0xFFA020F0), 'icon': Icons.description_outlined},
-      {'name': 'invoice_flux.docx', 'size': '240 KB', 'type': 'Word Document', 'color': const Color(0xFFA020F0), 'icon': Icons.description_outlined},
-      {'name': 'budget_june.xlsx', 'size': '670 KB', 'type': 'Excel Sheet', 'color': const Color(0xFFA020F0), 'icon': Icons.description_outlined},
-      {'name': 'project_proposal.pdf', 'size': '4.2 MB', 'type': 'PDF Document', 'color': const Color(0xFFA020F0), 'icon': Icons.description_outlined},
-    ];
-
-    final List<Map<String, dynamic>> audioFiles = [
-      {'name': 'audio_recording.wav', 'size': '15 MB', 'type': 'WAV Audio', 'color': const Color(0xFFFF40A0), 'icon': Icons.music_note_outlined},
-      {'name': 'song_remix.mp3', 'size': '8.2 MB', 'type': 'MP3 Audio', 'color': const Color(0xFFFF40A0), 'icon': Icons.music_note_outlined},
-      {'name': 'podcast_e1.m4a', 'size': '42 MB', 'type': 'M4A Audio', 'color': const Color(0xFFFF40A0), 'icon': Icons.music_note_outlined},
-    ];
-
-    final List<Map<String, dynamic>> appFiles = [
-      {'name': 'whatsapp_messenger.apk', 'size': '52 MB', 'type': 'Android Application Package', 'color': const Color(0xFFFF4D4D), 'icon': Icons.android_outlined},
-      {'name': 'flux_file_manager.apk', 'size': '18 MB', 'type': 'Android Application Package', 'color': const Color(0xFFFF4D4D), 'icon': Icons.android_outlined},
-      {'name': 'pubg_mobile_installer.apk', 'size': '1.2 GB', 'type': 'Android Application Package', 'color': const Color(0xFFFF4D4D), 'icon': Icons.android_outlined},
-    ];
-
-    final List<Map<String, dynamic>> othersFiles = [
-      {'name': 'backup_archive.zip', 'size': '420 MB', 'type': 'ZIP Archive', 'color': const Color(0xFF9E9E9E), 'icon': Icons.unarchive_outlined},
-      {'name': 'system_config.json', 'size': '12 KB', 'type': 'JSON Document', 'color': const Color(0xFF9E9E9E), 'icon': Icons.settings_ethernet_outlined},
-      {'name': 'encrypted_payload.bin', 'size': '92 MB', 'type': 'Binary Data File', 'color': const Color(0xFF9E9E9E), 'icon': Icons.lock_outline},
-    ];
-
     // Mock folder list for root "Internal Storage"
     final List<Map<String, dynamic>> folders = [
       {'name': 'Alarms', 'items': 1, 'size': '1 KB', 'heart': false},
@@ -132,25 +95,15 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
 
     // Determine current display configuration
     final String pageTitle = activeCategory ?? 'Internal Storage';
+    final filterState = ref.watch(fileFilterProvider);
     
-    List<Map<String, dynamic>> currentList = folders;
-    bool isFolderList = true;
-
-    if (activeCategory != null) {
-      isFolderList = false;
-      if (activeCategory == 'Photos') {
-        currentList = photosFiles;
-      } else if (activeCategory == 'Videos') {
-        currentList = videosFiles;
-      } else if (activeCategory == 'Documents') {
-        currentList = docsFiles;
-      } else if (activeCategory == 'Audio') {
-        currentList = audioFiles;
-      } else if (activeCategory == 'Application') {
-        currentList = appFiles;
-      } else if (activeCategory == 'Others') {
-        currentList = othersFiles;
-      }
+    // Resolve dynamic list based on whether category view is active
+    bool isFolderList = activeCategory == null;
+    List<FluxFile> currentFileList = [];
+    
+    if (!isFolderList) {
+      final allFiltered = ref.watch(filteredFilesProvider(''));
+      currentFileList = allFiltered.where((file) => file.category == activeCategory).toList();
     }
 
     return Scaffold(
@@ -216,7 +169,8 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                       ),
                     ),
                     SizedBox(height: 16.0.h),
-                    // Filters Row: A-Z Dropdown and Grid Toggle
+                    
+                    // Filters Row: Sorting and Layout settings
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 8.0.h),
                       child: Row(
@@ -226,7 +180,9 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'A - Z',
+                                filterState.sortBy == 'Name'
+                                    ? 'A - Z'
+                                    : (filterState.sortBy == 'Size' ? 'Size' : 'Date'),
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 14.0.sp,
@@ -242,15 +198,59 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                               ),
                             ],
                           ),
-                          Icon(
-                            Icons.grid_view_outlined,
-                            size: 22.0.r,
-                            color: subtitleColor,
+                          
+                          // Quick Actions: Advanced Filters & Grid toggle
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!isFolderList) ...[
+                                GestureDetector(
+                                  onTap: () {
+                                    AdvancedFilterSheet.show(context);
+                                  },
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Icon(
+                                        Icons.tune_rounded,
+                                        size: 22.0.r,
+                                        color: filterState.activeFiltersCount > 0
+                                            ? AppColors.mintAccent
+                                            : subtitleColor,
+                                      ),
+                                      if (filterState.activeFiltersCount > 0)
+                                        Positioned(
+                                          top: -3.0.r,
+                                          right: -3.0.r,
+                                          child: Container(
+                                            padding: EdgeInsets.all(2.0.r),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.redAccent,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            constraints: BoxConstraints(
+                                              minWidth: 8.0.r,
+                                              minHeight: 8.0.r,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(width: 16.0.w),
+                              ],
+                              Icon(
+                                Icons.grid_view_outlined,
+                                size: 22.0.r,
+                                color: subtitleColor,
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
                     SizedBox(height: 8.0.h),
+
                     // Dynamic Files/Folders ListView wrapped in RefreshIndicator
                     Expanded(
                       child: RefreshIndicator(
@@ -258,151 +258,216 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                         backgroundColor: isDark ? AppColors.neutral900 : Colors.white,
                         displacement: 20.h,
                         onRefresh: _handleRefresh,
-                        child: ListView.separated(
-                          padding: EdgeInsets.symmetric(horizontal: 24.0.w),
-                          physics: const BouncingScrollPhysics(
-                            parent: AlwaysScrollableScrollPhysics(),
-                          ),
-                          itemCount: currentList.length,
-                          separatorBuilder: (context, index) => Divider(
-                            color: dividerColor,
-                            height: 1.0.h,
-                            thickness: 1.0.r,
-                          ),
-                          itemBuilder: (context, index) {
-                            final item = currentList[index];
+                        child: isFolderList
+                            ? ListView.separated(
+                                padding: EdgeInsets.symmetric(horizontal: 24.0.w),
+                                physics: const BouncingScrollPhysics(
+                                  parent: AlwaysScrollableScrollPhysics(),
+                                ),
+                                itemCount: folders.length,
+                                separatorBuilder: (context, index) => Divider(
+                                  color: dividerColor,
+                                  height: 1.0.h,
+                                  thickness: 1.0.r,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final item = folders[index];
+                                  final hasHeart = item['heart'] as bool;
+                                  final name = item['name'] as String;
+                                  final itemsCount = item['items'] as int;
+                                  final size = item['size'] as String;
 
-                            if (isFolderList) {
-                              // Render standard folder row
-                              final hasHeart = item['heart'] as bool;
-                              final name = item['name'] as String;
-                              final itemsCount = item['items'] as int;
-                              final size = item['size'] as String;
-
-                              return Padding(
-                                padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                                child: Row(
-                                  children: [
-                                    Stack(
-                                      alignment: Alignment.center,
+                                  return Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                                    child: Row(
                                       children: [
-                                        Icon(
-                                          Icons.folder,
-                                          size: 44.0.r,
-                                          color: const Color(0xFFFFB020),
-                                        ),
-                                        if (hasHeart)
-                                          Padding(
-                                            padding: EdgeInsets.only(top: 6.0.h),
-                                            child: Icon(
-                                              Icons.favorite,
-                                              size: 11.0.r,
-                                              color: Colors.red,
+                                        Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.folder,
+                                              size: 44.0.r,
+                                              color: const Color(0xFFFFB020),
                                             ),
+                                            if (hasHeart)
+                                              Padding(
+                                                padding: EdgeInsets.only(top: 6.0.h),
+                                                child: Icon(
+                                                  Icons.favorite,
+                                                  size: 11.0.r,
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                        SizedBox(width: 16.0.w),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                name,
+                                                style: TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontSize: 16.0.sp,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: textColor,
+                                                ),
+                                              ),
+                                              SizedBox(height: 4.0.h),
+                                              Text(
+                                                '$itemsCount ${itemsCount == 1 ? 'item' : 'items'} • $size',
+                                                style: TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontSize: 13.0.sp,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: subtitleColor,
+                                                ),
+                                              ),
+                                            ],
                                           ),
+                                        ),
+                                        Icon(
+                                          Icons.more_vert,
+                                          size: 20.0.r,
+                                          color: isDark ? Colors.white38 : Colors.black38,
+                                        ),
                                       ],
                                     ),
-                                    SizedBox(width: 16.0.w),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            name,
+                                  );
+                                },
+                              )
+                            : (currentFileList.isEmpty
+                                ? ListView(
+                                    physics: const BouncingScrollPhysics(
+                                      parent: AlwaysScrollableScrollPhysics(),
+                                    ),
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 80.0.h),
+                                        child: Center(
+                                          child: Text(
+                                            'No matching files found.',
                                             style: TextStyle(
                                               fontFamily: 'Inter',
-                                              fontSize: 16.0.sp,
-                                              fontWeight: FontWeight.w600,
-                                              color: textColor,
-                                            ),
-                                          ),
-                                          SizedBox(height: 4.0.h),
-                                          Text(
-                                            '$itemsCount ${itemsCount == 1 ? 'item' : 'items'} • $size',
-                                            style: TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontSize: 13.0.sp,
-                                              fontWeight: FontWeight.w500,
+                                              fontSize: 14.0.sp,
                                               color: subtitleColor,
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.more_vert,
-                                      size: 20.0.r,
-                                      color: isDark ? Colors.white38 : Colors.black38,
-                                    ),
-                                  ],
-                                ),
-                              );
-                            } else {
-                              // Render files list row
-                              final name = item['name'] as String;
-                              final size = item['size'] as String;
-                              final type = item['type'] as String;
-                              final color = item['color'] as Color;
-                              final icon = item['icon'] as IconData;
-
-                              return Padding(
-                                padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                                child: Row(
-                                  children: [
-                                    // File Category Icon inside circular frame
-                                    Container(
-                                      width: 44.0.r,
-                                      height: 44.0.r,
-                                      decoration: BoxDecoration(
-                                        color: color.withValues(alpha: 0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Center(
-                                        child: Icon(
-                                          icon,
-                                          size: 22.0.r,
-                                          color: color,
                                         ),
                                       ),
+                                    ],
+                                  )
+                                : ListView.separated(
+                                    padding: EdgeInsets.symmetric(horizontal: 24.0.w),
+                                    physics: const BouncingScrollPhysics(
+                                      parent: AlwaysScrollableScrollPhysics(),
                                     ),
-                                    SizedBox(width: 16.0.w),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            name,
-                                            style: TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontSize: 16.0.sp,
-                                              fontWeight: FontWeight.w600,
-                                              color: textColor,
-                                            ),
+                                    itemCount: currentFileList.length,
+                                    separatorBuilder: (context, index) => Divider(
+                                      color: dividerColor,
+                                      height: 1.0.h,
+                                      thickness: 1.0.r,
+                                    ),
+                                    itemBuilder: (context, index) {
+                                      final file = currentFileList[index];
+
+                                      return GestureDetector(
+                                        onTap: () {
+                                          final detail = FileDetail(
+                                            name: file.name,
+                                            size: file.sizeString,
+                                            createdDate: 'June 28, 2026, 12:14 PM',
+                                            modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                            type: file.category,
+                                            themeColor: file.themeColor,
+                                            fallbackIcon: file.fallbackIcon,
+                                            fluxIcon: file.fluxIcon,
+                                          );
+                                          FileDetailSheet.show(context, detail);
+                                        },
+                                        behavior: HitTestBehavior.opaque,
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 44.0.r,
+                                                height: 44.0.r,
+                                                decoration: BoxDecoration(
+                                                  color: file.themeColor.withValues(alpha: isDark ? 0.2 : 0.8),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Center(
+                                                  child: file.fluxIcon != null
+                                                      ? FluxIcon(file.fluxIcon!, size: 22.0.r)
+                                                      : Icon(
+                                                          file.fallbackIcon,
+                                                          size: 22.0.r,
+                                                          color: file.themeColor,
+                                                        ),
+                                                ),
+                                              ),
+                                              SizedBox(width: 16.0.w),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      file.name,
+                                                      style: TextStyle(
+                                                        fontFamily: 'Inter',
+                                                        fontSize: 16.0.sp,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: textColor,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                    SizedBox(height: 4.0.h),
+                                                    Text(
+                                                      '${file.sizeString} • ${file.location}',
+                                                      style: TextStyle(
+                                                        fontFamily: 'Inter',
+                                                        fontSize: 13.0.sp,
+                                                        fontWeight: FontWeight.w500,
+                                                        color: subtitleColor,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  final detail = FileDetail(
+                                                    name: file.name,
+                                                    size: file.sizeString,
+                                                    createdDate: 'June 28, 2026, 12:14 PM',
+                                                    modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                                    type: file.category,
+                                                    themeColor: file.themeColor,
+                                                    fallbackIcon: file.fallbackIcon,
+                                                    fluxIcon: file.fluxIcon,
+                                                  );
+                                                  FileDetailSheet.show(context, detail);
+                                                },
+                                                behavior: HitTestBehavior.opaque,
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(8.0.r),
+                                                  child: Icon(
+                                                    Icons.more_vert,
+                                                    size: 20.0.r,
+                                                    color: isDark ? Colors.white38 : Colors.black38,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          SizedBox(height: 4.0.h),
-                                          Text(
-                                            '$size • $type',
-                                            style: TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontSize: 13.0.sp,
-                                              fontWeight: FontWeight.w500,
-                                              color: subtitleColor,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.more_vert,
-                                      size: 20.0.r,
-                                      color: isDark ? Colors.white38 : Colors.black38,
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-                          },
-                        ),
+                                        ),
+                                      );
+                                    },
+                                  )),
                       ),
                     ),
                   ],

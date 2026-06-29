@@ -4,6 +4,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/search_state_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/providers/file_filter_provider.dart';
+import 'widgets/advanced_filter_sheet.dart';
+import '../../home/presentation/widgets/file_detail_sheet.dart';
+import '../../../core/widgets/flux_icon.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({Key? key}) : super(key: key);
@@ -19,40 +23,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   late AnimationController _animationController;
   late Animation<double> _opacityAnimation;
   late Animation<double> _scaleAnimation;
-
-  // Mock list of files representing query matches in layouts
-  final List<Map<String, String>> _mockFiles = [
-    {
-      'name': 'Employment Contract.docx',
-      'date': 'January 15, 2023',
-      'size': '560 KB',
-    },
-    {
-      'name': 'Partnership Agreement.doc',
-      'date': 'March 28, 2022',
-      'size': '2.5 MB',
-    },
-    {
-      'name': 'Agreement Contract.pdf',
-      'date': 'June 5, 2023',
-      'size': '793 KB',
-    },
-    {
-      'name': 'Employment Contract.pdf',
-      'date': 'August 10, 2022',
-      'size': '793 KB',
-    },
-    {
-      'name': 'Licensing Agreement.docx',
-      'date': 'February 7, 2023',
-      'size': '793 KB',
-    },
-    {
-      'name': 'Service Agreement Contract.pdf',
-      'date': 'November 20, 2022',
-      'size': '912 KB',
-    },
-  ];
 
   @override
   void initState() {
@@ -109,11 +79,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       );
     }
 
-    // Filtered list based on text match
-    final filteredFiles = _mockFiles.where((file) {
-      final name = file['name']?.toLowerCase() ?? '';
-      return name.contains(query.toLowerCase());
-    }).toList();
+    // Watch the active filtered files list from our provider
+    final filteredFiles = ref.watch(filteredFilesProvider(query));
+    final filterState = ref.watch(fileFilterProvider);
 
     final bgColor = isDark ? AppColors.pureBlack : AppColors.pureWhite;
 
@@ -142,92 +110,93 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                             width: 44.0.w,
                             height: 44.0.h,
                             decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.04)
+                                  : Colors.black.withValues(alpha: 0.03),
                               shape: BoxShape.circle,
-                              color: isDark ? AppColors.neutral900 : AppColors.neutral100,
                               border: Border.all(
-                                color: isDark ? AppColors.neutral800 : AppColors.neutral200,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.black.withValues(alpha: 0.05),
                                 width: 1.0.r,
                               ),
                             ),
                             child: Icon(
-                              Icons.arrow_back,
-                              color: isDark ? AppColors.neutral50 : AppColors.neutral900,
+                              Icons.arrow_back_rounded,
+                              color: isDark ? AppColors.pureWhite : AppColors.neutral900,
                               size: 20.0.r,
                             ),
                           ),
                         ),
                         SizedBox(width: 12.0.w),
-                        // Input Bar wrapped in Hero tag 'search_bar_hero'
+
+                        // Search Input Field Container
                         Expanded(
-                          child: Hero(
-                            tag: 'search_bar_hero',
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Container(
-                                height: 48.0.h,
-                                decoration: BoxDecoration(
-                                  color: isDark ? AppColors.neutral900 : AppColors.neutral100,
-                                  borderRadius: BorderRadius.circular(24.0.r),
-                                  border: Border.all(
-                                    color: isDark ? AppColors.neutral800 : AppColors.neutral200,
-                                    width: 1.0.r,
+                          child: Container(
+                            height: 48.0.h,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.04)
+                                  : Colors.black.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(24.0.r),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.black.withValues(alpha: 0.05),
+                                width: 1.0.r,
+                              ),
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 16.0.w),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.search_rounded,
+                                  color: isDark ? Colors.white30 : Colors.black38,
+                                  size: 20.0.r,
+                                ),
+                                SizedBox(width: 10.0.w),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _searchController,
+                                    focusNode: _focusNode,
+                                    onChanged: (val) {
+                                      ref.read(searchStateProvider.notifier).state = val;
+                                    },
+                                    onSubmitted: (val) {
+                                      if (val.trim().isNotEmpty) {
+                                        ref.read(searchHistoryProvider.notifier).add(val);
+                                      }
+                                    },
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 15.0.sp,
+                                      color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search',
+                                      hintStyle: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 15.0.sp,
+                                        color: isDark ? Colors.white30 : Colors.black38,
+                                      ),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                    ),
                                   ),
                                 ),
-                                padding: EdgeInsets.symmetric(horizontal: 16.0.w),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.search,
-                                      color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
-                                      size: 20.0.r,
+                                if (query.isNotEmpty)
+                                  GestureDetector(
+                                    onTap: () {
+                                      _searchController.clear();
+                                      ref.read(searchStateProvider.notifier).state = '';
+                                    },
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      color: isDark ? Colors.white38 : Colors.black38,
+                                      size: 18.0.r,
                                     ),
-                                    SizedBox(width: 10.0.w),
-                                    Expanded(
-                                      child: TextField(
-                                        focusNode: _focusNode,
-                                        controller: _searchController,
-                                        style: TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontSize: 14.0.sp,
-                                          color: isDark ? AppColors.neutral50 : AppColors.neutral900,
-                                          decoration: TextDecoration.none,
-                                        ),
-                                        decoration: InputDecoration(
-                                          hintText: 'Search',
-                                          hintStyle: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 14.0.sp,
-                                            color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
-                                          ),
-                                          border: InputBorder.none,
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
-                                        onChanged: (val) {
-                                          ref.read(searchStateProvider.notifier).state = val;
-                                        },
-                                        onSubmitted: (val) {
-                                          if (val.trim().isNotEmpty) {
-                                            ref.read(searchHistoryProvider.notifier).add(val.trim());
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                    if (query.isNotEmpty)
-                                      GestureDetector(
-                                        onTap: () {
-                                          _searchController.clear();
-                                          ref.read(searchStateProvider.notifier).state = '';
-                                        },
-                                        child: Icon(
-                                          Icons.close,
-                                          color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
-                                          size: 18.0.r,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
@@ -235,13 +204,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                     ),
                   ),
 
-                  // Dynamic Body switching states
+                  // Divider
+                  Divider(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.05),
+                    height: 1.0.h,
+                    thickness: 1.0.r,
+                  ),
+
+                  // Expanded results / history area
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 16.0.h),
                       child: query.isEmpty
-                          ? _buildHistoryState(ref, isDark, titleColor, history)
-                          : _buildResultsState(isDark, titleColor, subColor, filteredFiles),
+                          ? _buildSearchHistoryState(isDark, titleColor, subColor, history)
+                          : _buildResultsState(isDark, titleColor, subColor, filteredFiles, filterState),
                     ),
                   ),
                 ],
@@ -253,7 +232,39 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     );
   }
 
-  Widget _buildHistoryState(WidgetRef ref, bool isDark, Color titleColor, List<String> history) {
+  Widget _buildSearchHistoryState(
+    bool isDark,
+    Color titleColor,
+    Color subColor,
+    List<String> history,
+  ) {
+    if (history.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.only(top: 80.0.h),
+          child: Column(
+            children: [
+              Icon(
+                Icons.search_off_rounded,
+                size: 48.0.r,
+                color: isDark ? Colors.white24 : Colors.black12,
+              ),
+              SizedBox(height: 16.0.h),
+              Text(
+                'Type query to search files...',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14.0.sp,
+                  color: subColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -269,92 +280,81 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 color: titleColor,
               ),
             ),
-            if (history.isNotEmpty)
-              GestureDetector(
-                onTap: () {
-                  ref.read(searchHistoryProvider.notifier).clear();
-                },
-                child: Text(
-                  'Clear History',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13.0.sp,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.actionBlue,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        SizedBox(height: 16.0.h),
-        if (history.isEmpty)
-          Center(
-            child: Padding(
-              padding: EdgeInsets.only(top: 40.0.h),
+            GestureDetector(
+              onTap: () {
+                ref.read(searchHistoryProvider.notifier).clear();
+              },
               child: Text(
-                'No recent searches.',
+                'Clear History',
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 13.0.sp,
-                  color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                  fontSize: 14.0.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mintAccent,
                 ),
               ),
             ),
-          )
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: history.length,
-            itemBuilder: (context, index) {
-              final item = history[index];
-              return Padding(
-                padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.history,
-                      color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
-                      size: 20.0.r,
-                    ),
-                    SizedBox(width: 14.0.w),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          ref.read(searchStateProvider.notifier).state = item;
-                          ref.read(searchHistoryProvider.notifier).add(item);
-                        },
-                        child: Text(
-                          item,
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 14.0.sp,
-                            fontWeight: FontWeight.w400,
-                            color: titleColor,
-                          ),
+          ],
+        ),
+        SizedBox(height: 16.0.h),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: history.length,
+          itemBuilder: (context, index) {
+            final queryText = history[index];
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.0.h),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.history_rounded,
+                    color: isDark ? Colors.white30 : Colors.black38,
+                    size: 20.0.r,
+                  ),
+                  SizedBox(width: 14.0.w),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        ref.read(searchStateProvider.notifier).state = queryText;
+                      },
+                      child: Text(
+                        queryText,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15.0.sp,
+                          color: titleColor,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        ref.read(searchHistoryProvider.notifier).remove(item);
-                      },
-                      child: Icon(
-                        Icons.close,
-                        color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
-                        size: 16.0.r,
-                      ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      ref.read(searchHistoryProvider.notifier).remove(queryText);
+                    },
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: isDark ? Colors.white30 : Colors.black38,
+                      size: 18.0.r,
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildResultsState(bool isDark, Color titleColor, Color subColor, List<Map<String, String>> files) {
+  Widget _buildResultsState(
+    bool isDark,
+    Color titleColor,
+    Color subColor,
+    List<FluxFile> files,
+    FileFilterState filterState,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -372,15 +372,44 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             ),
             Row(
               children: [
-                Icon(
-                  Icons.tune,
-                  color: isDark ? AppColors.neutral50 : AppColors.neutral900,
-                  size: 20.0.r,
+                // Advanced Filters Tune Button
+                GestureDetector(
+                  onTap: () {
+                    AdvancedFilterSheet.show(context);
+                  },
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        Icons.tune_rounded,
+                        color: filterState.activeFiltersCount > 0
+                            ? AppColors.mintAccent
+                            : (isDark ? AppColors.pureWhite : AppColors.neutral900),
+                        size: 20.0.r,
+                      ),
+                      if (filterState.activeFiltersCount > 0)
+                        Positioned(
+                          top: -3.0.r,
+                          right: -3.0.r,
+                          child: Container(
+                            padding: EdgeInsets.all(2.0.r),
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: BoxConstraints(
+                              minWidth: 8.0.r,
+                              minHeight: 8.0.r,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                SizedBox(width: 12.0.w),
+                SizedBox(width: 14.0.w),
                 Icon(
-                  Icons.view_headline,
-                  color: isDark ? AppColors.neutral50 : AppColors.neutral900,
+                  Icons.view_headline_rounded,
+                  color: isDark ? AppColors.pureWhite : AppColors.neutral900,
                   size: 20.0.r,
                 ),
               ],
@@ -409,68 +438,102 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             itemCount: files.length,
             itemBuilder: (context, index) {
               final file = files[index];
-              final fileName = file['name'] ?? '';
-              final fileDate = file['date'] ?? '';
-              final fileSize = file['size'] ?? '';
 
-              return Padding(
-                padding: EdgeInsets.symmetric(vertical: 10.0.h),
-                child: Row(
-                  children: [
-                    // Document Icon (Yellow/Amber container matching design reference folders)
-                    Container(
-                      width: 44.0.w,
-                      height: 44.0.h,
-                      decoration: BoxDecoration(
-                        color: AppColors.amberAccent,
-                        borderRadius: BorderRadius.circular(12.0.r),
-                        border: Border.all(
-                          color: AppColors.amberBorder,
-                          width: 1.0.r,
+              return GestureDetector(
+                onTap: () {
+                  final detail = FileDetail(
+                    name: file.name,
+                    size: file.sizeString,
+                    createdDate: 'June 28, 2026, 12:14 PM',
+                    modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                    type: file.category,
+                    themeColor: file.themeColor,
+                    fallbackIcon: file.fallbackIcon,
+                    fluxIcon: file.fluxIcon,
+                  );
+                  FileDetailSheet.show(context, detail);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10.0.h),
+                  child: Row(
+                    children: [
+                      // Document Icon
+                      Container(
+                        width: 44.0.w,
+                        height: 44.0.h,
+                        decoration: BoxDecoration(
+                          color: file.themeColor.withValues(alpha: isDark ? 0.2 : 0.8),
+                          borderRadius: BorderRadius.circular(12.0.r),
+                          border: Border.all(
+                            color: file.themeColor.withValues(alpha: 0.15),
+                            width: 1.0.r,
+                          ),
+                        ),
+                        child: Center(
+                          child: file.fluxIcon != null
+                              ? FluxIcon(file.fluxIcon!, size: 20.0.r)
+                              : Icon(
+                                  file.fallbackIcon,
+                                  color: file.themeColor,
+                                  size: 20.0.r,
+                                ),
                         ),
                       ),
-                      child: Center(
-                        child: Icon(
-                          Icons.insert_drive_file_outlined,
-                          color: AppColors.amberIcon,
-                          size: 22.0.r,
+                      SizedBox(width: 14.0.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              file.name,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 14.0.sp,
+                                fontWeight: FontWeight.w600,
+                                color: titleColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 4.0.h),
+                            Text(
+                              '${file.sizeString} | ${file.location}',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11.0.sp,
+                                color: subColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    SizedBox(width: 14.0.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            fileName,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 14.0.sp,
-                              fontWeight: FontWeight.w600,
-                              color: titleColor,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                      GestureDetector(
+                        onTap: () {
+                          final detail = FileDetail(
+                            name: file.name,
+                            size: file.sizeString,
+                            createdDate: 'June 28, 2026, 12:14 PM',
+                            modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                            type: file.category,
+                            themeColor: file.themeColor,
+                            fallbackIcon: file.fallbackIcon,
+                            fluxIcon: file.fluxIcon,
+                          );
+                          FileDetailSheet.show(context, detail);
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: EdgeInsets.all(8.0.r),
+                          child: Icon(
+                            Icons.more_vert,
+                            color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                            size: 20.0.r,
                           ),
-                          SizedBox(height: 4.0.h),
-                          Text(
-                            '$fileDate | $fileSize',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 11.0.sp,
-                              color: subColor,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.more_vert,
-                      color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
-                      size: 20.0.r,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
