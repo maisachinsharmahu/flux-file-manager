@@ -140,9 +140,9 @@ String fileTypeIconPath(String extension) {
     case 'sqlite':
       return 'assets/newsv/MDB.svg';
 
-    // Default
+    // Default — generic file icon for unknown types
     default:
-      return 'assets/newsv/TXT.svg';
+      return 'assets/newsv/other.svg';
   }
 }
 
