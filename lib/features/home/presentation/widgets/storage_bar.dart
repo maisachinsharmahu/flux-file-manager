@@ -229,7 +229,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                     },
                   ),
                   SizedBox(height: 24.0.h),
-                  // Bottom grid layout redesigned as 2 columns of 3 premium capsule tags
+                  // Bottom grid layout redesigned as 2 columns of 3 premium compact capsule tags
                   Row(
                     children: [
                       // Left Column: Apps, Others, Docs
@@ -242,14 +242,14 @@ class _StorageBarState extends ConsumerState<StorageBar>
                               '1.4 GB',
                               const Color(0xFFFF4D4D),
                             ),
-                            SizedBox(height: 10.0.h),
+                            SizedBox(height: 6.0.h),
                             _buildLegendItem(
                               isDark,
                               'Others',
                               '512 MB',
                               const Color(0xFF9E9E9E),
                             ),
-                            SizedBox(height: 10.0.h),
+                            SizedBox(height: 6.0.h),
                             _buildLegendItem(
                               isDark,
                               'Docs',
@@ -259,7 +259,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                           ],
                         ),
                       ),
-                      SizedBox(width: 12.0.w),
+                      SizedBox(width: 8.0.w),
                       // Right Column: Videos, Images, Audio
                       Expanded(
                         child: Column(
@@ -270,14 +270,14 @@ class _StorageBarState extends ConsumerState<StorageBar>
                               '823 MB',
                               AppColors.mintAccent,
                             ),
-                            SizedBox(height: 10.0.h),
+                            SizedBox(height: 6.0.h),
                             _buildLegendItem(
                               isDark,
                               'Images',
                               '312 MB',
                               AppColors.storageSkyBlue,
                             ),
-                            SizedBox(height: 10.0.h),
+                            SizedBox(height: 6.0.h),
                             _buildLegendItem(
                               isDark,
                               'Audio',
@@ -305,12 +305,12 @@ class _StorageBarState extends ConsumerState<StorageBar>
     Color color,
   ) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.0.w, vertical: 10.0.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
       decoration: BoxDecoration(
         color: isDark
             ? Colors.white.withValues(alpha: 0.03)
             : Colors.black.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(16.0.r),
+        borderRadius: BorderRadius.circular(12.0.r),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.06)
@@ -321,14 +321,14 @@ class _StorageBarState extends ConsumerState<StorageBar>
       child: Row(
         children: [
           Container(
-            width: 8.0.r,
-            height: 8.0.r,
+            width: 6.0.r,
+            height: 6.0.r,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
             ),
           ),
-          SizedBox(width: 10.0.w),
+          SizedBox(width: 8.0.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,17 +338,17 @@ class _StorageBarState extends ConsumerState<StorageBar>
                   label,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 12.0.sp,
+                    fontSize: 11.0.sp,
                     fontWeight: FontWeight.w600,
                     color: isDark ? AppColors.pureWhite : AppColors.neutral900,
                   ),
                 ),
-                SizedBox(height: 2.0.h),
+                SizedBox(height: 1.0.h),
                 Text(
                   value,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 11.0.sp,
+                    fontSize: 10.0.sp,
                     fontWeight: FontWeight.w500,
                     color: isDark
                         ? AppColors.textSecondaryDark
