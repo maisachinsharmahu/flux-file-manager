@@ -134,19 +134,7 @@ class AllStorageSection extends ConsumerWidget {
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    // Show other storage details
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Other Storage connected & encrypted successfully.'),
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.0.r),
-                        ),
-                        elevation: 6,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                    // Other storage clicked
                   },
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20.0.r),
