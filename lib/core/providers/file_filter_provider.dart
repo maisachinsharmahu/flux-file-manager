@@ -38,11 +38,29 @@ class FluxFile {
     return Icons.insert_drive_file_outlined;
   }
 
-  FluxIconType? get fluxIcon {
-    if (category == 'Documents') {
-      if (name.endsWith('.pdf')) return FluxIconType.adobeReader;
-      return FluxIconType.documentColor;
+  /// The file extension derived from [name], lowercase, without the dot.
+  /// e.g.  "report.pdf" → "pdf"
+  String get fileExtension {
+    final dot = name.lastIndexOf('.');
+    if (dot == -1 || dot == name.length - 1) {
+      // Fallback by category
+      if (category == 'Photos') return 'jpg';
+      if (category == 'Videos') return 'mp4';
+      if (category == 'Audio') return 'mp3';
+      if (category == 'Application') return 'apk';
+      return 'txt';
     }
+    return name.substring(dot + 1).toLowerCase();
+  }
+
+  // Keep for backwards-compat with widgets that still use FluxIconType
+  FluxIconType? get fluxIcon {
+    if (name.endsWith('.pdf')) return FluxIconType.adobeReader;
+    if (category == 'Documents') return FluxIconType.documentColor;
+    if (category == 'Videos') return FluxIconType.videoFileColor;
+    if (category == 'Audio') return FluxIconType.audioColor;
+    if (category == 'Photos') return FluxIconType.imageFileColor;
+    if (category == 'Application') return FluxIconType.apk;
     return null;
   }
 }
@@ -51,8 +69,9 @@ class FileFilterState {
   final Set<String> categories;
   final String sizeRange; // 'All', 'Small (<1MB)', 'Medium (1-10MB)', 'Large (10-100MB)', 'Huge (>100MB)'
   final String dateRange; // 'All', 'Today', 'This Week', 'This Month', 'Older'
-  final String sortBy; // 'Name', 'Date', 'Size'
-  final bool isDescending; // true for Descending/High-to-Low, false for Ascending/Low-to-High
+  final String nameSort; // 'Off', 'Ascending', 'Descending'
+  final String dateSort; // 'Off', 'Ascending', 'Descending'
+  final String sizeSort; // 'Off', 'Ascending', 'Descending'
   final String location; // 'All', 'Local', 'Cloud', 'SD Card'
   final bool showVaultOnly;
   final bool showDuplicatesOnly;
@@ -61,8 +80,9 @@ class FileFilterState {
     required this.categories,
     required this.sizeRange,
     required this.dateRange,
-    required this.sortBy,
-    required this.isDescending,
+    required this.nameSort,
+    required this.dateSort,
+    required this.sizeSort,
     required this.location,
     required this.showVaultOnly,
     required this.showDuplicatesOnly,
@@ -72,8 +92,9 @@ class FileFilterState {
     Set<String>? categories,
     String? sizeRange,
     String? dateRange,
-    String? sortBy,
-    bool? isDescending,
+    String? nameSort,
+    String? dateSort,
+    String? sizeSort,
     String? location,
     bool? showVaultOnly,
     bool? showDuplicatesOnly,
@@ -82,8 +103,9 @@ class FileFilterState {
       categories: categories ?? this.categories,
       sizeRange: sizeRange ?? this.sizeRange,
       dateRange: dateRange ?? this.dateRange,
-      sortBy: sortBy ?? this.sortBy,
-      isDescending: isDescending ?? this.isDescending,
+      nameSort: nameSort ?? this.nameSort,
+      dateSort: dateSort ?? this.dateSort,
+      sizeSort: sizeSort ?? this.sizeSort,
       location: location ?? this.location,
       showVaultOnly: showVaultOnly ?? this.showVaultOnly,
       showDuplicatesOnly: showDuplicatesOnly ?? this.showDuplicatesOnly,
@@ -98,6 +120,9 @@ class FileFilterState {
     if (location != 'All') count += 1;
     if (showVaultOnly) count += 1;
     if (showDuplicatesOnly) count += 1;
+    if (nameSort != 'Off') count += 1;
+    if (dateSort != 'Off') count += 1;
+    if (sizeSort != 'Off') count += 1;
     return count;
   }
 }
@@ -110,8 +135,9 @@ class FileFilterNotifier extends StateNotifier<FileFilterState> {
             categories: {},
             sizeRange: 'All',
             dateRange: 'All',
-            sortBy: 'Date',
-            isDescending: true, // Default descending (newest first, highest capacity first)
+            nameSort: 'Off',
+            dateSort: 'Descending', // Default date descending (newest first)
+            sizeSort: 'Off',
             location: 'All',
             showVaultOnly: false,
             showDuplicatesOnly: false,
@@ -140,12 +166,16 @@ class FileFilterNotifier extends StateNotifier<FileFilterState> {
     state = state.copyWith(dateRange: range);
   }
 
-  void setSortBy(String sort) {
-    state = state.copyWith(sortBy: sort);
+  void setNameSort(String sort) {
+    state = state.copyWith(nameSort: sort);
   }
 
-  void setIsDescending(bool value) {
-    state = state.copyWith(isDescending: value);
+  void setDateSort(String sort) {
+    state = state.copyWith(dateSort: sort);
+  }
+
+  void setSizeSort(String sort) {
+    state = state.copyWith(sizeSort: sort);
   }
 
   void setLocation(String loc) {
@@ -165,8 +195,9 @@ class FileFilterNotifier extends StateNotifier<FileFilterState> {
       categories: {},
       sizeRange: 'All',
       dateRange: 'All',
-      sortBy: 'Date',
-      isDescending: true,
+      nameSort: 'Off',
+      dateSort: 'Descending',
+      sizeSort: 'Off',
       location: 'All',
       showVaultOnly: false,
       showDuplicatesOnly: false,
@@ -551,20 +582,34 @@ final filteredFilesProvider = Provider.family<List<FluxFile>, String>((
     }).toList();
   }
 
-  // 8. Sorting
-  if (filter.sortBy == 'Name') {
-    list.sort((a, b) => filter.isDescending
-        ? b.name.toLowerCase().compareTo(a.name.toLowerCase())
-        : a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-  } else if (filter.sortBy == 'Size') {
-    list.sort((a, b) => filter.isDescending
-        ? b.sizeInMb.compareTo(a.sizeInMb)
-        : a.sizeInMb.compareTo(b.sizeInMb));
-  } else if (filter.sortBy == 'Date') {
-    list.sort((a, b) => filter.isDescending
-        ? b.modifiedDate.compareTo(a.modifiedDate)
-        : a.modifiedDate.compareTo(b.modifiedDate));
-  }
+  // 8. Chained Multi-Level Sorting
+  list.sort((a, b) {
+    // 1st Priority: Name sort (if active)
+    if (filter.nameSort != 'Off') {
+      final isDesc = filter.nameSort == 'Descending';
+      final comp = isDesc
+          ? b.name.toLowerCase().compareTo(a.name.toLowerCase())
+          : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      if (comp != 0) return comp;
+    }
+    // 2nd Priority: Date sort (if active)
+    if (filter.dateSort != 'Off') {
+      final isDesc = filter.dateSort == 'Descending';
+      final comp = isDesc
+          ? b.modifiedDate.compareTo(a.modifiedDate)
+          : a.modifiedDate.compareTo(b.modifiedDate);
+      if (comp != 0) return comp;
+    }
+    // 3rd Priority: Size sort (if active)
+    if (filter.sizeSort != 'Off') {
+      final isDesc = filter.sizeSort == 'Descending';
+      final comp = isDesc
+          ? b.sizeInMb.compareTo(a.sizeInMb)
+          : a.sizeInMb.compareTo(b.sizeInMb);
+      if (comp != 0) return comp;
+    }
+    return 0;
+  });
 
   return list;
 });

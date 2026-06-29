@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/flux_icon.dart';
+import '../../../../core/widgets/file_type_icon.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'file_detail_sheet.dart';
 
@@ -15,7 +16,7 @@ class DownloadsGrid extends StatelessWidget {
       'category': 'Documents',
       'size': '240 KB',
       'date': '2026-06-29',
-      'icon': FluxIconType.documentColor,
+      'ext': 'docx',
       'color': AppColors.excelLightBg,
       'darkColor': AppColors.excelDarkBg,
       'fallbackIcon': Icons.description_outlined,
@@ -26,7 +27,7 @@ class DownloadsGrid extends StatelessWidget {
       'category': 'Documents',
       'size': '1.2 MB',
       'date': '2026-06-29',
-      'icon': FluxIconType.adobeReader,
+      'ext': 'pdf',
       'color': AppColors.pdfBackground,
       'darkColor': AppColors.pdfDarkBg,
       'fallbackIcon': Icons.picture_as_pdf_outlined,
@@ -37,7 +38,7 @@ class DownloadsGrid extends StatelessWidget {
       'category': 'Videos',
       'size': '125 MB',
       'date': '2026-06-29',
-      'icon': FluxIconType.videoFileColor,
+      'ext': 'mov',
       'color': AppColors.pptLightBg,
       'darkColor': AppColors.pptDarkBg,
       'fallbackIcon': Icons.play_circle_outline,
@@ -48,7 +49,7 @@ class DownloadsGrid extends StatelessWidget {
       'category': 'Images',
       'size': '2.4 MB',
       'date': '2026-06-29',
-      'icon': FluxIconType.imageFileColor,
+      'ext': 'jpg',
       'color': AppColors.excelLightBg,
       'darkColor': AppColors.excelDarkBg,
       'fallbackIcon': Icons.image_outlined,
@@ -59,7 +60,7 @@ class DownloadsGrid extends StatelessWidget {
       'category': 'Apps',
       'size': '18 MB',
       'date': '2026-06-28',
-      'icon': FluxIconType.apk,
+      'ext': 'apk',
       'color': AppColors.pdfBackground,
       'darkColor': AppColors.pdfDarkBg,
       'fallbackIcon': Icons.android_outlined,
@@ -70,7 +71,7 @@ class DownloadsGrid extends StatelessWidget {
       'category': 'Audio',
       'size': '15 MB',
       'date': '2026-06-27',
-      'icon': FluxIconType.audioColor,
+      'ext': 'wav',
       'color': AppColors.pptLightBg,
       'darkColor': AppColors.pptDarkBg,
       'fallbackIcon': Icons.audiotrack_outlined,
@@ -81,7 +82,7 @@ class DownloadsGrid extends StatelessWidget {
       'category': 'Documents',
       'size': '4.1 MB',
       'date': '2026-06-26',
-      'icon': FluxIconType.adobeReader,
+      'ext': 'pdf',
       'color': AppColors.pdfBackground,
       'darkColor': AppColors.pdfDarkBg,
       'fallbackIcon': Icons.picture_as_pdf_outlined,
@@ -92,7 +93,7 @@ class DownloadsGrid extends StatelessWidget {
       'category': 'Videos',
       'size': '820 MB',
       'date': '2026-06-25',
-      'icon': FluxIconType.videoFileColor,
+      'ext': 'mkv',
       'color': AppColors.pptLightBg,
       'darkColor': AppColors.pptDarkBg,
       'fallbackIcon': Icons.play_circle_outline,
@@ -238,7 +239,7 @@ class DownloadsGrid extends StatelessWidget {
                     type: item['category'] as String,
                     themeColor: itemThemeColor,
                     fallbackIcon: item['fallbackIcon'] as IconData,
-                    fluxIcon: item['icon'] as FluxIconType,
+                    fluxIcon: null,
                   );
                   FileDetailSheet.show(context, detail);
                 },
@@ -256,16 +257,9 @@ class DownloadsGrid extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 36.0.r,
-                        height: 36.0.r,
-                        decoration: BoxDecoration(
-                          color: itemThemeColor.withValues(alpha: isDark ? 0.2 : 0.8),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: FluxIcon(item['icon'] as FluxIconType, size: 18.0.r),
-                        ),
+                      FileTypeIcon(
+                        extension: item['ext'] as String,
+                        size: 36.0.r,
                       ),
                       SizedBox(height: 10.0.h),
                       Text(

@@ -8,6 +8,7 @@ import '../../../core/providers/file_filter_provider.dart';
 import 'widgets/quick_sort_filter_sheet.dart';
 import '../../home/presentation/widgets/file_detail_sheet.dart';
 import '../../../core/widgets/flux_icon.dart';
+import '../../../core/widgets/file_type_icon.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({Key? key}) : super(key: key);
@@ -459,26 +460,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   child: Row(
                     children: [
                       // Document Icon
-                      Container(
-                        width: 44.0.w,
-                        height: 44.0.h,
-                        decoration: BoxDecoration(
-                          color: file.themeColor.withValues(alpha: isDark ? 0.2 : 0.8),
-                          borderRadius: BorderRadius.circular(12.0.r),
-                          border: Border.all(
-                            color: file.themeColor.withValues(alpha: 0.15),
-                            width: 1.0.r,
-                          ),
-                        ),
-                        child: Center(
-                          child: file.fluxIcon != null
-                              ? FluxIcon(file.fluxIcon!, size: 20.0.r)
-                              : Icon(
-                                  file.fallbackIcon,
-                                  color: file.themeColor,
-                                  size: 20.0.r,
-                                ),
-                        ),
+                      FileTypeIcon(
+                        extension: file.fileExtension,
+                        size: 44.0.r,
                       ),
                       SizedBox(width: 14.0.w),
                       Expanded(

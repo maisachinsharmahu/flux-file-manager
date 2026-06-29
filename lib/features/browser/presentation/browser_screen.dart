@@ -7,6 +7,7 @@ import '../../home/presentation/widgets/file_detail_sheet.dart';
 import '../../../core/providers/file_filter_provider.dart';
 import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
 import '../../../core/widgets/flux_icon.dart';
+import '../../../core/widgets/file_type_icon.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
   const BrowserScreen({Key? key}) : super(key: key);
@@ -586,22 +587,9 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                           padding: EdgeInsets.symmetric(vertical: 12.0.h),
                                           child: Row(
                                             children: [
-                                              Container(
-                                                width: 44.0.r,
-                                                height: 44.0.r,
-                                                decoration: BoxDecoration(
-                                                  color: file.themeColor.withValues(alpha: isDark ? 0.2 : 0.8),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Center(
-                                                  child: file.fluxIcon != null
-                                                      ? FluxIcon(file.fluxIcon!, size: 22.0.r)
-                                                      : Icon(
-                                                          file.fallbackIcon,
-                                                          size: 22.0.r,
-                                                          color: file.themeColor,
-                                                        ),
-                                                ),
+                                              FileTypeIcon(
+                                                extension: file.fileExtension,
+                                                size: 44.0.r,
                                               ),
                                               SizedBox(width: 16.0.w),
                                               Expanded(

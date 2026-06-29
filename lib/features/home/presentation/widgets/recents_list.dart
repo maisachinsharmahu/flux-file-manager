@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/flux_icon.dart';
+import '../../../../core/widgets/file_type_icon.dart';
 import '../../../../core/theme/app_colors.dart';
 
 import 'file_detail_sheet.dart';
@@ -93,11 +94,7 @@ class RecentsList extends StatelessWidget {
               Icons.table_chart_outlined,
             ];
 
-            final fluxIcons = [
-              null, // Fallback to PowerPoint slides outline
-              FluxIconType.adobeReader, // Premium PDF icon SVG
-              FluxIconType.documentColor, // Premium Spreadsheet document SVG
-            ];
+            final extensions = ['pptx', 'pdf', 'xlsx'];
 
             final bgColor = isDark ? darkColors[index] : lightColors[index];
 
@@ -107,7 +104,7 @@ class RecentsList extends StatelessWidget {
               bgColor: bgColor,
               iconColor: iconColors[index],
               fallbackIcon: fallbackIcons[index],
-              fluxIcon: fluxIcons[index],
+              extension: extensions[index],
             );
           },
         ),
@@ -122,7 +119,7 @@ class _RecentItemRow extends StatelessWidget {
   final Color bgColor;
   final Color iconColor;
   final IconData fallbackIcon;
-  final FluxIconType? fluxIcon;
+  final String extension;
 
   const _RecentItemRow({
     Key? key,
@@ -131,7 +128,7 @@ class _RecentItemRow extends StatelessWidget {
     required this.bgColor,
     required this.iconColor,
     required this.fallbackIcon,
-    this.fluxIcon,
+    required this.extension,
   }) : super(key: key);
 
   void _showDetails(BuildContext context) {
@@ -167,7 +164,7 @@ class _RecentItemRow extends StatelessWidget {
         type: 'Excel Spreadsheet',
         themeColor: iconColor,
         fallbackIcon: fallbackIcon,
-        fluxIcon: fluxIcon,
+        fluxIcon: null,
       );
     }
 
@@ -191,22 +188,9 @@ class _RecentItemRow extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 12.0.h),
         child: Row(
           children: [
-            Container(
-              width: 44.0.r,
-              height: 44.0.r,
-              decoration: BoxDecoration(
-                color: bgColor.withValues(alpha: isDark ? 0.35 : 0.8),
-                borderRadius: BorderRadius.circular(12.0.r),
-                border: Border.all(
-                  color: iconColor.withValues(alpha: 0.15),
-                  width: 1.0.r,
-                ),
-              ),
-              child: Center(
-                child: fluxIcon != null
-                    ? FluxIcon(fluxIcon!, size: 20.0.r)
-                    : Icon(fallbackIcon, color: iconColor, size: 20.0.r),
-              ),
+            FileTypeIcon(
+              extension: extension,
+              size: 44.0.r,
             ),
             SizedBox(width: 16.0.w),
             Expanded(
