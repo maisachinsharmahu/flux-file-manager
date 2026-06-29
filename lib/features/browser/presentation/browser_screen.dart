@@ -21,6 +21,11 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
   late Animation<double> _opacityAnimation;
   late Animation<double> _scaleAnimation;
 
+  bool _isSearching = false;
+  String _searchQuery = '';
+  String _searchScope = 'local'; // 'local' or 'global'
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +46,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -131,10 +137,20 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     bool isFolderList = activeCategory == null;
     final String pageTitle = activeCategory ?? 'Internal Storage';
     List<FluxFile> currentFileList = [];
-    
-    if (!isFolderList) {
-      final allFiltered = ref.watch(filteredFilesProvider(''));
-      currentFileList = allFiltered.where((file) => file.category == activeCategory).toList();
+
+    if (_isSearching && _searchScope == 'global') {
+      isFolderList = false;
+      currentFileList = ref.watch(filteredFilesProvider(_searchQuery));
+    } else {
+      if (!isFolderList) {
+        final allFiltered = ref.watch(filteredFilesProvider(_isSearching ? _searchQuery : ''));
+        currentFileList = allFiltered.where((file) => file.category == activeCategory).toList();
+      } else {
+        if (_isSearching && _searchQuery.isNotEmpty) {
+          final lowerQuery = _searchQuery.toLowerCase();
+          folders.removeWhere((folder) => !(folder['name'] as String).toLowerCase().contains(lowerQuery));
+        }
+      }
     }
 
     return Scaffold(
@@ -149,56 +165,205 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header Row
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
-                      child: Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              if (activeCategory != null) {
-                                // If viewing a category, go back to Analytics and clear category filter
-                                ref.read(selectedBrowserCategoryProvider.notifier).state = null;
-                                ref.read(activeIndexProvider.notifier).state = 1; // Back to Analytics
-                              } else {
-                                // If root folders, go back to Home
-                                ref.read(activeIndexProvider.notifier).state = 0; // Back to Home
-                              }
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(8.0.r),
-                              child: Icon(
-                                Icons.arrow_back_ios_new,
-                                size: 20.0.r,
-                                color: iconColor,
+                    // Header Row with Animated Switcher for Search Mode
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      transitionBuilder: (Widget child, Animation<double> animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.0, -0.2),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: _isSearching
+                          ? Padding(
+                              key: const ValueKey('searchHeader'),
+                              padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                              child: Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _isSearching = false;
+                                        _searchQuery = '';
+                                        _searchController.clear();
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.all(8.0.r),
+                                      child: Icon(
+                                        Icons.arrow_back_ios_new,
+                                        size: 20.0.r,
+                                        color: iconColor,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.0.w),
+                                  Expanded(
+                                    child: Container(
+                                      height: 40.0.h,
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.white.withValues(alpha: 0.05)
+                                            : Colors.black.withValues(alpha: 0.03),
+                                        borderRadius: BorderRadius.circular(20.0.r),
+                                      ),
+                                      padding: EdgeInsets.symmetric(horizontal: 16.0.w),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.search,
+                                            size: 18.0.r,
+                                            color: subtitleColor,
+                                          ),
+                                          SizedBox(width: 8.0.w),
+                                          Expanded(
+                                            child: TextField(
+                                              controller: _searchController,
+                                              autofocus: true,
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  _searchQuery = val;
+                                                });
+                                              },
+                                              style: TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontSize: 14.0.sp,
+                                                color: textColor,
+                                              ),
+                                              decoration: InputDecoration(
+                                                hintText: 'Search...',
+                                                hintStyle: TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontSize: 14.0.sp,
+                                                  color: subtitleColor,
+                                                ),
+                                                border: InputBorder.none,
+                                                isDense: true,
+                                                contentPadding: EdgeInsets.zero,
+                                              ),
+                                            ),
+                                          ),
+                                          if (_searchQuery.isNotEmpty)
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _searchQuery = '';
+                                                  _searchController.clear();
+                                                });
+                                              },
+                                              child: Icon(
+                                                Icons.close_rounded,
+                                                size: 18.0.r,
+                                                color: subtitleColor,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Padding(
+                              key: const ValueKey('normalHeader'),
+                              padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                              child: Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      if (activeCategory != null) {
+                                        ref.read(selectedBrowserCategoryProvider.notifier).state = null;
+                                        ref.read(activeIndexProvider.notifier).state = 1;
+                                      } else {
+                                        ref.read(activeIndexProvider.notifier).state = 0;
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.all(8.0.r),
+                                      child: Icon(
+                                        Icons.arrow_back_ios_new,
+                                        size: 20.0.r,
+                                        color: iconColor,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.0.w),
+                                  Text(
+                                    pageTitle,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 24.0.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _isSearching = true;
+                                        _searchScope = 'local';
+                                      });
+                                    },
+                                    child: Icon(
+                                      Icons.search,
+                                      size: 26.0.r,
+                                      color: iconColor,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                          SizedBox(width: 8.0.w),
-                          Text(
-                            pageTitle,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 24.0.sp,
-                              fontWeight: FontWeight.w800,
-                              color: textColor,
-                            ),
-                          ),
-                          const Spacer(),
-                          Icon(
-                            Icons.add,
-                            size: 26.0.r,
-                            color: iconColor,
-                          ),
-                          SizedBox(width: 20.0.w),
-                          Icon(
-                            Icons.search,
-                            size: 26.0.r,
-                            color: iconColor,
-                          ),
-                        ],
-                      ),
                     ),
+
+                    // macOS Finder style Search Scope Bar
+                    if (_isSearching)
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 8.0.h),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Search: ',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13.0.sp,
+                                fontWeight: FontWeight.w600,
+                                color: subtitleColor,
+                              ),
+                            ),
+                            SizedBox(width: 8.0.w),
+                            _buildScopePill(
+                              label: pageTitle,
+                              isActive: _searchScope == 'local',
+                              onTap: () {
+                                setState(() {
+                                  _searchScope = 'local';
+                                });
+                              },
+                              isDark: isDark,
+                              borderColor: dividerColor,
+                            ),
+                            SizedBox(width: 8.0.w),
+                            _buildScopePill(
+                              label: 'All Files',
+                              isActive: _searchScope == 'global',
+                              onTap: () {
+                                setState(() {
+                                  _searchScope = 'global';
+                                });
+                              },
+                              isDark: isDark,
+                              borderColor: dividerColor,
+                            ),
+                          ],
+                        ),
+                      ),
                     SizedBox(height: 16.0.h),
                     
                     // Filters Row: Sorting and Layout settings
@@ -534,6 +699,43 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+  Widget _buildScopePill({
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+    required bool isDark,
+    required Color borderColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.0.w, vertical: 6.0.h),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppColors.mintAccent
+              : (isDark
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : Colors.black.withValues(alpha: 0.02)),
+          borderRadius: BorderRadius.circular(16.0.r),
+          border: Border.all(
+            color: isActive ? AppColors.mintAccent : borderColor,
+            width: 1.0.r,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12.0.sp,
+            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+            color: isActive
+                ? Colors.black
+                : (isDark ? AppColors.pureWhite : AppColors.neutral900),
           ),
         ),
       ),
