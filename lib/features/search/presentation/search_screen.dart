@@ -115,23 +115,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       return name.contains(query.toLowerCase());
     }).toList();
 
-    final bgGradient = isDark
-        ? const RadialGradient(
-            center: Alignment(0.0, -1.2),
-            radius: 1.4,
-            colors: [
-              AppColors.indigoHaze,
-              AppColors.pureBlack,
-            ],
-          )
-        : const RadialGradient(
-            center: Alignment(0.0, -1.2),
-            radius: 1.4,
-            colors: [
-              AppColors.lightHaze,
-              AppColors.pureWhite,
-            ],
-          );
+    final bgColor = isDark ? AppColors.pureBlack : AppColors.pureWhite;
 
     return Scaffold(
       body: FadeTransition(
@@ -139,9 +123,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: Container(
-            decoration: BoxDecoration(
-              gradient: bgGradient,
-            ),
+            color: bgColor,
             child: SafeArea(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
