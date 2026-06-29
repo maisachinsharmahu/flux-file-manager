@@ -18,6 +18,7 @@ class AllFilesScreen extends ConsumerStatefulWidget {
 class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   bool _isSearching = false;
   String _searchQuery = '';
+  String _searchScope = 'all'; // 'all', 'local', 'cloud'
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -42,7 +43,18 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
         : Colors.black.withValues(alpha: 0.05);
 
     // Watch the unified sorted and filtered mixed files list (including search query)
-    final filesList = ref.watch(filteredFilesProvider(_searchQuery));
+    final allFiles = ref.watch(filteredFilesProvider(_searchQuery));
+
+    // Apply search scope
+    final List<FluxFile> filesList;
+    if (_searchScope == 'local') {
+      filesList = allFiles.where((f) => f.location == 'Local').toList();
+    } else if (_searchScope == 'cloud') {
+      filesList = allFiles.where((f) => f.location == 'Cloud').toList();
+    } else {
+      filesList = allFiles;
+    }
+
     final filterState = ref.watch(fileFilterProvider);
 
     return Scaffold(
@@ -69,7 +81,12 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
               child: _isSearching
                   ? Padding(
                       key: const ValueKey('searchHeader'),
-                      padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                      padding: EdgeInsets.fromLTRB(
+                        16.0.w,
+                        16.0.h,
+                        20.0.w,
+                        8.0.h,
+                      ),
                       child: Row(
                         children: [
                           GestureDetector(
@@ -77,6 +94,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                               setState(() {
                                 _isSearching = false;
                                 _searchQuery = '';
+                                _searchScope = 'all';
                                 _searchController.clear();
                               });
                             },
@@ -123,7 +141,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                                         color: textColor,
                                       ),
                                       decoration: InputDecoration(
-                                        hintText: 'Search in All Files...',
+                                        hintText: 'Search...',
                                         hintStyle: TextStyle(
                                           fontFamily: 'Inter',
                                           fontSize: 14.0.sp,
@@ -158,7 +176,12 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                     )
                   : Padding(
                       key: const ValueKey('normalHeader'),
-                      padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                      padding: EdgeInsets.fromLTRB(
+                        16.0.w,
+                        16.0.h,
+                        20.0.w,
+                        8.0.h,
+                      ),
                       child: Row(
                         children: [
                           GestureDetector(
@@ -187,6 +210,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                             onTap: () {
                               setState(() {
                                 _isSearching = true;
+                                _searchScope = 'all';
                               });
                             },
                             child: Icon(
@@ -199,6 +223,64 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                       ),
                     ),
             ),
+
+            // macOS Finder style Scope Bar inside All Files Screen
+            if (_isSearching)
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 24.0.w,
+                  vertical: 8.0.h,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Search: ',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.0.sp,
+                        fontWeight: FontWeight.w600,
+                        color: subtitleColor,
+                      ),
+                    ),
+                    SizedBox(width: 8.0.w),
+                    _buildScopePill(
+                      label: 'All Files',
+                      isActive: _searchScope == 'all',
+                      onTap: () {
+                        setState(() {
+                          _searchScope = 'all';
+                        });
+                      },
+                      isDark: isDark,
+                      borderColor: dividerColor,
+                    ),
+                    SizedBox(width: 8.0.w),
+                    _buildScopePill(
+                      label: 'Local Only',
+                      isActive: _searchScope == 'local',
+                      onTap: () {
+                        setState(() {
+                          _searchScope = 'local';
+                        });
+                      },
+                      isDark: isDark,
+                      borderColor: dividerColor,
+                    ),
+                    SizedBox(width: 8.0.w),
+                    _buildScopePill(
+                      label: 'Cloud Only',
+                      isActive: _searchScope == 'cloud',
+                      onTap: () {
+                        setState(() {
+                          _searchScope = 'cloud';
+                        });
+                      },
+                      isDark: isDark,
+                      borderColor: dividerColor,
+                    ),
+                  ],
+                ),
+              ),
             SizedBox(height: 16.0.h),
 
             // Sorting/Filter Row
@@ -381,6 +463,44 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScopePill({
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+    required bool isDark,
+    required Color borderColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.0.w, vertical: 6.0.h),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppColors.mintAccent
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.04)
+                    : Colors.black.withValues(alpha: 0.02)),
+          borderRadius: BorderRadius.circular(16.0.r),
+          border: Border.all(
+            color: isActive ? AppColors.mintAccent : borderColor,
+            width: 1.0.r,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12.0.sp,
+            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+            color: isActive
+                ? Colors.black
+                : (isDark ? AppColors.pureWhite : AppColors.neutral900),
+          ),
         ),
       ),
     );
