@@ -49,10 +49,10 @@ class FluxFile {
 
 class FileFilterState {
   final Set<String> categories;
-  final String
-  sizeRange; // 'All', 'Small (<1MB)', 'Medium (1-10MB)', 'Large (10-100MB)', 'Huge (>100MB)'
+  final String sizeRange; // 'All', 'Small (<1MB)', 'Medium (1-10MB)', 'Large (10-100MB)', 'Huge (>100MB)'
   final String dateRange; // 'All', 'Today', 'This Week', 'This Month', 'Older'
   final String sortBy; // 'Name', 'Date', 'Size'
+  final bool isDescending; // true for Descending/High-to-Low, false for Ascending/Low-to-High
   final String location; // 'All', 'Local', 'Cloud', 'SD Card'
   final bool showVaultOnly;
   final bool showDuplicatesOnly;
@@ -62,6 +62,7 @@ class FileFilterState {
     required this.sizeRange,
     required this.dateRange,
     required this.sortBy,
+    required this.isDescending,
     required this.location,
     required this.showVaultOnly,
     required this.showDuplicatesOnly,
@@ -72,6 +73,7 @@ class FileFilterState {
     String? sizeRange,
     String? dateRange,
     String? sortBy,
+    bool? isDescending,
     String? location,
     bool? showVaultOnly,
     bool? showDuplicatesOnly,
@@ -81,6 +83,7 @@ class FileFilterState {
       sizeRange: sizeRange ?? this.sizeRange,
       dateRange: dateRange ?? this.dateRange,
       sortBy: sortBy ?? this.sortBy,
+      isDescending: isDescending ?? this.isDescending,
       location: location ?? this.location,
       showVaultOnly: showVaultOnly ?? this.showVaultOnly,
       showDuplicatesOnly: showDuplicatesOnly ?? this.showDuplicatesOnly,
@@ -102,17 +105,18 @@ class FileFilterState {
 // Default filter state notifier
 class FileFilterNotifier extends StateNotifier<FileFilterState> {
   FileFilterNotifier()
-    : super(
-        FileFilterState(
-          categories: {},
-          sizeRange: 'All',
-          dateRange: 'All',
-          sortBy: 'Date',
-          location: 'All',
-          showVaultOnly: false,
-          showDuplicatesOnly: false,
-        ),
-      );
+      : super(
+          FileFilterState(
+            categories: {},
+            sizeRange: 'All',
+            dateRange: 'All',
+            sortBy: 'Date',
+            isDescending: true, // Default descending (newest first, highest capacity first)
+            location: 'All',
+            showVaultOnly: false,
+            showDuplicatesOnly: false,
+          ),
+        );
 
   void toggleCategory(String category) {
     final updated = Set<String>.from(state.categories);
@@ -140,6 +144,10 @@ class FileFilterNotifier extends StateNotifier<FileFilterState> {
     state = state.copyWith(sortBy: sort);
   }
 
+  void setIsDescending(bool value) {
+    state = state.copyWith(isDescending: value);
+  }
+
   void setLocation(String loc) {
     state = state.copyWith(location: loc);
   }
@@ -158,6 +166,7 @@ class FileFilterNotifier extends StateNotifier<FileFilterState> {
       sizeRange: 'All',
       dateRange: 'All',
       sortBy: 'Date',
+      isDescending: true,
       location: 'All',
       showVaultOnly: false,
       showDuplicatesOnly: false,
@@ -544,11 +553,17 @@ final filteredFilesProvider = Provider.family<List<FluxFile>, String>((
 
   // 8. Sorting
   if (filter.sortBy == 'Name') {
-    list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    list.sort((a, b) => filter.isDescending
+        ? b.name.toLowerCase().compareTo(a.name.toLowerCase())
+        : a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   } else if (filter.sortBy == 'Size') {
-    list.sort((a, b) => b.sizeInMb.compareTo(a.sizeInMb));
+    list.sort((a, b) => filter.isDescending
+        ? b.sizeInMb.compareTo(a.sizeInMb)
+        : a.sizeInMb.compareTo(b.sizeInMb));
   } else if (filter.sortBy == 'Date') {
-    list.sort((a, b) => b.modifiedDate.compareTo(a.modifiedDate));
+    list.sort((a, b) => filter.isDescending
+        ? b.modifiedDate.compareTo(a.modifiedDate)
+        : a.modifiedDate.compareTo(b.modifiedDate));
   }
 
   return list;

@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../home/presentation/widgets/file_detail_sheet.dart';
 import '../../../core/providers/file_filter_provider.dart';
 import '../../search/presentation/widgets/advanced_filter_sheet.dart';
+import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
 import '../../../core/widgets/flux_icon.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
@@ -206,7 +207,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                               if (!isFolderList) ...[
                                 GestureDetector(
                                   onTap: () {
-                                    AdvancedFilterSheet.show(context);
+                                    QuickSortFilterSheet.show(context);
                                   },
                                   child: Stack(
                                     clipBehavior: Clip.none,
