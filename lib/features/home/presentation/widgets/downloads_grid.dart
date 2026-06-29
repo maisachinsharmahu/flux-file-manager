@@ -66,7 +66,7 @@ class DownloadsGrid extends StatelessWidget {
     },
     {
       'title': 'audio_recording.wav',
-      'subtitle': '15 MB • 2 days ago',
+      'subtitle': '15 MB • 2d ago',
       'category': 'Audio',
       'size': '15 MB',
       'date': '2026-06-27',
@@ -74,6 +74,28 @@ class DownloadsGrid extends StatelessWidget {
       'color': AppColors.pptLightBg,
       'darkColor': AppColors.pptDarkBg,
       'fallbackIcon': Icons.audiotrack_outlined,
+    },
+    {
+      'title': 'report_final.pdf',
+      'subtitle': '4.1 MB • 3d ago',
+      'category': 'Documents',
+      'size': '4.1 MB',
+      'date': '2026-06-26',
+      'icon': FluxIconType.adobeReader,
+      'color': AppColors.pdfBackground,
+      'darkColor': AppColors.pdfDarkBg,
+      'fallbackIcon': Icons.picture_as_pdf_outlined,
+    },
+    {
+      'title': 'movie_sample.mkv',
+      'subtitle': '820 MB • 4d ago',
+      'category': 'Videos',
+      'size': '820 MB',
+      'date': '2026-06-25',
+      'icon': FluxIconType.videoFileColor,
+      'color': AppColors.pptLightBg,
+      'darkColor': AppColors.pptDarkBg,
+      'fallbackIcon': Icons.play_circle_outline,
     },
   ];
 
@@ -93,6 +115,11 @@ class DownloadsGrid extends StatelessWidget {
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
+
+    // We fit a static 3-column x 2-row grid. Total grid spots = 6.
+    // Spot 1 to 5 show first 5 items. Spot 6 shows "+ X more".
+    const int maxSpots = 6;
+    final int extraCount = _mockDownloads.length - (maxSpots - 1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,20 +153,78 @@ class DownloadsGrid extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(
-          height: 240.0.h,
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.0.w),
           child: GridView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 24.0.w),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(), // Static, non-scrollable grid
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+              crossAxisCount: 3, // 3 Columns
               mainAxisSpacing: 12.0.w,
               crossAxisSpacing: 12.0.h,
-              childAspectRatio: 1.0, // Exact square ratio!
+              childAspectRatio: 0.95, // Clean square-ish cards
             ),
-            itemCount: _mockDownloads.length,
+            itemCount: maxSpots,
             itemBuilder: (context, index) {
+              // The 6th spot is the "+ X more" card
+              if (index == maxSpots - 1) {
+                return GestureDetector(
+                  onTap: () => context.push('/all_files'),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.mintAccent.withValues(alpha: isDark ? 0.06 : 0.04),
+                      borderRadius: BorderRadius.circular(16.0.r),
+                      border: Border.all(
+                        color: AppColors.mintAccent.withValues(alpha: 0.2),
+                        width: 1.0.r,
+                      ),
+                    ),
+                    padding: EdgeInsets.all(12.0.r),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 36.0.r,
+                          height: 36.0.r,
+                          decoration: BoxDecoration(
+                            color: AppColors.mintAccent.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.add_rounded,
+                              color: AppColors.mintAccent,
+                              size: 22.0.r,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10.0.h),
+                        Text(
+                          '+$extraCount More',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13.0.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.mintAccent,
+                          ),
+                        ),
+                        SizedBox(height: 2.0.h),
+                        Text(
+                          'Files',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 10.0.sp,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.mintAccent.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
               final item = _mockDownloads[index];
               final itemThemeColor = isDark ? item['darkColor'] as Color : item['color'] as Color;
 
