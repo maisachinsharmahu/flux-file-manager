@@ -168,28 +168,11 @@ class FileTypeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SvgPicture.asset(
+      fileTypeIconPath(extension),
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(size * 0.18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.10),
-            blurRadius: size * 0.12,
-            offset: Offset(0, size * 0.04),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: EdgeInsets.all(size * 0.04),
-        child: SvgPicture.asset(
-          fileTypeIconPath(extension),
-          fit: BoxFit.contain,
-        ),
-      ),
+      fit: BoxFit.contain,
     );
   }
 }
