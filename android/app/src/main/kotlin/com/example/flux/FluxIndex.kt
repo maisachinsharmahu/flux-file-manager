@@ -21,8 +21,10 @@ class FluxIndex(private val context: Context) {
     // WAL File for crash-safe operations
     private val walFile = File(context.filesDir, "wal.log")
 
-    // The Master Record Map (FIDs to records)
-    val masterIndex = ConcurrentHashMap<Long, FileRecord>()
+    // The Master Record Array (Section 3.3)
+    private val MAX_FILES = 200_000
+    var masterIndex = Array<FileRecord>(MAX_FILES) { FileRecord.EMPTY }
+    var fileCount = 0
 
     // Index 1: Path Map (Path string -> FID)
     val pathMap = ConcurrentHashMap<String, Long>()
@@ -50,7 +52,7 @@ class FluxIndex(private val context: Context) {
 
     init {
         // Pre-reserve FID 1 for Root Directory "/"
-        val rootDir = FileRecord(
+        val rootDir = FileRecord.create(
             fid = rootFid,
             parentDirFid = 0L,
             name = "Internal Storage",
@@ -62,9 +64,28 @@ class FluxIndex(private val context: Context) {
             mimeType = "directory",
             flags = FileRecord.FLAG_INDEXED
         )
-        masterIndex[rootFid] = rootDir
+        masterIndex[rootFid.toInt()] = rootDir
+        fileCount = 1
         pathMap["/"] = rootFid
         nextFid.set(2L)
+    }
+
+    fun getRecord(fid: Long): FileRecord? {
+        val idx = fid.toInt()
+        if (idx < 0 || idx >= masterIndex.size) return null
+        val r = masterIndex[idx]
+        return if (r == FileRecord.EMPTY) null else r
+    }
+
+    fun getActiveRecords(): List<FileRecord> {
+        val list = mutableListOf<FileRecord>()
+        for (i in 0 until masterIndex.size) {
+            val r = masterIndex[i]
+            if (r != FileRecord.EMPTY) {
+                list.add(r)
+            }
+        }
+        return list
     }
 
     /**
@@ -76,8 +97,9 @@ class FluxIndex(private val context: Context) {
         Log.d(TAG, "Initializing FluxIndex...")
         
         // 1. Clear existing in-memory structures (keep root)
-        val root = masterIndex[rootFid]
-        masterIndex.clear()
+        val root = getRecord(rootFid)
+        masterIndex.fill(FileRecord.EMPTY)
+        fileCount = 0
         pathMap.clear()
         tokenIndex.clear()
         directoryIndex.clear()
@@ -86,7 +108,8 @@ class FluxIndex(private val context: Context) {
         deletionSet.clear()
 
         if (root != null) {
-            masterIndex[rootFid] = root
+            masterIndex[rootFid.toInt()] = root
+            fileCount = 1
             pathMap["/"] = rootFid
         }
 
@@ -94,7 +117,7 @@ class FluxIndex(private val context: Context) {
         scanStorage()
 
         // 3. If standard storage is empty or denied, generate simulated/mock files
-        if (masterIndex.size <= 1) {
+        if (fileCount <= 1) {
             Log.d(TAG, "Storage empty or permissions missing, seeding premium mockup files.")
             seedMockFiles()
         }
@@ -105,7 +128,7 @@ class FluxIndex(private val context: Context) {
         // 5. Update duplicate flags
         detectDuplicates()
 
-        Log.d(TAG, "FluxIndex initialized successfully with ${masterIndex.size} entries.")
+        Log.d(TAG, "FluxIndex initialized successfully with $fileCount entries.")
     }
 
     /**
@@ -131,7 +154,7 @@ class FluxIndex(private val context: Context) {
             val isDir = f.isDirectory
             val mimeType = if (isDir) "directory" else getMimeType(f)
             
-            val record = FileRecord(
+            val record = FileRecord.create(
                 fid = fid,
                 parentDirFid = parentFid,
                 name = f.name,
@@ -154,7 +177,18 @@ class FluxIndex(private val context: Context) {
     }
 
     private fun insertRecordToIndexes(record: FileRecord) {
-        masterIndex[record.fid] = record
+        val idx = record.fid.toInt()
+        if (idx >= masterIndex.size) {
+            val newSize = masterIndex.size * 2
+            val newArray = Array<FileRecord>(newSize) { FileRecord.EMPTY }
+            System.arraycopy(masterIndex, 0, newArray, 0, masterIndex.size)
+            masterIndex = newArray
+        }
+        if (masterIndex[idx] == FileRecord.EMPTY) {
+            fileCount++
+        }
+        masterIndex[idx] = record
+        
         pathMap[record.path] = record.fid
         pathMap[record.path.lowercase()] = record.fid
 
@@ -193,7 +227,7 @@ class FluxIndex(private val context: Context) {
         val folderFids = mutableMapOf<String, Long>()
         for ((path, name) in folders) {
             val fid = nextFid.getAndIncrement()
-            val record = FileRecord(
+            val record = FileRecord.create(
                 fid = fid,
                 parentDirFid = rootFid,
                 name = name,
@@ -281,7 +315,7 @@ class FluxIndex(private val context: Context) {
             // Assign identical checksums to some files to simulate duplicates
             val checksum = if (name.startsWith("resume") || name.startsWith("tax")) 9999L else (fid * 17L)
 
-            val record = FileRecord(
+            val record = FileRecord.create(
                 fid = fid,
                 parentDirFid = parentFid,
                 name = name,
@@ -305,7 +339,7 @@ class FluxIndex(private val context: Context) {
         try {
             walFile.printWriter().use { out ->
                 for (fid in fids) {
-                    val record = masterIndex[fid] ?: continue
+                    val record = getRecord(fid) ?: continue
                     deletionSet.set(fid.toInt())
                     record.flags = record.flags or FileRecord.FLAG_DELETED
                     
@@ -327,7 +361,7 @@ class FluxIndex(private val context: Context) {
         try {
             walFile.printWriter().use { out ->
                 for (fid in fids) {
-                    val record = masterIndex[fid] ?: continue
+                    val record = getRecord(fid) ?: continue
                     deletionSet.clear(fid.toInt())
                     record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
                     
@@ -353,7 +387,7 @@ class FluxIndex(private val context: Context) {
                 if (parts.size == 2) {
                     val cmd = parts[0]
                     val fid = parts[1].toLongOrNull() ?: return@forEachLine
-                    val record = masterIndex[fid] ?: return@forEachLine
+                    val record = getRecord(fid) ?: return@forEachLine
                     if (cmd == "DELETE") {
                         deletionSet.set(fid.toInt())
                         record.flags = record.flags or FileRecord.FLAG_DELETED
@@ -376,7 +410,7 @@ class FluxIndex(private val context: Context) {
         checksumMap.clear()
 
         // Populate checksum map
-        for (record in masterIndex.values) {
+        for (record in getActiveRecords()) {
             if (record.isDeleted || record.isDirectory || record.checksum == 0L) continue
             checksumMap.getOrPut(record.checksum) { mutableListOf() }.add(record.fid)
         }
@@ -386,7 +420,7 @@ class FluxIndex(private val context: Context) {
             if (fids.size > 1) {
                 // The first file is considered the original, others are duplicates
                 for (i in 1 until fids.size) {
-                    val record = masterIndex[fids[i]] ?: continue
+                    val record = getRecord(fids[i]) ?: continue
                     record.flags = record.flags or FileRecord.FLAG_DUPLICATE
                 }
             }
@@ -403,7 +437,7 @@ class FluxIndex(private val context: Context) {
         val results = mutableListOf<Map<String, Any>>()
         for (fid in childrenFids) {
             if (deletionSet.get(fid.toInt())) continue
-            val record = masterIndex[fid] ?: continue
+            val record = getRecord(fid) ?: continue
             results.add(record.toMap())
         }
         return results
@@ -420,7 +454,7 @@ class FluxIndex(private val context: Context) {
         var appsSize = 0L
         var othersSize = 0L
 
-        for (record in masterIndex.values) {
+        for (record in getActiveRecords()) {
             if (record.isDeleted || record.isDirectory) continue
             val map = record.toMap()
             val category = map["category"] as? String ?: "Others"
@@ -492,7 +526,7 @@ class FluxIndex(private val context: Context) {
         val results = mutableListOf<Map<String, Any>>()
         for (fid in matchingFids) {
             if (deletionSet.get(fid.toInt())) continue
-            val record = masterIndex[fid] ?: continue
+            val record = getRecord(fid) ?: continue
             if (record.isDirectory) continue
             results.add(record.toMap())
             if (results.size >= limit) break
@@ -505,7 +539,7 @@ class FluxIndex(private val context: Context) {
      */
     fun getAllFiles(): List<Map<String, Any>> {
         val results = mutableListOf<Map<String, Any>>()
-        for (record in masterIndex.values) {
+        for (record in getActiveRecords()) {
             if (record.isDeleted || record.isDirectory) continue
             results.add(record.toMap())
         }
