@@ -209,6 +209,7 @@ class MainActivity : FlutterActivity() {
                                      for (folder in folders) {
                                          java.io.File(filesDir, folder).mkdirs()
                                      }
+                                     Log.d("FLUX_TEST", "Directory structure pre-created. Beginning file generation loop...")
                                      
                                      var bytesWritten = 0L
                                      var filesCreated = 0
@@ -230,7 +231,7 @@ class MainActivity : FlutterActivity() {
                                          bytesWritten += buffer.size
                                          filesCreated++
                                          
-                                         if (filesCreated % 50000 == 0) {
+                                         if (filesCreated % 5000 == 0) {
                                              val elapsed = (System.currentTimeMillis() - start) / 1000.0
                                              Log.d("FLUX_TEST", "Progress: Generated $filesCreated files (${bytesWritten / (1024*1024)} MB written) in ${String.format("%.1f", elapsed)}s")
                                          }

@@ -520,7 +520,10 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                             ? Colors.amber.withValues(alpha: 0.15)
                             : Colors.amber.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10.0.r),
-                        border: Border.all(color: Colors.amber.withValues(alpha: 0.3), width: 1.0.r),
+                        border: Border.all(
+                          color: Colors.amber.withValues(alpha: 0.3),
+                          width: 1.0.r,
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
