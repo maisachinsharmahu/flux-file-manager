@@ -329,7 +329,8 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                             ),
                           ),
                         ],
-                        if (modelStatus.state == ModelSyncState.idle) ...[
+                        if (modelStatus.state == ModelSyncState.idle ||
+                            modelStatus.state == ModelSyncState.error) ...[
                           SizedBox(height: 12.0.h),
                           GestureDetector(
                             onTap: () {
@@ -346,7 +347,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                                 borderRadius: BorderRadius.circular(10.0.r),
                               ),
                               child: Text(
-                                'Download Model & Generate Graph',
+                                modelStatus.state == ModelSyncState.error
+                                    ? 'Resume Download'
+                                    : 'Download Model & Generate Graph',
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 12.0.sp,

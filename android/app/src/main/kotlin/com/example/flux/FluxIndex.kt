@@ -676,10 +676,14 @@ class FluxIndex(private val context: Context) {
                 else -> othersSize += size
             }
         }
+        val rootStorage = android.os.Environment.getExternalStorageDirectory()
+        val totalStorage = if (rootStorage != null && rootStorage.exists()) rootStorage.totalSpace else 128 * 1024 * 1024 * 1024L
+        val freeStorage = if (rootStorage != null && rootStorage.exists()) rootStorage.usableSpace else totalStorage - (photosSize + videosSize + audioSize + documentsSize + appsSize + othersSize)
+        val totalUsed = totalStorage - freeStorage
 
-        val totalUsed = photosSize + videosSize + audioSize + documentsSize + appsSize + othersSize
-        val totalStorage = 128 * 1024 * 1024 * 1024L // Simulated 128 GB Storage space
-        val freeStorage = totalStorage - totalUsed
+        // Adjust 'Others' to include system partition overhead, caches, and restricted app data so totals match real device state
+        val categorizedSize = photosSize + videosSize + audioSize + documentsSize + appsSize
+        val adjustedOthersSize = maxOf(othersSize, totalUsed - categorizedSize)
 
         return mapOf(
             "totalStorage" to totalStorage,
@@ -690,7 +694,7 @@ class FluxIndex(private val context: Context) {
             "Audio" to audioSize,
             "Documents" to documentsSize,
             "Application" to appsSize,
-            "Others" to othersSize,
+            "Others" to adjustedOthersSize,
             "scanDurationMs" to scanDurationMs,
             "indexDurationMs" to indexDurationMs,
             "fileCount" to fileCount

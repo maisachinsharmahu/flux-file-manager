@@ -40,7 +40,7 @@ class ModelDownloadService : Service() {
         // Quantized INT8 model: 22 MB instead of 86 MB full-precision
         // Runs 4x faster on inference, same semantic quality for file name matching
         const val MODEL_URL =
-            "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx"
+            "https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx"
 
         // Number of parallel download chunks for full bandwidth utilization
         const val CHUNKS = 4
