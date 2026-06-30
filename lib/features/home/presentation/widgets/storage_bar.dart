@@ -166,7 +166,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
       ),
       error: (err, stack) => const SizedBox.shrink(),
       data: (data) {
-        final totalStorage = data['totalStorage'] as int? ?? 128 * 1024 * 1024 * 1024;
+        final totalStorage = data['totalStorage'] as int? ?? 256 * 1000 * 1000 * 1000;
         final totalUsed = data['totalUsed'] as int? ?? 0;
         final freeStorage = data['freeStorage'] as int? ?? (totalStorage - totalUsed);
         final photos = data['Photos'] as int? ?? 0;
@@ -174,6 +174,9 @@ class _StorageBarState extends ConsumerState<StorageBar>
         final audio = data['Audio'] as int? ?? 0;
         final docs = data['Documents'] as int? ?? 0;
         final apps = data['Application'] as int? ?? 0;
+        final bin = data['Bin'] as int? ?? 0;
+        final games = data['Games'] as int? ?? 0;
+        final system = data['System'] as int? ?? 0;
         final others = data['Others'] as int? ?? 0;
 
         int getFlex(int bytes) {
@@ -188,8 +191,11 @@ class _StorageBarState extends ConsumerState<StorageBar>
         final fImages = getFlex(photos);
         final fDocs = getFlex(docs);
         final fAudio = getFlex(audio);
+        final fBin = getFlex(bin);
+        final fGames = getFlex(games);
+        final fSystem = getFlex(system);
         
-        final sumFlex = fApps + fVideos + fOthers + fImages + fDocs + fAudio;
+        final sumFlex = fApps + fVideos + fOthers + fImages + fDocs + fAudio + fBin + fGames + fSystem;
         final fFree = sumFlex >= 100 ? 10 : (100 - sumFlex);
 
         return Padding(
@@ -374,8 +380,9 @@ class _StorageBarState extends ConsumerState<StorageBar>
                         },
                       ),
                       SizedBox(height: 24.0.h),
-                      // Bottom grid of Legends
+                      // Bottom grid of Legends (9 categories matching system exactly)
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: Column(
@@ -399,6 +406,13 @@ class _StorageBarState extends ConsumerState<StorageBar>
                                   'Docs',
                                   _formatSize(docs),
                                   AppColors.storageYellow,
+                                ),
+                                SizedBox(height: 6.0.h),
+                                _buildLegendItem(
+                                  isDark,
+                                  'Bin',
+                                  _formatSize(bin),
+                                  const Color(0xFF607D8B),
                                 ),
                               ],
                             ),
@@ -426,6 +440,20 @@ class _StorageBarState extends ConsumerState<StorageBar>
                                   'Audio',
                                   _formatSize(audio),
                                   AppColors.storageOrange,
+                                ),
+                                SizedBox(height: 6.0.h),
+                                _buildLegendItem(
+                                  isDark,
+                                  'Games',
+                                  _formatSize(games),
+                                  const Color(0xFF4CAF50),
+                                ),
+                                SizedBox(height: 6.0.h),
+                                _buildLegendItem(
+                                  isDark,
+                                  'System',
+                                  _formatSize(system),
+                                  const Color(0xFF9C27B0),
                                 ),
                               ],
                             ),

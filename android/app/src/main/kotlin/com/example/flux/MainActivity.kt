@@ -31,6 +31,9 @@ class MainActivity : FlutterActivity() {
                     val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
                     startActivity(intent)
                 }
+            } else {
+                // Storage permission is already granted, now request Usage Stats permission for app size query
+                checkAndRequestUsageStatsPermission()
             }
         } else {
             val permissions = arrayOf(
@@ -42,6 +45,34 @@ class MainActivity : FlutterActivity() {
             }
             if (needed.isNotEmpty()) {
                 androidx.core.app.ActivityCompat.requestPermissions(this, needed.toTypedArray(), 1001)
+            }
+        }
+    }
+
+    private fun checkAndRequestUsageStatsPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            try {
+                val appOps = getSystemService(android.content.Context.APP_OPS_SERVICE) as? android.app.AppOpsManager
+                if (appOps != null) {
+                    val mode = appOps.unsafeCheckOpNoThrow(
+                        android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                        android.os.Process.myUid(),
+                        packageName
+                    )
+                    if (mode != android.app.AppOpsManager.MODE_ALLOWED) {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                            data = android.net.Uri.parse("package:${packageName}")
+                        }
+                        startActivity(intent)
+                    }
+                }
+            } catch (e: Exception) {
+                try {
+                    val intent = android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                    startActivity(intent)
+                } catch (ex: Exception) {
+                    android.util.Log.e("MainActivity", "Failed to open usage access settings: ${ex.message}")
+                }
             }
         }
     }
