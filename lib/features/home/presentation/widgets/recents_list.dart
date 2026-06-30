@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/flux_icon.dart';
 import '../../../../core/widgets/file_type_icon.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/file_filter_provider.dart';
 
 import 'file_detail_sheet.dart';
 
-class RecentsList extends StatelessWidget {
+class RecentsList extends ConsumerWidget {
   const RecentsList({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -19,6 +21,16 @@ class RecentsList extends StatelessWidget {
     final dividerColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
+
+    // Watch the dynamic files list and sort by modification date descending
+    final allFiles = ref.watch(allFilesProvider);
+    final sorted = List<FluxFile>.from(allFiles)
+      ..sort((a, b) => b.modifiedDate.compareTo(a.modifiedDate));
+    final recents = sorted.take(3).toList();
+
+    if (recents.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,56 +68,11 @@ class RecentsList extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 24.0.w),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: 3,
+          itemCount: recents.length,
           separatorBuilder: (context, index) =>
               Divider(color: dividerColor, height: 1.0.h, thickness: 1.0.r),
           itemBuilder: (context, index) {
-            final titles = [
-              'Quarterly_Report.pptx',
-              'Project_Design_Brief.pdf',
-              'Revenue_Model_2026.xlsx',
-            ];
-            final subtitles = [
-              'PowerPoint • 2.4 MB • 2 hours ago',
-              'PDF Document • 4.8 MB • 5 hours ago',
-              'Excel Sheet • 1.1 MB • Yesterday',
-            ];
-
-            final lightColors = [
-              AppColors.pptLightBg,
-              AppColors.pdfBackground,
-              AppColors.excelLightBg,
-            ];
-            final darkColors = [
-              AppColors.pptDarkBg,
-              AppColors.pdfDarkBg,
-              AppColors.excelDarkBg,
-            ];
-
-            final iconColors = [
-              AppColors.pptIcon,
-              AppColors.pdfIcon,
-              AppColors.excelIcon,
-            ];
-
-            final fallbackIcons = [
-              Icons.slideshow_outlined,
-              Icons.picture_as_pdf_outlined,
-              Icons.table_chart_outlined,
-            ];
-
-            final extensions = ['pptx', 'pdf', 'xlsx'];
-
-            final bgColor = isDark ? darkColors[index] : lightColors[index];
-
-            return _RecentItemRow(
-              title: titles[index],
-              subtitle: subtitles[index],
-              bgColor: bgColor,
-              iconColor: iconColors[index],
-              fallbackIcon: fallbackIcons[index],
-              extension: extensions[index],
-            );
+            return _RecentItemRow(file: recents[index]);
           },
         ),
       ],
@@ -114,60 +81,24 @@ class RecentsList extends StatelessWidget {
 }
 
 class _RecentItemRow extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Color bgColor;
-  final Color iconColor;
-  final IconData fallbackIcon;
-  final String extension;
+  final FluxFile file;
 
   const _RecentItemRow({
     Key? key,
-    required this.title,
-    required this.subtitle,
-    required this.bgColor,
-    required this.iconColor,
-    required this.fallbackIcon,
-    required this.extension,
+    required this.file,
   }) : super(key: key);
 
   void _showDetails(BuildContext context) {
-    FileDetail detail;
-    if (title.contains('Report')) {
-      detail = FileDetail(
-        name: 'Quarterly_Report.pptx',
-        size: '2.4 MB',
-        createdDate: 'June 28, 2026, 12:14 PM',
-        modifiedDate: 'June 29, 2026, 12:20 PM',
-        type: 'PowerPoint Presentation',
-        themeColor: iconColor,
-        fallbackIcon: fallbackIcon,
-        fluxIcon: null,
-      );
-    } else if (title.contains('Brief')) {
-      detail = FileDetail(
-        name: 'Project_Design_Brief.pdf',
-        size: '4.8 MB',
-        createdDate: 'June 28, 2026, 09:10 AM',
-        modifiedDate: 'June 29, 2026, 09:14 AM',
-        type: 'PDF Document',
-        themeColor: iconColor,
-        fallbackIcon: fallbackIcon,
-        fluxIcon: null,
-      );
-    } else {
-      detail = FileDetail(
-        name: 'Revenue_Model_2026.xlsx',
-        size: '1.1 MB',
-        createdDate: 'June 27, 2026, 03:40 PM',
-        modifiedDate: 'June 28, 2026, 05:30 PM',
-        type: 'Excel Spreadsheet',
-        themeColor: iconColor,
-        fallbackIcon: fallbackIcon,
-        fluxIcon: null,
-      );
-    }
-
+    final detail = FileDetail(
+      name: file.name,
+      size: file.sizeString,
+      createdDate: 'June 28, 2026, 12:14 PM',
+      modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+      type: file.category,
+      themeColor: file.themeColor,
+      fallbackIcon: file.fallbackIcon,
+      fluxIcon: file.fluxIcon,
+    );
     FileDetailSheet.show(context, detail);
   }
 
@@ -181,6 +112,13 @@ class _RecentItemRow extends StatelessWidget {
         ? AppColors.textSecondaryLight.withValues(alpha: 0.6)
         : AppColors.neutral400;
 
+    // Build subtitle description
+    final hoursAgo = DateTime.now().difference(file.modifiedDate).inHours;
+    final String timeString = hoursAgo <= 0 
+        ? 'Just now' 
+        : (hoursAgo < 24 ? '$hoursAgo hours ago' : '${(hoursAgo/24).round()} days ago');
+    final subtitle = '${file.category} • ${file.sizeString} • $timeString';
+
     return GestureDetector(
       onTap: () => _showDetails(context),
       behavior: HitTestBehavior.opaque,
@@ -189,7 +127,7 @@ class _RecentItemRow extends StatelessWidget {
         child: Row(
           children: [
             FileTypeIcon(
-              extension: extension,
+              extension: file.fileExtension,
               size: 44.0.r,
             ),
             SizedBox(width: 16.0.w),
@@ -198,7 +136,7 @@ class _RecentItemRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    file.name,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 15.0.sp,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../widgets/flux_icon.dart';
+import '../../bridge/flux_bridge.dart';
 
 class FluxFile {
   final String name;
@@ -210,310 +211,46 @@ final fileFilterProvider =
       return FileFilterNotifier();
     });
 
+class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
+  AllFilesNotifier() : super([]) {
+    refreshFiles();
+  }
+
+  Future<void> refreshFiles() async {
+    final rawFiles = await FluxBridge.getAllFiles();
+    state = rawFiles.map((f) {
+      final map = f as Map<dynamic, dynamic>;
+      final isDuplicate = map['isDuplicate'] as bool? ?? false;
+      final isVault = map['isVault'] as bool? ?? false;
+      final category = map['category'] as String? ?? 'Others';
+      
+      Color themeColor;
+      if (category == 'Photos') themeColor = const Color(0xFFFFD020);
+      else if (category == 'Videos') themeColor = const Color(0xFFFF9010);
+      else if (category == 'Audio') themeColor = const Color(0xFF4A90E2);
+      else if (category == 'Documents') themeColor = const Color(0xFF7ED321);
+      else if (category == 'Application') themeColor = const Color(0xFF9013FE);
+      else themeColor = const Color(0xFF9E9E9E);
+
+      return FluxFile(
+        name: map['name'] as String? ?? '',
+        path: map['path'] as String? ?? '',
+        category: category,
+        sizeString: map['sizeString'] as String? ?? '0 B',
+        sizeInMb: (map['sizeInMb'] as num? ?? 0.0).toDouble(),
+        modifiedDate: DateTime.fromMillisecondsSinceEpoch(map['modifiedDate'] as int? ?? 0),
+        isDuplicate: isDuplicate,
+        isVault: isVault,
+        location: map['location'] as String? ?? 'Local',
+        themeColor: themeColor,
+      );
+    }).toList();
+  }
+}
+
 // All files source database provider
-final allFilesProvider = Provider<List<FluxFile>>((ref) {
-  final now = DateTime.now();
-  return [
-    // Photos
-    FluxFile(
-      name: 'vacation_pic_1.jpg',
-      path: '/Internal/DCIM/vacation_pic_1.jpg',
-      category: 'Photos',
-      sizeString: '2.4 MB',
-      sizeInMb: 2.4,
-      modifiedDate: now.subtract(const Duration(hours: 2)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFFFD020),
-    ),
-    FluxFile(
-      name: 'screenshot_2.png',
-      path: '/Internal/DCIM/screenshot_2.png',
-      category: 'Photos',
-      sizeString: '850 KB',
-      sizeInMb: 0.83,
-      modifiedDate: now.subtract(const Duration(hours: 10)),
-      isDuplicate: true,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFFFD020),
-    ),
-    FluxFile(
-      name: 'profile_3.jpg',
-      path: '/Internal/Canva/profile_3.jpg',
-      category: 'Photos',
-      sizeString: '1.2 MB',
-      sizeInMb: 1.2,
-      modifiedDate: now.subtract(const Duration(days: 2)),
-      isDuplicate: false,
-      isVault: true,
-      location: 'Cloud',
-      themeColor: const Color(0xFFFFD020),
-    ),
-    FluxFile(
-      name: 'insta_story_4.jpeg',
-      path: '/Internal/DCIM/insta_story_4.jpeg',
-      category: 'Photos',
-      sizeString: '3.1 MB',
-      sizeInMb: 3.1,
-      modifiedDate: now.subtract(const Duration(days: 5)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFFFD020),
-    ),
-    FluxFile(
-      name: 'avatar_glowing.png',
-      path: '/Internal/Canva/avatar_glowing.png',
-      category: 'Photos',
-      sizeString: '400 KB',
-      sizeInMb: 0.39,
-      modifiedDate: now.subtract(const Duration(days: 15)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'SD Card',
-      themeColor: const Color(0xFFFFD020),
-    ),
-
-    // Videos
-    FluxFile(
-      name: 'vlog_v3.mp4',
-      path: '/Internal/Movies/vlog_v3.mp4',
-      category: 'Videos',
-      sizeString: '48 MB',
-      sizeInMb: 48.0,
-      modifiedDate: now.subtract(const Duration(hours: 4)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFFF9010),
-    ),
-    FluxFile(
-      name: 'tutorial_flutter.mov',
-      path: '/Internal/Download/tutorial_flutter.mov',
-      category: 'Videos',
-      sizeString: '125 MB',
-      sizeInMb: 125.0,
-      modifiedDate: now.subtract(const Duration(days: 1)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Cloud',
-      themeColor: const Color(0xFFFF9010),
-    ),
-    FluxFile(
-      name: 'movie_sample.mkv',
-      path: '/Internal/Movies/movie_sample.mkv',
-      category: 'Videos',
-      sizeString: '820 MB',
-      sizeInMb: 820.0,
-      modifiedDate: now.subtract(const Duration(days: 4)),
-      isDuplicate: false,
-      isVault: true,
-      location: 'SD Card',
-      themeColor: const Color(0xFFFF9010),
-    ),
-    FluxFile(
-      name: 'screen_recording.mp4',
-      path: '/Internal/DCIM/screen_recording.mp4',
-      category: 'Videos',
-      sizeString: '12 MB',
-      sizeInMb: 12.0,
-      modifiedDate: now.subtract(const Duration(days: 20)),
-      isDuplicate: true,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFFF9010),
-    ),
-
-    // Documents
-    FluxFile(
-      name: 'resume_sachin.pdf',
-      path: '/Internal/Documents/resume_sachin.pdf',
-      category: 'Documents',
-      sizeString: '1.2 MB',
-      sizeInMb: 1.2,
-      modifiedDate: now.subtract(const Duration(days: 3)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Cloud',
-      themeColor: const Color(0xFFA020F0),
-    ),
-    FluxFile(
-      name: 'invoice_flux.docx',
-      path: '/Internal/Documents/invoice_flux.docx',
-      category: 'Documents',
-      sizeString: '240 KB',
-      sizeInMb: 0.23,
-      modifiedDate: now.subtract(const Duration(hours: 12)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFA020F0),
-    ),
-    FluxFile(
-      name: 'budget_june.xlsx',
-      path: '/Internal/Documents/budget_june.xlsx',
-      category: 'Documents',
-      sizeString: '670 KB',
-      sizeInMb: 0.65,
-      modifiedDate: now.subtract(const Duration(days: 6)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFA020F0),
-    ),
-    FluxFile(
-      name: 'project_proposal.pdf',
-      path: '/Internal/Documents/project_proposal.pdf',
-      category: 'Documents',
-      sizeString: '4.2 MB',
-      sizeInMb: 4.2,
-      modifiedDate: now.subtract(const Duration(days: 12)),
-      isDuplicate: true,
-      isVault: true,
-      location: 'Cloud',
-      themeColor: const Color(0xFFA020F0),
-    ),
-    FluxFile(
-      name: 'Agreement Contract.pdf',
-      path: '/Internal/Documents/Agreement Contract.pdf',
-      category: 'Documents',
-      sizeString: '793 KB',
-      sizeInMb: 0.77,
-      modifiedDate: now.subtract(const Duration(days: 27)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Cloud',
-      themeColor: const Color(0xFFA020F0),
-    ),
-    FluxFile(
-      name: 'Service Agreement Contract.pdf',
-      path: '/Internal/Documents/Service Agreement Contract.pdf',
-      category: 'Documents',
-      sizeString: '912 KB',
-      sizeInMb: 0.89,
-      modifiedDate: now.subtract(const Duration(days: 45)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFA020F0),
-    ),
-
-    // Audio
-    FluxFile(
-      name: 'audio_recording.wav',
-      path: '/Internal/Music/audio_recording.wav',
-      category: 'Audio',
-      sizeString: '15 MB',
-      sizeInMb: 15.0,
-      modifiedDate: now.subtract(const Duration(hours: 1)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFFF40A0),
-    ),
-    FluxFile(
-      name: 'song_remix.mp3',
-      path: '/Internal/Music/song_remix.mp3',
-      category: 'Audio',
-      sizeString: '8.2 MB',
-      sizeInMb: 8.2,
-      modifiedDate: now.subtract(const Duration(days: 3)),
-      isDuplicate: true,
-      isVault: false,
-      location: 'SD Card',
-      themeColor: const Color(0xFFFF40A0),
-    ),
-    FluxFile(
-      name: 'podcast_e1.m4a',
-      path: '/Internal/Music/podcast_e1.m4a',
-      category: 'Audio',
-      sizeString: '42 MB',
-      sizeInMb: 42.0,
-      modifiedDate: now.subtract(const Duration(days: 10)),
-      isDuplicate: false,
-      isVault: true,
-      location: 'Cloud',
-      themeColor: const Color(0xFFFF40A0),
-    ),
-
-    // Application
-    FluxFile(
-      name: 'whatsapp_messenger.apk',
-      path: '/Internal/Download/whatsapp_messenger.apk',
-      category: 'Application',
-      sizeString: '52 MB',
-      sizeInMb: 52.0,
-      modifiedDate: now.subtract(const Duration(days: 2)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFFF4D4D),
-    ),
-    FluxFile(
-      name: 'flux_file_manager.apk',
-      path: '/Internal/Download/flux_file_manager.apk',
-      category: 'Application',
-      sizeString: '18 MB',
-      sizeInMb: 18.0,
-      modifiedDate: now.subtract(const Duration(hours: 3)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFFFF4D4D),
-    ),
-    FluxFile(
-      name: 'pubg_mobile_installer.apk',
-      path: '/Internal/Download/pubg_mobile_installer.apk',
-      category: 'Application',
-      sizeString: '1.2 GB',
-      sizeInMb: 1228.0,
-      modifiedDate: now.subtract(const Duration(days: 7)),
-      isDuplicate: true,
-      isVault: false,
-      location: 'SD Card',
-      themeColor: const Color(0xFFFF4D4D),
-    ),
-
-    // Others
-    FluxFile(
-      name: 'backup_archive.zip',
-      path: '/Internal/Backups/backup_archive.zip',
-      category: 'Others',
-      sizeString: '420 MB',
-      sizeInMb: 420.0,
-      modifiedDate: now.subtract(const Duration(days: 4)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFF9E9E9E),
-    ),
-    FluxFile(
-      name: 'system_config.json',
-      path: '/Internal/Android/system_config.json',
-      category: 'Others',
-      sizeString: '12 KB',
-      sizeInMb: 0.01,
-      modifiedDate: now.subtract(const Duration(hours: 8)),
-      isDuplicate: false,
-      isVault: false,
-      location: 'Local',
-      themeColor: const Color(0xFF9E9E9E),
-    ),
-    FluxFile(
-      name: 'encrypted_payload.bin',
-      path: '/Internal/Backups/encrypted_payload.bin',
-      category: 'Others',
-      sizeString: '92 MB',
-      sizeInMb: 92.0,
-      modifiedDate: now.subtract(const Duration(days: 14)),
-      isDuplicate: false,
-      isVault: true,
-      location: 'Local',
-      themeColor: const Color(0xFF9E9E9E),
-    ),
-  ];
+final allFilesProvider = StateNotifierProvider<AllFilesNotifier, List<FluxFile>>((ref) {
+  return AllFilesNotifier();
 });
 
 // Helper selector to apply both query and active filters to the files database

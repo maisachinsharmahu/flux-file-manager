@@ -13,6 +13,15 @@ class FluxBridge {
     }
   }
 
+  static Future<List<dynamic>> getAllFiles() async {
+    try {
+      final List<dynamic> result = await _methodChannel.invokeMethod('getAllFiles');
+      return result;
+    } on PlatformException catch (_) {
+      return [];
+    }
+  }
+
   static Future<List<dynamic>> getDirectoryContents(String parentPath) async {
     try {
       final List<dynamic> result = await _methodChannel.invokeMethod(

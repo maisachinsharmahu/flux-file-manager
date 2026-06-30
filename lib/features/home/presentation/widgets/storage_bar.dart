@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../navigation/providers/navigation_provider.dart';
+import '../../providers/storage_status_provider.dart';
 
 class StorageBar extends ConsumerStatefulWidget {
   const StorageBar({Key? key}) : super(key: key);
@@ -49,6 +50,14 @@ class _StorageBarState extends ConsumerState<StorageBar>
     return (animationValue - start) / duration;
   }
 
+  String _formatSize(int bytes) {
+    if (bytes <= 0) return '0 B';
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -66,255 +75,291 @@ class _StorageBarState extends ConsumerState<StorageBar>
         ? AppColors.textSecondaryDark
         : AppColors.neutral400;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
-      child: GestureDetector(
-        onTap: () {
-          ref.read(activeIndexProvider.notifier).state = 1;
-        },
-        behavior: HitTestBehavior.opaque,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28.0.r),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-            child: Container(
-              padding: EdgeInsets.all(24.0.r),
-              decoration: BoxDecoration(
-                color: cardBgColor,
-                borderRadius: BorderRadius.circular(28.0.r),
-                border: Border.all(color: borderColor, width: 1.5.r),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Top Row: 48 GB of 120 GB Used
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontFamily: 'Inter'),
-                      children: [
-                        TextSpan(
-                          text: '48 GB ',
-                          style: TextStyle(
-                            fontSize: 24.0.sp,
-                            fontWeight: FontWeight.w700,
-                            color: usedTextColor,
-                          ),
-                        ),
-                        TextSpan(
-                          text: 'of 120 GB Used',
-                          style: TextStyle(
-                            fontSize: 14.0.sp,
-                            fontWeight: FontWeight.w400,
-                            color: totalTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
+    final storageAsync = ref.watch(storageStatusProvider);
+
+    return storageAsync.when(
+      loading: () => Container(
+        height: 160.h,
+        margin: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
+        alignment: Alignment.center,
+        child: const CircularProgressIndicator(color: AppColors.mintAccent),
+      ),
+      error: (err, stack) => const SizedBox.shrink(),
+      data: (data) {
+        final totalStorage = data['totalStorage'] as int? ?? 128 * 1024 * 1024 * 1024;
+        final totalUsed = data['totalUsed'] as int? ?? 0;
+        final freeStorage = data['freeStorage'] as int? ?? (totalStorage - totalUsed);
+        final photos = data['Photos'] as int? ?? 0;
+        final videos = data['Videos'] as int? ?? 0;
+        final audio = data['Audio'] as int? ?? 0;
+        final docs = data['Documents'] as int? ?? 0;
+        final apps = data['Application'] as int? ?? 0;
+        final others = data['Others'] as int? ?? 0;
+
+        int getFlex(int bytes) {
+          if (bytes <= 0) return 0;
+          final pct = (bytes / totalStorage * 100).round();
+          return pct > 0 ? pct : 1;
+        }
+
+        final fApps = getFlex(apps);
+        final fVideos = getFlex(videos);
+        final fOthers = getFlex(others);
+        final fImages = getFlex(photos);
+        final fDocs = getFlex(docs);
+        final fAudio = getFlex(audio);
+        
+        final sumFlex = fApps + fVideos + fOthers + fImages + fDocs + fAudio;
+        final fFree = sumFlex >= 100 ? 10 : (100 - sumFlex);
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
+          child: GestureDetector(
+            onTap: () {
+              ref.read(activeIndexProvider.notifier).state = 1;
+            },
+            behavior: HitTestBehavior.opaque,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28.0.r),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
+                child: Container(
+                  padding: EdgeInsets.all(24.0.r),
+                  decoration: BoxDecoration(
+                    color: cardBgColor,
+                    borderRadius: BorderRadius.circular(28.0.r),
+                    border: Border.all(color: borderColor, width: 1.5.r),
                   ),
-                  SizedBox(height: 18.0.h),
-                  // Animated Segmented Horizontal Progress Bar (growing sequentially left-to-right from largest to smallest segment, ending with Free space)
-                  AnimatedBuilder(
-                    animation: _progressAnimation,
-                    builder: (context, child) {
-                      final val = _progressAnimation.value;
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Row: e.g. 48 GB of 120 GB Used
+                      RichText(
+                        text: TextSpan(
+                          style: const TextStyle(fontFamily: 'Inter'),
+                          children: [
+                            TextSpan(
+                              text: '${_formatSize(totalUsed)} ',
+                              style: TextStyle(
+                                fontSize: 24.0.sp,
+                                fontWeight: FontWeight.w700,
+                                color: usedTextColor,
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'of ${_formatSize(totalStorage)} Used',
+                              style: TextStyle(
+                                fontSize: 14.0.sp,
+                                fontWeight: FontWeight.w400,
+                                color: totalTextColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 18.0.h),
+                      // Animated Segmented Horizontal Progress Bar
+                      AnimatedBuilder(
+                        animation: _progressAnimation,
+                        builder: (context, child) {
+                          final val = _progressAnimation.value;
 
-                      // High-to-Low sorted staggered grow durations (Apps -> Videos -> Others -> Images -> Docs -> Audio -> Free)
-                      final p1 = _getSegmentProgress(val, 0.0, 14 / 100);
-                      final p2 = _getSegmentProgress(val, 14 / 100, 10 / 100);
-                      final p3 = _getSegmentProgress(val, 24 / 100, 7 / 100);
-                      final p4 = _getSegmentProgress(val, 31 / 100, 5 / 100);
-                      final p5 = _getSegmentProgress(val, 36 / 100, 3 / 100);
-                      final p6 = _getSegmentProgress(val, 39 / 100, 1 / 100);
-                      final p7 = _getSegmentProgress(val, 40 / 100, 60 / 100);
+                          // Compute proportional staggered grows
+                          final p1 = _getSegmentProgress(val, 0.0, 0.15);
+                          final p2 = _getSegmentProgress(val, 0.15, 0.10);
+                          final p3 = _getSegmentProgress(val, 0.25, 0.10);
+                          final p4 = _getSegmentProgress(val, 0.35, 0.08);
+                          final p5 = _getSegmentProgress(val, 0.43, 0.05);
+                          final p6 = _getSegmentProgress(val, 0.48, 0.02);
+                          final p7 = _getSegmentProgress(val, 0.50, 0.50);
 
-                      final freeSegmentColor = isDark
-                          ? Colors.white.withValues(alpha: 0.12)
-                          : Colors.black.withValues(alpha: 0.06);
+                          final freeSegmentColor = isDark
+                              ? Colors.white.withValues(alpha: 0.12)
+                              : Colors.black.withValues(alpha: 0.06);
 
-                      return Row(
+                          return Row(
+                            children: [
+                              if (fApps > 0)
+                                Expanded(
+                                  flex: fApps,
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: p1,
+                                    child: Container(
+                                      height: 10.0.h,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFF4D4D),
+                                        borderRadius: BorderRadius.circular(5.0.r),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (fApps > 0 && fVideos > 0) SizedBox(width: 4.0.w),
+                              if (fVideos > 0)
+                                Expanded(
+                                  flex: fVideos,
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: p2,
+                                    child: Container(
+                                      height: 10.0.h,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.mintAccent,
+                                        borderRadius: BorderRadius.circular(5.0.r),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (fVideos > 0 && fOthers > 0) SizedBox(width: 4.0.w),
+                              if (fOthers > 0)
+                                Expanded(
+                                  flex: fOthers,
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: p3,
+                                    child: Container(
+                                      height: 10.0.h,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF9E9E9E),
+                                        borderRadius: BorderRadius.circular(5.0.r),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (fOthers > 0 && fImages > 0) SizedBox(width: 4.0.w),
+                              if (fImages > 0)
+                                Expanded(
+                                  flex: fImages,
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: p4,
+                                    child: Container(
+                                      height: 10.0.h,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.storageSkyBlue,
+                                        borderRadius: BorderRadius.circular(5.0.r),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (fImages > 0 && fDocs > 0) SizedBox(width: 4.0.w),
+                              if (fDocs > 0)
+                                Expanded(
+                                  flex: fDocs,
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: p5,
+                                    child: Container(
+                                      height: 10.0.h,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.storageYellow,
+                                        borderRadius: BorderRadius.circular(5.0.r),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (fDocs > 0 && fAudio > 0) SizedBox(width: 4.0.w),
+                              if (fAudio > 0)
+                                Expanded(
+                                  flex: fAudio,
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: p6,
+                                    child: Container(
+                                      height: 10.0.h,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.storageOrange,
+                                        borderRadius: BorderRadius.circular(5.0.r),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              SizedBox(width: 4.0.w),
+                              Expanded(
+                                flex: fFree,
+                                child: FractionallySizedBox(
+                                  alignment: Alignment.centerLeft,
+                                  widthFactor: p7,
+                                  child: Container(
+                                    height: 10.0.h,
+                                    decoration: BoxDecoration(
+                                      color: freeSegmentColor,
+                                      borderRadius: BorderRadius.circular(5.0.r),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      SizedBox(height: 24.0.h),
+                      // Bottom grid of Legends
+                      Row(
                         children: [
-                          // 1. Apps (Red, 14 flex)
                           Expanded(
-                            flex: 14,
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: p1,
-                              child: Container(
-                                height: 10.0.h,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFF4D4D),
-                                  borderRadius: BorderRadius.circular(5.0.r),
+                            child: Column(
+                              children: [
+                                _buildLegendItem(
+                                  isDark,
+                                  'Apps',
+                                  _formatSize(apps),
+                                  const Color(0xFFFF4D4D),
                                 ),
-                              ),
+                                SizedBox(height: 6.0.h),
+                                _buildLegendItem(
+                                  isDark,
+                                  'Others',
+                                  _formatSize(others),
+                                  const Color(0xFF9E9E9E),
+                                ),
+                                SizedBox(height: 6.0.h),
+                                _buildLegendItem(
+                                  isDark,
+                                  'Docs',
+                                  _formatSize(docs),
+                                  AppColors.storageYellow,
+                                ),
+                              ],
                             ),
                           ),
-                          SizedBox(width: 4.0.w),
-                          // 2. Videos (Mint, 10 flex)
+                          SizedBox(width: 8.0.w),
                           Expanded(
-                            flex: 10,
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: p2,
-                              child: Container(
-                                height: 10.0.h,
-                                decoration: BoxDecoration(
-                                  color: AppColors.mintAccent,
-                                  borderRadius: BorderRadius.circular(5.0.r),
+                            child: Column(
+                              children: [
+                                _buildLegendItem(
+                                  isDark,
+                                  'Videos',
+                                  _formatSize(videos),
+                                  AppColors.mintAccent,
                                 ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 4.0.w),
-                          // 3. Others (Grey, 7 flex)
-                          Expanded(
-                            flex: 7,
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: p3,
-                              child: Container(
-                                height: 10.0.h,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF9E9E9E),
-                                  borderRadius: BorderRadius.circular(5.0.r),
+                                SizedBox(height: 6.0.h),
+                                _buildLegendItem(
+                                  isDark,
+                                  'Images',
+                                  _formatSize(photos),
+                                  AppColors.storageSkyBlue,
                                 ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 4.0.w),
-                          // 4. Images (Blue, 5 flex)
-                          Expanded(
-                            flex: 5,
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: p4,
-                              child: Container(
-                                height: 10.0.h,
-                                decoration: BoxDecoration(
-                                  color: AppColors.storageSkyBlue,
-                                  borderRadius: BorderRadius.circular(5.0.r),
+                                SizedBox(height: 6.0.h),
+                                _buildLegendItem(
+                                  isDark,
+                                  'Audio',
+                                  _formatSize(audio),
+                                  AppColors.storageOrange,
                                 ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 4.0.w),
-                          // 5. Docs (Yellow, 3 flex)
-                          Expanded(
-                            flex: 3,
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: p5,
-                              child: Container(
-                                height: 10.0.h,
-                                decoration: BoxDecoration(
-                                  color: AppColors.storageYellow,
-                                  borderRadius: BorderRadius.circular(5.0.r),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 4.0.w),
-                          // 6. Audio (Orange, 1 flex)
-                          Expanded(
-                            flex: 1,
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: p6,
-                              child: Container(
-                                height: 10.0.h,
-                                decoration: BoxDecoration(
-                                  color: AppColors.storageOrange,
-                                  borderRadius: BorderRadius.circular(5.0.r),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 4.0.w),
-                          // 7. Free Space (Light/Dark Neutral, 60 flex)
-                          Expanded(
-                            flex: 60,
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: p7,
-                              child: Container(
-                                height: 10.0.h,
-                                decoration: BoxDecoration(
-                                  color: freeSegmentColor,
-                                  borderRadius: BorderRadius.circular(5.0.r),
-                                ),
-                              ),
+                              ],
                             ),
                           ),
                         ],
-                      );
-                    },
-                  ),
-                  SizedBox(height: 24.0.h),
-                  // Bottom grid layout redesigned as 2 columns of 3 premium compact capsule tags
-                  Row(
-                    children: [
-                      // Left Column: Apps, Others, Docs
-                      Expanded(
-                        child: Column(
-                          children: [
-                            _buildLegendItem(
-                              isDark,
-                              'Apps',
-                              '1.4 GB',
-                              const Color(0xFFFF4D4D),
-                            ),
-                            SizedBox(height: 6.0.h),
-                            _buildLegendItem(
-                              isDark,
-                              'Others',
-                              '512 MB',
-                              const Color(0xFF9E9E9E),
-                            ),
-                            SizedBox(height: 6.0.h),
-                            _buildLegendItem(
-                              isDark,
-                              'Docs',
-                              '124 MB',
-                              AppColors.storageYellow,
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 8.0.w),
-                      // Right Column: Videos, Images, Audio
-                      Expanded(
-                        child: Column(
-                          children: [
-                            _buildLegendItem(
-                              isDark,
-                              'Videos',
-                              '823 MB',
-                              AppColors.mintAccent,
-                            ),
-                            SizedBox(height: 6.0.h),
-                            _buildLegendItem(
-                              isDark,
-                              'Images',
-                              '312 MB',
-                              AppColors.storageSkyBlue,
-                            ),
-                            SizedBox(height: 6.0.h),
-                            _buildLegendItem(
-                              isDark,
-                              'Audio',
-                              '14 MB',
-                              AppColors.storageOrange,
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
