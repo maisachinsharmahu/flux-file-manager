@@ -87,6 +87,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     final audio = storageData['Audio'] as int? ?? 0;
     final docs = storageData['Documents'] as int? ?? 0;
     final apps = storageData['Application'] as int? ?? 0;
+    final bin = storageData['Bin'] as int? ?? 0;
+    final games = storageData['Games'] as int? ?? 0;
+    final system = storageData['System'] as int? ?? 0;
     final others = storageData['Others'] as int? ?? 0;
 
     double getPercentage(int bytes) {
@@ -99,6 +102,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     final pDocs = getPercentage(docs);
     final pAudio = getPercentage(audio);
     final pApps = getPercentage(apps);
+    final pBin = getPercentage(bin);
+    final pGames = getPercentage(games);
+    final pSystem = getPercentage(system);
 
     String getPctString(int bytes) {
       if (totalStorage <= 0) return '0%';
@@ -123,14 +129,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
 
-    // Define all 6 tabs in our static back-to-front stacking deck
+    // Define all 9 tabs in our static back-to-front stacking deck
     final List<_TabItemData> allTabs = [
       _TabItemData(
         name: 'Photos',
         child: _StackedFolderTab(
           title: 'Photos',
           icon: Icons.image,
-          color: const Color(0xFFFFD020),
+          color: const Color(0xFF38BDF8),
           isDark: isDark,
           sizeString: _formatSize(photos),
           onTap: () {
@@ -143,7 +149,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         child: _StackedFolderTab(
           title: 'Videos',
           icon: Icons.play_arrow,
-          color: const Color(0xFFFF9010),
+          color: const Color(0xFF10B981),
           isDark: isDark,
           sizeString: _formatSize(videos),
           onTap: () {
@@ -156,7 +162,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         child: _StackedFolderTab(
           title: 'Documents',
           icon: Icons.description_outlined,
-          color: const Color(0xFFA020F0),
+          color: const Color(0xFFFBBF24),
           isDark: isDark,
           sizeString: _formatSize(docs),
           onTap: () {
@@ -169,7 +175,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         child: _StackedFolderTab(
           title: 'Audio',
           icon: Icons.music_note,
-          color: const Color(0xFFFF40A0),
+          color: const Color(0xFFF97316),
           isDark: isDark,
           sizeString: _formatSize(audio),
           onTap: () {
@@ -191,6 +197,45 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         ),
       ),
       _TabItemData(
+        name: 'Bin',
+        child: _StackedFolderTab(
+          title: 'Bin',
+          icon: Icons.delete_outline,
+          color: const Color(0xFF607D8B),
+          isDark: isDark,
+          sizeString: _formatSize(bin),
+          onTap: () {
+            context.push('/all_files?title=Bin&category=Bin');
+          },
+        ),
+      ),
+      _TabItemData(
+        name: 'Games',
+        child: _StackedFolderTab(
+          title: 'Games',
+          icon: Icons.sports_esports_outlined,
+          color: const Color(0xFF4CAF50),
+          isDark: isDark,
+          sizeString: _formatSize(games),
+          onTap: () {
+            context.push('/all_files?title=Games&category=Games');
+          },
+        ),
+      ),
+      _TabItemData(
+        name: 'System',
+        child: _StackedFolderTab(
+          title: 'System',
+          icon: Icons.settings_system_daydream_outlined,
+          color: const Color(0xFF9C27B0),
+          isDark: isDark,
+          sizeString: _formatSize(system),
+          onTap: () {
+            context.push('/all_files?title=System&category=System');
+          },
+        ),
+      ),
+      _TabItemData(
         name: 'Others',
         child: _StackedFolderTab(
           title: 'Others',
@@ -206,9 +251,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     ];
 
     // Static back-to-front stacking order: lower folders overlap the upper ones, forming a clean tabbed deck.
-    // Photos is at the back, followed by Videos, Documents, Audio, Application, and Others on top.
     final List<Widget> positionedWidgets = [];
-    final List<double> topOffsets = [0, 52.0.h, 104.0.h, 156.0.h, 208.0.h, 260.0.h];
+    final List<double> topOffsets = List.generate(allTabs.length, (i) => i * 52.0.h);
 
     for (int i = 0; i < allTabs.length; i++) {
       positionedWidgets.add(
@@ -314,7 +358,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                           ),
                           SizedBox(height: 24.0.h),
 
-                          // Concentric Circular Progress Chart (now displaying 5 rings)
+                           // Concentric Circular Progress Chart (now displaying 8 rings)
                           Center(
                             child: SizedBox(
                               width: 180.0.r,
@@ -323,7 +367,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                 painter: ConcentricRingsPainter(
                                   isDark: isDark,
                                   animation: _controller,
-                                  percentages: [pPhotos, pVideos, pDocs, pAudio, pApps],
+                                  percentages: [pPhotos, pVideos, pDocs, pAudio, pApps, pBin, pGames, pSystem],
                                 ),
                                 child: Center(
                                   child: Text(
@@ -339,87 +383,42 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                               ),
                             ),
                           ),
-                          SizedBox(height: 24.0.h),
+                          SizedBox(height: 28.0.h),
 
-                          // Legend category details list (featuring all 6 storage types)
-                          _buildLegendRow(
-                            textColor,
-                            subtitleColor,
-                            borderColor,
-                            'Images',
-                            _formatSize(photos),
-                            getPctString(photos),
-                            const Color(0xFFFFD020),
-                          ),
-                          Divider(
-                            color: borderColor,
-                            height: 24.0.h,
-                            thickness: 1.0.r,
-                          ),
-                          _buildLegendRow(
-                            textColor,
-                            subtitleColor,
-                            borderColor,
-                            'Videos',
-                            _formatSize(videos),
-                            getPctString(videos),
-                            const Color(0xFFFF9010),
-                          ),
-                          Divider(
-                            color: borderColor,
-                            height: 24.0.h,
-                            thickness: 1.0.r,
-                          ),
-                          _buildLegendRow(
-                            textColor,
-                            subtitleColor,
-                            borderColor,
-                            'Docs',
-                            _formatSize(docs),
-                            getPctString(docs),
-                            const Color(0xFFA020F0),
-                          ),
-                          Divider(
-                            color: borderColor,
-                            height: 24.0.h,
-                            thickness: 1.0.r,
-                          ),
-                          _buildLegendRow(
-                            textColor,
-                            subtitleColor,
-                            borderColor,
-                            'Audio',
-                            _formatSize(audio),
-                            getPctString(audio),
-                            const Color(0xFFFF40A0),
-                          ),
-                          Divider(
-                            color: borderColor,
-                            height: 24.0.h,
-                            thickness: 1.0.r,
-                          ),
-                          _buildLegendRow(
-                            textColor,
-                            subtitleColor,
-                            borderColor,
-                            'Apps',
-                            _formatSize(apps),
-                            getPctString(apps),
-                            const Color(0xFFFF4D4D),
-                          ),
-                          Divider(
-                            color: borderColor,
-                            height: 24.0.h,
-                            thickness: 1.0.r,
-                          ),
-                          _buildLegendRow(
-                            textColor,
-                            subtitleColor,
-                            borderColor,
-                            'Others',
-                            _formatSize(others),
-                            getPctString(others),
-                            const Color(0xFF9E9E9E),
+                          // Legend category details grid (featuring all 9 storage types)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Images', _formatSize(photos), getPctString(photos), const Color(0xFF38BDF8)),
+                                    SizedBox(height: 16.0.h),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Docs', _formatSize(docs), getPctString(docs), const Color(0xFFFBBF24)),
+                                    SizedBox(height: 16.0.h),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Apps', _formatSize(apps), getPctString(apps), const Color(0xFFFF4D4D)),
+                                    SizedBox(height: 16.0.h),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Games', _formatSize(games), getPctString(games), const Color(0xFF4CAF50)),
+                                    SizedBox(height: 16.0.h),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Others', _formatSize(others), getPctString(others), const Color(0xFF9E9E9E)),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(width: 20.0.w),
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Videos', _formatSize(videos), getPctString(videos), const Color(0xFF10B981)),
+                                    SizedBox(height: 16.0.h),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Audio', _formatSize(audio), getPctString(audio), const Color(0xFFF97316)),
+                                    SizedBox(height: 16.0.h),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Bin', _formatSize(bin), getPctString(bin), const Color(0xFF607D8B)),
+                                    SizedBox(height: 16.0.h),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'System', _formatSize(system), getPctString(system), const Color(0xFF9C27B0)),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -438,9 +437,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                     ),
                     SizedBox(height: 16.0.h),
 
-                    // Overlapping Stack (Height increased to 360.h to display 6 tabs)
+                    // Overlapping Stack (Height increased to 520.h to display all 9 tabs)
                     SizedBox(
-                      height: 360.0.h,
+                      height: 520.0.h,
                       width: double.infinity,
                       child: Stack(children: positionedWidgets),
                     ),
@@ -550,34 +549,34 @@ class ConcentricRingsPainter extends CustomPainter {
       canvas.drawCircle(Offset(x, y), rand.nextDouble() * 1.5, starPaint);
     }
 
-    // Radii of concentric circles (5 rings)
-    final radii = [82.0.r, 70.0.r, 58.0.r, 46.0.r, 34.0.r];
+    // Radii of concentric circles (8 rings)
+    final radii = [86.0.r, 78.0.r, 70.0.r, 62.0.r, 54.0.r, 46.0.r, 38.0.r, 30.0.r];
     final colors = [
-      const Color(0xFFFFD020), // Photos Yellow
-      const Color(0xFFFF9010), // Videos Orange
-      const Color(0xFFA020F0), // Docs Purple
-      const Color(0xFFFF40A0), // Audio Pink
-      const Color(0xFFFF4D4D), // Application Red
+      const Color(0xFF38BDF8), // Images
+      const Color(0xFF10B981), // Videos
+      const Color(0xFFFBBF24), // Docs
+      const Color(0xFFF97316), // Audio
+      const Color(0xFFFF4D4D), // Application
+      const Color(0xFF607D8B), // Bin
+      const Color(0xFF4CAF50), // Games
+      const Color(0xFF9C27B0), // System
     ];
 
     final startAngles = [
       math.pi * 0.65,
-      math.pi * 0.8,
+      math.pi * 0.75,
+      math.pi * 0.85,
       math.pi * 0.95,
-      math.pi * 1.1,
+      math.pi * 1.05,
+      math.pi * 1.15,
       math.pi * 1.25,
+      math.pi * 1.35,
     ];
-    final sweepProgress = [
-      percentages[0] * animation.value,
-      percentages[1] * animation.value,
-      percentages[2] * animation.value,
-      percentages[3] * animation.value,
-      percentages[4] * animation.value,
-    ];
+    final sweepProgress = List.generate(8, (i) => percentages[i] * animation.value);
 
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 9.0.r
+      ..strokeWidth = 6.0.r
       ..color = isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05);
 
     for (int i = 0; i < radii.length; i++) {
@@ -586,7 +585,7 @@ class ConcentricRingsPainter extends CustomPainter {
 
       final fillPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 9.0.r
+        ..strokeWidth = 6.0.r
         ..strokeCap = StrokeCap.round
         ..color = colors[i];
 
