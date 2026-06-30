@@ -69,10 +69,12 @@ class PlatformMonitorNotifier extends StateNotifier<PlatformMonitorState> {
       ),
     );
 
-    state = PlatformMonitorState(
-      channelStatuses: updatedStatuses,
-      logs: updatedLogs,
-    );
+    Future.microtask(() {
+      state = PlatformMonitorState(
+        channelStatuses: updatedStatuses,
+        logs: updatedLogs,
+      );
+    });
   }
 }
 
