@@ -190,12 +190,11 @@ class MainActivity : FlutterActivity() {
                              val targetSizeGb = call.argument<Double>("targetSizeGb") ?: 25.0
                              java.util.concurrent.ForkJoinPool.commonPool().execute {
                                  try {
-                                     val filesDir = applicationContext.getExternalFilesDir(null)
-                                     if (filesDir == null) {
-                                         runOnUiThread { result.error("ERROR", "External files dir is null", null) }
-                                         return@execute
+                                     val filesDir = java.io.File(android.os.Environment.getExternalStorageDirectory(), "flux_test_files")
+                                     if (!filesDir.exists()) {
+                                         filesDir.mkdirs()
                                      }
-                                     Log.d("FLUX_TEST", "=== Generating $count test files (~$targetSizeGb GB) ===")
+                                     Log.d("FLUX_TEST", "=== Generating $count test files (~$targetSizeGb GB) inside public folder /sdcard/flux_test_files/ ===")
                                      val start = System.currentTimeMillis()
                                      
                                      val targetBytes = (targetSizeGb * 1024 * 1024 * 1024).toLong()
@@ -248,11 +247,7 @@ class MainActivity : FlutterActivity() {
                         "clearTestFiles" -> {
                              java.util.concurrent.ForkJoinPool.commonPool().execute {
                                  try {
-                                     val filesDir = applicationContext.getExternalFilesDir(null)
-                                     if (filesDir == null) {
-                                         runOnUiThread { result.error("ERROR", "External files dir is null", null) }
-                                         return@execute
-                                     }
+                                     val filesDir = java.io.File(android.os.Environment.getExternalStorageDirectory(), "flux_test_files")
                                      Log.d("FLUX_TEST", "=== Clearing test files ===")
                                      val folders = listOf("Photos", "Videos", "Documents", "Audio", "Downloads", "Others", "Games", "System")
                                      var countDeleted = 0
