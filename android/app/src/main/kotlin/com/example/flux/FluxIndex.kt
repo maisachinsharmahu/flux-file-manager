@@ -534,6 +534,65 @@ class FluxIndex(private val context: Context) {
     }
 
     /**
+     * Section 8.2: Junk Cleaner Engine scanning logic obeying Hard Safety Rules 1 & 2
+     */
+    fun scanJunkFiles(): List<Map<String, Any>> {
+        val junkList = mutableListOf<Map<String, Any>>()
+        val now = System.currentTimeMillis() / 1000L
+        val oneDaySeconds = 24 * 60 * 60L
+
+        for (record in getActiveRecords()) {
+            if (record.isDeleted || record.isDirectory) continue
+
+            // Safety Rule 1: DCIM is never touched
+            if (record.path.contains("/DCIM", ignoreCase = true)) continue
+
+            // Safety Rule 2: Exclude files created or modified within 24 hours
+            val fileAge = now - record.mtime
+            if (fileAge < oneDaySeconds) continue
+
+            var isJunk = false
+            var junkReason = ""
+
+            val ext = record.name.substringAfterLast('.', "").lowercase()
+
+            // temp/bak/log, .DS_Store / Thumbs.db
+            if (ext == "tmp" || ext == "bak" || ext == "log" || 
+                record.name.equals(".DS_Store", ignoreCase = true) || 
+                record.name.equals("Thumbs.db", ignoreCase = true)) {
+                isJunk = true
+                junkReason = "Cache/Temporary File"
+            }
+            // Duplicate files
+            else if ((record.flags and FileRecord.FLAG_DUPLICATE) != 0) {
+                isJunk = true
+                junkReason = "Duplicate File"
+            }
+            // WhatsApp Sent copies
+            else if (record.path.contains("/WhatsApp/Media", ignoreCase = true) && record.path.contains("/Sent", ignoreCase = true)) {
+                isJunk = true
+                junkReason = "WhatsApp Sent Copy"
+            }
+            // Large old downloads (>50MB, >30 days old)
+            else if (record.path.contains("/Downloads", ignoreCase = true) && record.size > 50 * 1024 * 1024L && fileAge > 30 * oneDaySeconds) {
+                isJunk = true
+                junkReason = "Large Old Download"
+            }
+
+            if (isJunk) {
+                junkList.add(mapOf(
+                    "fid" to record.fid,
+                    "name" to record.name,
+                    "path" to record.path,
+                    "size" to record.size,
+                    "reason" to junkReason
+                ))
+            }
+        }
+        return junkList
+    }
+
+    /**
      * Computes storage statistics grouped by category.
      */
     fun getStorageStatistics(): Map<String, Any> {

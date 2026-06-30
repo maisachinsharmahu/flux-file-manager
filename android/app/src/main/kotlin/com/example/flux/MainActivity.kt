@@ -49,6 +49,9 @@ class MainActivity : FlutterActivity() {
                         mapOf("packageName" to "com.instagram.android", "appName" to "Instagram", "size" to 600 * 1024 * 1024L, "sizeString" to "600 MB")
                     ))
                 }
+                "scanJunkFiles" -> {
+                    result.success(fluxIndex.scanJunkFiles())
+                }
                 else -> {
                     result.notImplemented()
                 }
