@@ -378,7 +378,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            ref.read(allFilesProvider.notifier).initAndLoad(force: true, showBanner: true);
+                            ref
+                                .read(allFilesProvider.notifier)
+                                .initAndLoad(force: true, showBanner: true);
                           },
                           child: Container(
                             padding: EdgeInsets.symmetric(vertical: 10.0.h),
@@ -465,13 +467,17 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                   SizedBox(height: 8.0.h),
                   GestureDetector(
                     onTap: () async {
-                      ref.read(platformMonitorProvider.notifier).logAction(
+                      ref
+                          .read(platformMonitorProvider.notifier)
+                          .logAction(
                             'requestUsageStatsPermission',
                             'PENDING',
                             'Launching App Usage Stats settings screen...',
                           );
                       await FluxBridge.requestUsageStatsPermission();
-                      ref.read(platformMonitorProvider.notifier).logAction(
+                      ref
+                          .read(platformMonitorProvider.notifier)
+                          .logAction(
                             'requestUsageStatsPermission',
                             'SUCCESS',
                             'Usage Stats settings screen launched.',
