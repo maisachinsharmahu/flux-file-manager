@@ -135,6 +135,8 @@ String fileTypeIconPath(String extension) {
       return 'assets/newsv/DLL.svg';
     case 'exe':
       return 'assets/newsv/EXE.svg';
+    case 'apk':
+      return 'assets/newsv/APK.svg';
     case 'mdb':
     case 'db':
     case 'sqlite':
@@ -160,11 +162,7 @@ class FileTypeIcon extends StatelessWidget {
   final String extension;
   final double size;
 
-  const FileTypeIcon({
-    super.key,
-    required this.extension,
-    this.size = 40,
-  });
+  const FileTypeIcon({super.key, required this.extension, this.size = 40});
 
   @override
   Widget build(BuildContext context) {
