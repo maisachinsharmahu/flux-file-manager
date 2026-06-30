@@ -26,11 +26,24 @@ class FluxIndex(private val context: Context) {
     var masterIndex = Array<FileRecord>(MAX_FILES) { FileRecord.EMPTY }
     var fileCount = 0
 
-    // Index 1: Path Map (Path string -> FID)
-    val pathMap = ConcurrentHashMap<String, Long>()
+    // xxHash64 helper for O(1) path mapping
+    fun xxHash64(str: String): Long {
+        var h = 1125899906842597L
+        val len = str.length
+        for (i in 0 until len) {
+            h = 31 * h + str[i].code.toLong()
+        }
+        return h
+    }
 
-    // Index 2: Name Trie
+    // Index 1: Path Map (xxHash64(path) -> FID)
+    val pathMap = ConcurrentHashMap<Long, Long>()
+
+    // Index 2: Name Trie (autocomplete)
     val nameTrie = RadixTrie()
+
+    // Dual-trie setup: tokenTrie (prefix searching on tokens)
+    val tokenTrie = RadixTrie()
 
     // Index 3: Token Index
     val tokenIndex = ConcurrentHashMap<String, BitSet>()
@@ -75,7 +88,7 @@ class FluxIndex(private val context: Context) {
         )
         masterIndex[rootFid.toInt()] = rootDir
         fileCount = 1
-        pathMap["/"] = rootFid
+        pathMap[xxHash64("/")] = rootFid
         nextFid.set(2L)
     }
 
@@ -119,7 +132,7 @@ class FluxIndex(private val context: Context) {
         if (root != null) {
             masterIndex[rootFid.toInt()] = root
             fileCount = 1
-            pathMap["/"] = rootFid
+            pathMap[xxHash64("/")] = rootFid
         }
 
         // 2. Scan standard storage paths
@@ -198,16 +211,17 @@ class FluxIndex(private val context: Context) {
         }
         masterIndex[idx] = record
         
-        pathMap[record.path] = record.fid
-        pathMap[record.path.lowercase()] = record.fid
+        pathMap[xxHash64(record.path)] = record.fid
+        pathMap[xxHash64(record.path.lowercase())] = record.fid
 
         // Index 2: Name Trie
         nameTrie.insert(record.name, record.fid)
 
-        // Index 3: Token Index
+        // Index 3: Token Index & Token Trie
         val tokens = tokenize(record.name)
         for (token in tokens) {
             tokenIndex.getOrPut(token) { BitSet() }.set(record.fid.toInt())
+            tokenTrie.insert(token, record.fid)
         }
 
         // Index 4: Directory Index
@@ -450,7 +464,7 @@ class FluxIndex(private val context: Context) {
      * Returns list of children maps for a parent directory path.
      */
     fun getDirectoryContents(parentPath: String): List<Map<String, Any>> {
-        val parentFid = pathMap[parentPath.lowercase()] ?: return emptyList()
+        val parentFid = pathMap[xxHash64(parentPath.lowercase())] ?: return emptyList()
         val childrenFids = directoryIndex[parentFid] ?: return emptyList()
         
         val results = mutableListOf<Map<String, Any>>()
