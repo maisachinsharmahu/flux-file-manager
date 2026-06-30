@@ -206,13 +206,83 @@ class FluxIndex(private val context: Context) {
     }
 
     /**
-     * Scans standard directories (like Documents, Downloads, DCIM) if available.
+     * Scans standard directories with explicit priority.
+     * Tier 1: Core user content (DCIM, Download, Documents, Pictures, Movies, Music) -> scanned first
+     * Tier 2: Other root level directories
+     * Tier 3: Android system/media directory (WhatsApp, etc.) -> scanned last
      */
     private fun scanStorage() {
         try {
             val rootStorage = Environment.getExternalStorageDirectory()
             if (rootStorage != null && rootStorage.exists() && rootStorage.canRead()) {
-                scanDirRecursive(rootStorage, rootFid)
+                Log.d(TAG, "=== Priority Scan Started ===")
+                
+                // Add the Root Storage record itself
+                val rootRecord = FileRecord.create(
+                    fid = rootFid,
+                    parentDirFid = 0L,
+                    name = "Internal Storage",
+                    path = rootStorage.absolutePath,
+                    size = 0L,
+                    mtime = rootStorage.lastModified() / 1000L,
+                    atime = System.currentTimeMillis() / 1000L,
+                    ctime = rootStorage.lastModified() / 1000L,
+                    mimeType = "directory",
+                    flags = FileRecord.FLAG_INDEXED
+                )
+                masterIndex[rootFid.toInt()] = rootRecord
+
+                val allFiles = rootStorage.listFiles() ?: emptyArray()
+                
+                // Tier 1 User Folders
+                val tier1Names = setOf("DCIM", "Download", "Downloads", "Documents", "Pictures", "Movies", "Music")
+                val tier1Dirs = allFiles.filter { it.isDirectory && tier1Names.contains(it.name) }
+                
+                // Tier 3 Android Folder
+                val tier3Dirs = allFiles.filter { it.isDirectory && it.name == "Android" }
+                
+                // Tier 2 Rest of the folders/files
+                val tier2Entries = allFiles.filter { 
+                    !tier1Names.contains(it.name) && it.name != "Android" && !it.name.startsWith(".")
+                }
+
+                // Scan Tier 1 first
+                for (dir in tier1Dirs) {
+                    Log.d(TAG, "Priority Scan: Scanning Tier 1 Folder -> ${dir.name}")
+                    scanDirRecursive(dir, rootFid)
+                }
+
+                // Scan Tier 2 next
+                for (entry in tier2Entries) {
+                    if (entry.isDirectory) {
+                        Log.d(TAG, "Priority Scan: Scanning Tier 2 Folder -> ${entry.name}")
+                        scanDirRecursive(entry, rootFid)
+                    } else {
+                        // Root files
+                        val fid = nextFid.getAndIncrement()
+                        val record = FileRecord.create(
+                            fid = fid,
+                            parentDirFid = rootFid,
+                            name = entry.name,
+                            path = entry.absolutePath,
+                            size = entry.length(),
+                            mtime = entry.lastModified() / 1000L,
+                            atime = System.currentTimeMillis() / 1000L,
+                            ctime = entry.lastModified() / 1000L,
+                            mimeType = getMimeType(entry),
+                            flags = FileRecord.FLAG_INDEXED
+                        )
+                        insertRecordToIndexes(record)
+                    }
+                }
+
+                // Scan Tier 3 (Android app/media data) last
+                for (dir in tier3Dirs) {
+                    Log.d(TAG, "Priority Scan: Scanning Tier 3 Folder -> ${dir.name}")
+                    scanDirRecursive(dir, rootFid)
+                }
+
+                Log.d(TAG, "=== Priority Scan Completed: $fileCount total entries indexed ===")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed scanning external storage: ${e.message}")

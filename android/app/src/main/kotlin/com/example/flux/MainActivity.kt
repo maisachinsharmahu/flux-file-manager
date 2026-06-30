@@ -172,10 +172,10 @@ class MainActivity : FlutterActivity() {
                             runOnUiThread { result.success(true) }
                         }
                         "getModelFilePath" -> {
-                            // Return model path so ONNX runtime can load it
-                            val service = ModelDownloadService()
-                            val file = service.getModelFile()
-                            runOnUiThread { result.success(if (file.exists()) file.absolutePath else null) }
+                            // FIXED: Do NOT instantiate Service directly (no Context available)
+                            // Use applicationContext.filesDir directly instead
+                            val file = java.io.File(applicationContext.filesDir, "minilm_l6.onnx")
+                            runOnUiThread { result.success(if (file.exists() && file.length() > 1_000_000) file.absolutePath else null) }
                         }
                         else -> {
                             runOnUiThread { result.notImplemented() }
