@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 
 enum ModelSyncState { idle, downloading, indexing, completed, error }
 
@@ -35,6 +33,12 @@ class ModelSyncStatus {
 }
 
 class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
+  static const _methodChannel = MethodChannel('com.flux.channel/methods');
+  static const _downloadEventChannel =
+      EventChannel('com.flux.channel/download_progress');
+
+  StreamSubscription? _progressSubscription;
+
   ModelSyncNotifier()
       : super(ModelSyncStatus(
           state: ModelSyncState.idle,
@@ -44,44 +48,40 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
     _checkAndAutoStart();
   }
 
-  // MiniLM-L6 ONNX model from HuggingFace
-  static const String _modelUrl =
-      'https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx';
-  static const String _modelFileName = 'minilm_l6.onnx';
-
-  Future<File> _getModelFile() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/$_modelFileName');
-  }
-
   Future<void> _checkAndAutoStart() async {
     try {
-      final file = await _getModelFile();
-      print('[ModelSync] Checking model at: ${file.path}');
-      if (file.existsSync() && file.lengthSync() > 1_000_000) {
-        print('[ModelSync] Model already exists (${file.lengthSync()} bytes). Activating...');
+      // Check if model already exists on device via native bridge
+      final String? modelPath =
+          await _methodChannel.invokeMethod('getModelFilePath');
+
+      if (modelPath != null) {
+        print('[ModelSync] Model already exists at: $modelPath');
         state = ModelSyncStatus(
           state: ModelSyncState.completed,
           progress: 1.0,
-          statusText: 'MiniLM-L6 vector graph loaded successfully. Semantic search active.',
+          statusText: 'MiniLM-L6 model loaded. Semantic search active.',
           modelExists: true,
         );
       } else {
-        print('[ModelSync] Model not found. Auto-starting download...');
-        state = state.copyWith(statusText: 'Model not found. Auto-downloading MiniLM-L6 (22 MB)...');
-        await Future.delayed(const Duration(milliseconds: 800));
+        print('[ModelSync] Model not found. Auto-starting foreground download...');
+        state = state.copyWith(
+          statusText: 'Model not found. Starting background download...',
+        );
+        await Future.delayed(const Duration(milliseconds: 600));
         await startDownload();
       }
     } catch (e) {
-      print('[ModelSync] Error during model check: $e');
-      state = ModelSyncStatus(
+      print('[ModelSync] Error checking model: $e');
+      state = state.copyWith(
         state: ModelSyncState.error,
-        progress: 0.0,
         statusText: 'Error checking model: $e',
       );
     }
   }
 
+  /// Starts the Android Foreground Service download.
+  /// The service uses HTTP Range headers to resume from the last downloaded byte.
+  /// Download continues even when app is minimized/backgrounded.
   Future<void> startDownload() async {
     if (state.state == ModelSyncState.downloading ||
         state.state == ModelSyncState.indexing) return;
@@ -89,76 +89,96 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
     state = ModelSyncStatus(
       state: ModelSyncState.downloading,
       progress: 0.0,
-      statusText: 'Downloading MiniLM-L6 ONNX model (~22 MB)...',
+      statusText: 'Starting background download (survives minimize)...',
     );
-    print('[ModelSync] Starting download from: $_modelUrl');
+
+    // Listen to progress events from the foreground service via EventChannel
+    _progressSubscription?.cancel();
+    _progressSubscription = _downloadEventChannel
+        .receiveBroadcastStream()
+        .listen(_onServiceEvent, onError: _onServiceError);
 
     try {
-      final file = await _getModelFile();
-      final request = http.Request('GET', Uri.parse(_modelUrl));
-      final response = await http.Client().send(request);
-
-      if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode}');
-      }
-
-      final totalBytes = response.contentLength ?? 22_000_000;
-      int received = 0;
-      final sink = file.openWrite();
-
-      await for (final chunk in response.stream) {
-        sink.add(chunk);
-        received += chunk.length;
-        final progress = received / totalBytes;
-        final receivedMb = (received / (1024 * 1024)).toStringAsFixed(1);
-        final totalMb = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
-        print('[ModelSync] Download progress: ${(progress * 100).toStringAsFixed(1)}% ($receivedMb MB / $totalMb MB)');
-        state = state.copyWith(
-          progress: progress.clamp(0.0, 0.99),
-          statusText: 'Downloading: $receivedMb MB / $totalMb MB (${(progress * 100).toInt()}%)',
-        );
-      }
-      await sink.flush();
-      await sink.close();
-
-      print('[ModelSync] Download complete. File size: ${file.lengthSync()} bytes');
-      await _buildHnswGraph();
+      // Start the Android foreground download service
+      await _methodChannel.invokeMethod('startModelDownload');
+      print('[ModelSync] Foreground download service started');
     } catch (e) {
-      print('[ModelSync] Download failed: $e');
-      state = ModelSyncStatus(
+      print('[ModelSync] Failed to start download service: $e');
+      state = state.copyWith(
         state: ModelSyncState.error,
-        progress: 0.0,
-        statusText: 'Download failed: $e. Tap to retry.',
+        statusText: 'Failed to start download: $e',
       );
     }
   }
 
-  Future<void> _buildHnswGraph() async {
-    print('[ModelSync] Building HNSW vector graph...');
-    state = ModelSyncStatus(
-      state: ModelSyncState.indexing,
-      progress: 0.0,
-      statusText: 'Building HNSW Vector Graph with 90 indexed files...',
-    );
+  void _onServiceEvent(dynamic event) {
+    final map = event as Map;
+    final type = map['type'] as String;
 
-    // Graph build is CPU-bound; simulate progress while native side builds
-    for (int i = 1; i <= 10; i++) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      final progress = i / 10;
-      print('[ModelSync] HNSW indexing: ${(progress * 100).toInt()}%');
+    switch (type) {
+      case 'progress':
+        final percent = (map['percent'] as num).toInt();
+        final received = (map['received'] as num).toInt();
+        final total = (map['total'] as num).toInt();
+        final receivedMb = (received / (1024 * 1024)).toStringAsFixed(1);
+        final totalMb = (total / (1024 * 1024)).toStringAsFixed(1);
+        print('[ModelSync] Download: $percent% ($receivedMb MB / $totalMb MB)');
+        if (mounted) {
+          state = state.copyWith(
+            progress: (percent / 100.0).clamp(0.0, 0.99),
+            statusText: 'Downloading: $receivedMb MB / $totalMb MB ($percent%)',
+          );
+        }
+        break;
+
+      case 'complete':
+        print('[ModelSync] Download complete via foreground service!');
+        _progressSubscription?.cancel();
+        if (mounted) {
+          state = ModelSyncStatus(
+            state: ModelSyncState.completed,
+            progress: 1.0,
+            statusText: 'MiniLM-L6 model ready. Semantic search active.',
+            modelExists: true,
+          );
+        }
+        break;
+
+      case 'error':
+        final msg = map['message'] as String? ?? 'Unknown error';
+        print('[ModelSync] Download error from service: $msg');
+        // Partial file is preserved — next tap will resume from last byte
+        if (mounted) {
+          state = state.copyWith(
+            state: ModelSyncState.error,
+            statusText: 'Download paused. Partial file saved — tap to resume.',
+          );
+        }
+        break;
+    }
+  }
+
+  void _onServiceError(dynamic error) {
+    print('[ModelSync] EventChannel error: $error');
+  }
+
+  Future<void> cancelDownload() async {
+    _progressSubscription?.cancel();
+    try {
+      await _methodChannel.invokeMethod('cancelModelDownload');
+    } catch (_) {}
+    if (mounted) {
       state = state.copyWith(
-        progress: progress,
-        statusText: 'Generating semantic embeddings... ${(progress * 90).toInt()}/90 files mapped',
+        state: ModelSyncState.idle,
+        statusText: 'Download cancelled. Tap to resume.',
       );
     }
+  }
 
-    state = ModelSyncStatus(
-      state: ModelSyncState.completed,
-      progress: 1.0,
-      statusText: 'MiniLM-L6 vector graph loaded successfully. Semantic search active.',
-      modelExists: true,
-    );
-    print('[ModelSync] Model ready. Semantic search ACTIVE.');
+  @override
+  void dispose() {
+    _progressSubscription?.cancel();
+    super.dispose();
   }
 }
 

@@ -1,15 +1,18 @@
 package com.example.flux
 
+import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val METHOD_CHANNEL = "com.flux.channel/methods"
     private val EVENT_CHANNEL = "com.flux.channel/search_stream"
-    
+    private val DOWNLOAD_EVENT_CHANNEL = "com.flux.channel/download_progress"
+
     private lateinit var fluxIndex: FluxIndex
+    private var downloadProgressSink: EventChannel.EventSink? = null
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +51,38 @@ class MainActivity : FlutterActivity() {
 
         fluxIndex = FluxIndex(applicationContext)
 
+        // Wire ModelDownloadService callbacks → Flutter EventChannel
+        ModelDownloadService.onProgress = { percent, received, total ->
+            runOnUiThread {
+                downloadProgressSink?.success(mapOf(
+                    "type" to "progress",
+                    "percent" to percent,
+                    "received" to received,
+                    "total" to total
+                ))
+            }
+        }
+        ModelDownloadService.onComplete = {
+            runOnUiThread {
+                downloadProgressSink?.success(mapOf("type" to "complete"))
+            }
+        }
+        ModelDownloadService.onError = { error ->
+            runOnUiThread {
+                downloadProgressSink?.success(mapOf("type" to "error", "message" to error))
+            }
+        }
+
+        // EventChannel for real-time download progress (works even when app is minimized)
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, DOWNLOAD_EVENT_CHANNEL)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    downloadProgressSink = events
+                }
+                override fun onCancel(arguments: Any?) {
+                    downloadProgressSink = null
+                }
+            })
         // Set up MethodChannel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
             java.util.concurrent.ForkJoinPool.commonPool().execute {
@@ -120,6 +155,27 @@ class MainActivity : FlutterActivity() {
                         "scanJunkFiles" -> {
                             val junk = fluxIndex.scanJunkFiles()
                             runOnUiThread { result.success(junk) }
+                        }
+                        "startModelDownload" -> {
+                            // Start foreground download service — survives app minimize
+                            val intent = Intent(this@MainActivity, ModelDownloadService::class.java).apply {
+                                action = ModelDownloadService.ACTION_START
+                            }
+                            startForegroundService(intent)
+                            runOnUiThread { result.success(true) }
+                        }
+                        "cancelModelDownload" -> {
+                            val intent = Intent(this@MainActivity, ModelDownloadService::class.java).apply {
+                                action = ModelDownloadService.ACTION_CANCEL
+                            }
+                            startService(intent)
+                            runOnUiThread { result.success(true) }
+                        }
+                        "getModelFilePath" -> {
+                            // Return model path so ONNX runtime can load it
+                            val service = ModelDownloadService()
+                            val file = service.getModelFile()
+                            runOnUiThread { result.success(if (file.exists()) file.absolutePath else null) }
                         }
                         else -> {
                             runOnUiThread { result.notImplemented() }

@@ -44,7 +44,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Material(
-      color: Colors.transparent, // Let main navigation radial glow backdrop show through
+      color: Colors
+          .transparent, // Let main navigation radial glow backdrop show through
       child: SafeArea(
         child: RefreshIndicator(
           color: AppColors.mintAccent,
@@ -169,7 +170,8 @@ class _DevSimulationConsole extends ConsumerStatefulWidget {
   const _DevSimulationConsole({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<_DevSimulationConsole> createState() => _DevSimulationConsoleState();
+  ConsumerState<_DevSimulationConsole> createState() =>
+      _DevSimulationConsoleState();
 }
 
 class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
@@ -233,15 +235,21 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                               fontFamily: 'Inter',
                               fontSize: 14.0.sp,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+                              color: isDark
+                                  ? AppColors.pureWhite
+                                  : AppColors.neutral900,
                             ),
                           ),
                         ],
                       ),
                       Icon(
-                        _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        _isExpanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
                         size: 20.0.r,
-                        color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                        color: isDark
+                            ? AppColors.textSecondaryLight
+                            : AppColors.neutral400,
                       ),
                     ],
                   ),
@@ -258,14 +266,18 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                       fontFamily: 'Inter',
                       fontSize: 11.0.sp,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                      color: isDark
+                          ? AppColors.textSecondaryLight
+                          : AppColors.neutral400,
                     ),
                   ),
                   SizedBox(height: 8.0.h),
                   Container(
                     padding: EdgeInsets.all(12.0.r),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.02),
+                      color: isDark
+                          ? Colors.black26
+                          : Colors.black.withValues(alpha: 0.02),
                       borderRadius: BorderRadius.circular(12.0.r),
                       border: Border.all(color: borderColor, width: 1.0.r),
                     ),
@@ -281,7 +293,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                                 fontFamily: 'Inter',
                                 fontSize: 13.0.sp,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+                                color: isDark
+                                    ? AppColors.pureWhite
+                                    : AppColors.neutral900,
                               ),
                             ),
                             _buildStateBadge(modelStatus.state),
@@ -293,7 +307,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 11.0.sp,
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
                           ),
                         ),
                         if (modelStatus.state == ModelSyncState.downloading ||
@@ -304,8 +320,12 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                             child: LinearProgressIndicator(
                               value: modelStatus.progress,
                               minHeight: 5.0.h,
-                              backgroundColor: isDark ? Colors.white10 : Colors.black12,
-                              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.mintAccent),
+                              backgroundColor: isDark
+                                  ? Colors.white10
+                                  : Colors.black12,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                AppColors.mintAccent,
+                              ),
                             ),
                           ),
                         ],
@@ -313,7 +333,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                           SizedBox(height: 12.0.h),
                           GestureDetector(
                             onTap: () {
-                              ref.read(modelSyncProvider.notifier).startDownload();
+                              ref
+                                  .read(modelSyncProvider.notifier)
+                                  .startDownload();
                             },
                             child: Container(
                               width: double.infinity,
@@ -348,7 +370,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                       fontFamily: 'Inter',
                       fontSize: 11.0.sp,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                      color: isDark
+                          ? AppColors.textSecondaryLight
+                          : AppColors.neutral400,
                     ),
                   ),
                   SizedBox(height: 8.0.h),
@@ -363,7 +387,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                             padding: EdgeInsets.symmetric(vertical: 10.0.h),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                              color: isDark
+                                  ? Colors.white10
+                                  : Colors.black.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(10.0.r),
                             ),
                             child: Text(
@@ -372,7 +398,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                                 fontFamily: 'Inter',
                                 fontSize: 12.0.sp,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+                                color: isDark
+                                    ? AppColors.pureWhite
+                                    : AppColors.neutral900,
                               ),
                             ),
                           ),
@@ -383,33 +411,44 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                         child: GestureDetector(
                           onTap: () async {
                             if (allFiles.isEmpty) return;
-                            
+
                             // Find first file that is not already deleted to simulate O(1) delete
                             final file = allFiles.first;
-                            final fid = allFiles.length + 2; // Simulated target index
-                            
-                            ref.read(platformMonitorProvider.notifier).logAction(
-                              'executeBatchDelete',
-                              'PENDING',
-                              'Executing O(1) batch logical deletion for: ${file.name}',
+                            final fid =
+                                allFiles.length + 2; // Simulated target index
+
+                            ref
+                                .read(platformMonitorProvider.notifier)
+                                .logAction(
+                                  'executeBatchDelete',
+                                  'PENDING',
+                                  'Executing O(1) batch logical deletion for: ${file.name}',
+                                );
+
+                            final success = await FluxBridge.executeBatchDelete(
+                              [fid],
                             );
-                            
-                            final success = await FluxBridge.executeBatchDelete([fid]);
                             if (success) {
-                              ref.read(platformMonitorProvider.notifier).logAction(
-                                'executeBatchDelete',
-                                'SUCCESS',
-                                'Flipped deletion bit for FID $fid. Logged to WAL.',
-                              );
+                              ref
+                                  .read(platformMonitorProvider.notifier)
+                                  .logAction(
+                                    'executeBatchDelete',
+                                    'SUCCESS',
+                                    'Flipped deletion bit for FID $fid. Logged to WAL.',
+                                  );
                               // Refresh files list to reflect deletion
-                              ref.read(allFilesProvider.notifier).refreshFiles();
+                              ref
+                                  .read(allFilesProvider.notifier)
+                                  .refreshFiles();
                             }
                           },
                           child: Container(
                             padding: EdgeInsets.symmetric(vertical: 10.0.h),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                              color: isDark
+                                  ? Colors.white10
+                                  : Colors.black.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(10.0.r),
                             ),
                             child: Text(
@@ -436,20 +475,29 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                       fontFamily: 'Inter',
                       fontSize: 11.0.sp,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                      color: isDark
+                          ? AppColors.textSecondaryLight
+                          : AppColors.neutral400,
                     ),
                   ),
                   SizedBox(height: 8.0.h),
                   Container(
                     height: 110.h,
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.black12 : Colors.black.withValues(alpha: 0.01),
+                      color: isDark
+                          ? Colors.black12
+                          : Colors.black.withValues(alpha: 0.01),
                       borderRadius: BorderRadius.circular(12.0.r),
                       border: Border.all(color: borderColor, width: 1.0.r),
                     ),
                     child: ListView(
-                      padding: EdgeInsets.symmetric(horizontal: 12.0.w, vertical: 8.0.h),
-                      children: monitorState.channelStatuses.entries.map((entry) {
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.0.w,
+                        vertical: 8.0.h,
+                      ),
+                      children: monitorState.channelStatuses.entries.map((
+                        entry,
+                      ) {
                         return Padding(
                           padding: EdgeInsets.symmetric(vertical: 4.0.h),
                           child: Row(
@@ -461,7 +509,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                                   fontFamily: 'Courier',
                                   fontSize: 12.0.sp,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white70 : Colors.black87,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black87,
                                 ),
                               ),
                               _buildStatusTag(entry.value),
@@ -481,7 +531,9 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                       fontFamily: 'Inter',
                       fontSize: 11.0.sp,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                      color: isDark
+                          ? AppColors.textSecondaryLight
+                          : AppColors.neutral400,
                     ),
                   ),
                   SizedBox(height: 8.0.h),
@@ -508,9 +560,12 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                             itemBuilder: (context, index) {
                               final log = monitorState.logs[index];
                               Color statusColor;
-                              if (log.status == 'SUCCESS') statusColor = Colors.greenAccent;
-                              else if (log.status == 'PENDING') statusColor = Colors.orangeAccent;
-                              else statusColor = Colors.redAccent;
+                              if (log.status == 'SUCCESS')
+                                statusColor = Colors.greenAccent;
+                              else if (log.status == 'PENDING')
+                                statusColor = Colors.orangeAccent;
+                              else
+                                statusColor = Colors.redAccent;
 
                               return Padding(
                                 padding: EdgeInsets.symmetric(vertical: 2.0.h),
@@ -573,10 +628,14 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
 
   Widget _buildStatusTag(String status) {
     Color color;
-    if (status == 'SUCCESS') color = AppColors.mintAccent;
-    else if (status == 'PENDING') color = Colors.orangeAccent;
-    else if (status == 'ERROR') color = Colors.redAccent;
-    else color = Colors.grey;
+    if (status == 'SUCCESS')
+      color = AppColors.mintAccent;
+    else if (status == 'PENDING')
+      color = Colors.orangeAccent;
+    else if (status == 'ERROR')
+      color = Colors.redAccent;
+    else
+      color = Colors.grey;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 6.0.w, vertical: 1.0.h),
@@ -596,4 +655,3 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
     );
   }
 }
-
