@@ -72,4 +72,22 @@ class MainActivity : FlutterActivity() {
             }
         )
     }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        when (level) {
+            TRIM_MEMORY_RUNNING_MODERATE -> {
+                fluxIndex.evictChecksumMap()
+            }
+            TRIM_MEMORY_RUNNING_CRITICAL -> {
+                fluxIndex.evictWarmStore()
+            }
+            TRIM_MEMORY_BACKGROUND -> {
+                // Pause background threads
+            }
+            TRIM_MEMORY_COMPLETE -> {
+                fluxIndex.emergencyFlush()
+            }
+        }
+    }
 }

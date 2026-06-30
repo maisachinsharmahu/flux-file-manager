@@ -72,6 +72,9 @@ class FluxIndex(private val context: Context) {
     // Ring Buffer for O(1) Recent Files List
     val recentFilesBuffer = RingBuffer(50)
 
+    // Thermal Governor (Section 4.3)
+    val thermalGovernor = ThermalGovernor(context)
+
     // Root directory FID definition
     val rootFid = 1L
 
@@ -624,6 +627,22 @@ class FluxIndex(private val context: Context) {
         return results
     }
 
+    fun evictChecksumMap() {
+        checksumMap.clear()
+    }
+
+    fun evictWarmStore() {
+        checksumMap.clear()
+        nameTrie.clear()
+        tokenTrie.clear()
+        sizeIndex.clear()
+        timeIndex.clear()
+    }
+
+    fun emergencyFlush() {
+        System.gc()
+    }
+
     private fun tokenize(text: String): List<String> {
         // Splitting on underscores, hyphens, dots, spaces, CamelCase boundaries
         val cleaned = text.replace(Regex("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[^a-zA-Z0-9]"), " ")
@@ -660,6 +679,10 @@ class VanEmdeBoasIndex {
 
     fun insert(key: Long, fid: Long) {
         index.getOrPut(key) { BitSet() }.set(fid.toInt())
+    }
+
+    fun clear() {
+        index.clear()
     }
 
     fun getRange(min: Long, max: Long): BitSet {
@@ -734,5 +757,37 @@ class RingBuffer(private val capacity: Int) {
             index = (index - 1 + capacity) % capacity
         }
         return list
+    }
+}
+
+/**
+ * Section 4.3: ThermalGovernor manages background indexing resource allocation
+ * dynamically depending on system temperatures and battery state.
+ */
+class ThermalGovernor(private val context: Context) {
+    enum class ThermalState { COOL, WARM, HOT, CRITICAL }
+    class WorkerParams(val threads: Int, val batchSize: Int, val delayMs: Long)
+
+    fun currentState(): ThermalState {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        if (pm != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            return when (pm.currentThermalStatus) {
+                android.os.PowerManager.THERMAL_STATUS_NONE,
+                android.os.PowerManager.THERMAL_STATUS_LIGHT -> ThermalState.COOL
+                android.os.PowerManager.THERMAL_STATUS_MODERATE -> ThermalState.WARM
+                android.os.PowerManager.THERMAL_STATUS_SEVERE -> ThermalState.HOT
+                else -> ThermalState.CRITICAL
+            }
+        }
+        return ThermalState.COOL
+    }
+
+    fun workerParams(state: ThermalState): WorkerParams {
+        return when (state) {
+            ThermalState.COOL -> WorkerParams(4, 500, 0L)
+            ThermalState.WARM -> WorkerParams(2, 200, 50L)
+            ThermalState.HOT -> WorkerParams(1, 50, 200L)
+            ThermalState.CRITICAL -> WorkerParams(0, 0, -1L)
+        }
     }
 }
