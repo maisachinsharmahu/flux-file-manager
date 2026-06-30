@@ -25,6 +25,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
   int _activeIndex = 5; // Start with the top tab (Others) active.
   final Map<String, double> _dragOffsets = {};
   final Map<String, double> _baseOffsets = {};
+  int _selectedIndex = -1;
 
   @override
   void initState() {
@@ -119,6 +120,82 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final values = [
+      photos.toDouble(),
+      videos.toDouble(),
+      docs.toDouble(),
+      audio.toDouble(),
+      apps.toDouble(),
+      bin.toDouble(),
+      games.toDouble(),
+      system.toDouble(),
+      others.toDouble(),
+      (totalStorage - totalUsed).toDouble(), // Free Space
+    ];
+
+    final colors = [
+      const Color(0xFF38BDF8), // Images
+      const Color(0xFF10B981), // Videos
+      const Color(0xFFFBBF24), // Docs
+      const Color(0xFFF97316), // Audio
+      const Color(0xFFFF4D4D), // Application
+      const Color(0xFF607D8B), // Bin
+      const Color(0xFF4CAF50), // Games
+      const Color(0xFF9C27B0), // System
+      const Color(0xFF9E9E9E), // Others
+      isDark
+          ? Colors.white.withValues(alpha: 0.15)
+          : Colors.black.withValues(alpha: 0.08), // Free Space
+    ];
+
+    const segmentNames = [
+      'Images',
+      'Videos',
+      'Docs',
+      'Audio',
+      'Apps',
+      'Bin',
+      'Games',
+      'System',
+      'Others',
+      'Free Space',
+    ];
+
+    // Compute segment angles for tap collision checking and CustomPainter layout consistency
+    final double minAngle = 0.14; // in radians (~8 degrees)
+    final double gapAngle = 0.035; // in radians (~2 degrees) between segments
+    
+    int activeCount = 0;
+    for (var val in values) {
+      if (val > 0) activeCount++;
+    }
+    
+    final double totalGaps = activeCount * gapAngle;
+    final double availableAngle = 2 * math.pi - totalGaps;
+    final double minAnglesSum = activeCount * minAngle;
+    
+    List<double> segmentAngles = List.filled(values.length, 0.0);
+    if (activeCount > 0) {
+      if (minAnglesSum >= availableAngle) {
+        final double equalAngle = availableAngle / activeCount;
+        for (int i = 0; i < values.length; i++) {
+          if (values[i] > 0) segmentAngles[i] = equalAngle;
+        }
+      } else {
+        final double remainingAngle = availableAngle - minAnglesSum;
+        double remainingValuesSum = 0.0;
+        for (var val in values) {
+          if (val > 0) remainingValuesSum += val;
+        }
+        for (int i = 0; i < values.length; i++) {
+          if (values[i] > 0) {
+            final double proportionalShare = (values[i] / remainingValuesSum) * remainingAngle;
+            segmentAngles[i] = minAngle + proportionalShare;
+          }
+        }
+      }
+    }
 
     final bgColor = isDark ? AppColors.pureBlack : AppColors.pureWhite;
     final textColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
@@ -366,51 +443,150 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             child: SizedBox(
                               width: 180.0.r,
                               height: 180.0.r,
-                              child: CustomPaint(
-                                painter: StorageDonutPainter(
-                                  isDark: isDark,
-                                  animation: _controller,
-                                  values: [
-                                    photos.toDouble(),
-                                    videos.toDouble(),
-                                    docs.toDouble(),
-                                    audio.toDouble(),
-                                    apps.toDouble(),
-                                    bin.toDouble(),
-                                    games.toDouble(),
-                                    system.toDouble(),
-                                    others.toDouble(),
-                                    (totalStorage - totalUsed).toDouble(), // Free Space
-                                  ],
-                                  colors: [
-                                    const Color(0xFF38BDF8), // Images
-                                    const Color(0xFF10B981), // Videos
-                                    const Color(0xFFFBBF24), // Docs
-                                    const Color(0xFFF97316), // Audio
-                                    const Color(0xFFFF4D4D), // Application
-                                    const Color(0xFF607D8B), // Bin
-                                    const Color(0xFF4CAF50), // Games
-                                    const Color(0xFF9C27B0), // System
-                                    const Color(0xFF9E9E9E), // Others
-                                    isDark
-                                        ? Colors.white.withValues(alpha: 0.15)
-                                        : Colors.black.withValues(alpha: 0.08), // Free Space
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    usedPctString,
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 26.0.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: textColor,
+                              child: GestureDetector(
+                                onTapUp: (details) {
+                                  // Local position of touch
+                                  final double width = 180.0.r;
+                                  final center = Offset(width / 2, width / 2);
+                                  final touchPosition = details.localPosition;
+                                  final dx = touchPosition.dx - center.dx;
+                                  final dy = touchPosition.dy - center.dy;
+                                  
+                                  // Distance from center
+                                  final distance = math.sqrt(dx * dx + dy * dy);
+                                  
+                                  // Donut base radius
+                                  final baseRadius = width / 2 - 10.0.r;
+                                  final innerRadius = baseRadius - 16.0.r;
+                                  final outerRadius = baseRadius + 16.0.r;
+                                  
+                                  if (distance >= innerRadius && distance <= outerRadius) {
+                                    // Touch is on the donut ring
+                                    double angle = math.atan2(dy, dx);
+                                    double normalizedAngle = angle + math.pi / 2;
+                                    if (normalizedAngle < 0) {
+                                      normalizedAngle += 2 * math.pi;
+                                    }
+                                    
+                                    // Match against segmentAngles
+                                    double currentSum = 0.0;
+                                    int tappedIndex = -1;
+                                    for (int i = 0; i < segmentAngles.length; i++) {
+                                      final start = currentSum;
+                                      final end = currentSum + segmentAngles[i];
+                                      if (normalizedAngle >= start && normalizedAngle <= end) {
+                                        tappedIndex = i;
+                                        break;
+                                      }
+                                      currentSum += segmentAngles[i];
+                                    }
+                                    
+                                    if (tappedIndex != -1) {
+                                      setState(() {
+                                        if (_selectedIndex == tappedIndex) {
+                                          _selectedIndex = -1; // Toggle off
+                                        } else {
+                                          _selectedIndex = tappedIndex;
+                                        }
+                                      });
+                                    }
+                                  } else {
+                                    // Tapped inside the hole or outside the donut ring
+                                    setState(() {
+                                      _selectedIndex = -1;
+                                    });
+                                  }
+                                },
+                                child: CustomPaint(
+                                  painter: StorageDonutPainter(
+                                    isDark: isDark,
+                                    animation: _controller,
+                                    values: values,
+                                    colors: colors,
+                                    segmentAngles: segmentAngles,
+                                    selectedIndex: _selectedIndex,
+                                  ),
+                                  child: Center(
+                                    child: AnimatedSwitcher(
+                                      duration: const Duration(milliseconds: 250),
+                                      transitionBuilder: (child, animation) {
+                                        return FadeTransition(
+                                          opacity: animation,
+                                          child: ScaleTransition(
+                                            scale: Tween<double>(begin: 0.9, end: 1.0).animate(animation),
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                      child: _selectedIndex != -1
+                                          ? Column(
+                                              key: ValueKey<int>(_selectedIndex),
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  segmentNames[_selectedIndex],
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontSize: 12.0.sp,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: colors[_selectedIndex],
+                                                  ),
+                                                ),
+                                                SizedBox(height: 2.0.h),
+                                                Text(
+                                                  _formatSize(values[_selectedIndex].toInt()),
+                                                  style: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontSize: 18.0.sp,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: textColor,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 2.0.h),
+                                                Text(
+                                                  _selectedIndex == 9
+                                                      ? '${((totalStorage - totalUsed) / totalStorage * 100).toStringAsFixed(0)}%'
+                                                      : getPctString(values[_selectedIndex].toInt()),
+                                                  style: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontSize: 11.0.sp,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: subtitleColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          : Column(
+                                              key: const ValueKey<int>(-1),
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  usedPctString,
+                                                  style: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontSize: 26.0.sp,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: textColor,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Used',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontSize: 12.0.sp,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: subtitleColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+                           ),
                           SizedBox(height: 28.0.h),
 
                           // Legend category details grid (featuring all 9 storage types)
@@ -420,15 +596,15 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                               Expanded(
                                 child: Column(
                                   children: [
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Images', _formatSize(photos), getPctString(photos), const Color(0xFF38BDF8)),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Images', _formatSize(photos), getPctString(photos), const Color(0xFF38BDF8), 0),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Docs', _formatSize(docs), getPctString(docs), const Color(0xFFFBBF24)),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Docs', _formatSize(docs), getPctString(docs), const Color(0xFFFBBF24), 2),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Apps', _formatSize(apps), getPctString(apps), const Color(0xFFFF4D4D)),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Apps', _formatSize(apps), getPctString(apps), const Color(0xFFFF4D4D), 4),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Games', _formatSize(games), getPctString(games), const Color(0xFF4CAF50)),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Games', _formatSize(games), getPctString(games), const Color(0xFF4CAF50), 6),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Others', _formatSize(others), getPctString(others), const Color(0xFF9E9E9E)),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Others', _formatSize(others), getPctString(others), const Color(0xFF9E9E9E), 8),
                                   ],
                                 ),
                               ),
@@ -436,13 +612,13 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                               Expanded(
                                 child: Column(
                                   children: [
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Videos', _formatSize(videos), getPctString(videos), const Color(0xFF10B981)),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Videos', _formatSize(videos), getPctString(videos), const Color(0xFF10B981), 1),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Audio', _formatSize(audio), getPctString(audio), const Color(0xFFF97316)),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Audio', _formatSize(audio), getPctString(audio), const Color(0xFFF97316), 3),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Bin', _formatSize(bin), getPctString(bin), const Color(0xFF607D8B)),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Bin', _formatSize(bin), getPctString(bin), const Color(0xFF607D8B), 5),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'System', _formatSize(system), getPctString(system), const Color(0xFF9C27B0)),
+                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'System', _formatSize(system), getPctString(system), const Color(0xFF9C27B0), 7),
                                   ],
                                 ),
                               ),
@@ -490,54 +666,81 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     String size,
     String percent,
     Color color,
+    int index,
   ) {
-    return Row(
-      children: [
-        Container(
-          width: 4.0.w,
-          height: 24.0.h,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2.0.r),
+    final isSelected = _selectedIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (_selectedIndex == index) {
+            _selectedIndex = -1;
+          } else {
+            _selectedIndex = index;
+          }
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 8.0.w, vertical: 6.0.h),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? color.withOpacity(0.08) 
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10.0.r),
+          border: Border.all(
+            color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
+            width: 1.0.r,
           ),
         ),
-        SizedBox(width: 12.0.w),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 15.0.sp,
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
+        child: Row(
+          children: [
+            Container(
+              width: 4.0.w,
+              height: 24.0.h,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(2.0.r),
               ),
-              SizedBox(height: 2.0.h),
-              Text(
-                size,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 12.0.sp,
-                  fontWeight: FontWeight.w500,
-                  color: subtitleColor,
-                ),
+            ),
+            SizedBox(width: 10.0.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14.0.sp,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                  SizedBox(height: 2.0.h),
+                  Text(
+                    size,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11.0.sp,
+                      fontWeight: FontWeight.w500,
+                      color: subtitleColor,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Text(
+              percent,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14.0.sp,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                color: textColor,
+              ),
+            ),
+          ],
         ),
-        Text(
-          percent,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 15.0.sp,
-            fontWeight: FontWeight.w700,
-            color: textColor,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -549,96 +752,60 @@ class _TabItemData {
   _TabItemData({required this.name, required this.child});
 }
 
-// Concentric Circular Rings custom painter (displaying 5 rings)
+// Interactive storage segments donut chart painter
 class StorageDonutPainter extends CustomPainter {
   final bool isDark;
   final Animation<double> animation;
   final List<double> values;
   final List<Color> colors;
+  final List<double> segmentAngles;
+  final int selectedIndex;
 
   StorageDonutPainter({
     required this.isDark,
     required this.animation,
     required this.values,
     required this.colors,
+    required this.segmentAngles,
+    required this.selectedIndex,
   }) : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 10.0.r;
+    final baseRadius = size.width / 2 - 10.0.r;
 
     // Draw background track ring
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 14.0.r
       ..color = isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05);
-    canvas.drawCircle(center, radius, trackPaint);
+    canvas.drawCircle(center, baseRadius, trackPaint);
 
-    // Sum total values
-    final total = values.fold<double>(0, (sum, val) => sum + val);
-    if (total <= 0) return;
-
-    // Calculate segments with a minimum visible angle (to prevent small parts from disappearing)
-    final double minAngle = 0.14; // in radians (~8 degrees)
-    final double gapAngle = 0.035; // in radians (~2 degrees) between segments
-    
-    // Find active segments
-    int activeCount = 0;
-    for (var val in values) {
-      if (val > 0) activeCount++;
-    }
-
-    if (activeCount == 0) return;
-
-    // Total gaps angle
-    final double totalGaps = activeCount * gapAngle;
-    final double availableAngle = 2 * math.pi - totalGaps;
-
-    // Compute min angles sum
-    final double minAnglesSum = activeCount * minAngle;
-
-    List<double> segmentAngles = List.filled(values.length, 0.0);
-
-    if (minAnglesSum >= availableAngle) {
-      // If we have too many segments, just distribute equally
-      final double equalAngle = availableAngle / activeCount;
-      for (int i = 0; i < values.length; i++) {
-        if (values[i] > 0) segmentAngles[i] = equalAngle;
-      }
-    } else {
-      // Allocate minimum angles first, then distribute the remaining angle proportionally
-      final double remainingAngle = availableAngle - minAnglesSum;
-      double remainingValuesSum = 0.0;
-      for (var val in values) {
-        if (val > 0) remainingValuesSum += val;
-      }
-
-      for (int i = 0; i < values.length; i++) {
-        if (values[i] > 0) {
-          final double proportionalShare = (values[i] / remainingValuesSum) * remainingAngle;
-          segmentAngles[i] = minAngle + proportionalShare;
-        }
-      }
-    }
-
-    // Draw the segments with animations
     double startAngle = -math.pi / 2; // Start from top (12 o'clock)
+    final double gapAngle = 0.035; // gap angle between segments
 
     for (int i = 0; i < values.length; i++) {
       if (segmentAngles[i] <= 0) continue;
 
       final sweepAngle = segmentAngles[i] * animation.value;
-
+      final isSelected = selectedIndex == i;
+      
+      // If something is selected, make other segments semi-transparent to highlight selection
+      final double opacityMultiplier = (selectedIndex != -1 && !isSelected) ? 0.35 : 1.0;
+      final Color segmentColor = colors[i].withOpacity(colors[i].opacity * opacityMultiplier);
+      
       final fillPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 14.0.r
+        ..strokeWidth = isSelected ? 18.0.r : 14.0.r
         ..strokeCap = StrokeCap.round
-        ..color = colors[i];
+        ..color = segmentColor;
 
-      // Draw active arc segment
+      // Pop-out radius highlight
+      final currentRadius = isSelected ? baseRadius + 3.0.r : baseRadius;
+
       canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
+        Rect.fromCircle(center: center, radius: currentRadius),
         startAngle + (gapAngle / 2),
         sweepAngle - gapAngle,
         false,
@@ -652,7 +819,8 @@ class StorageDonutPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant StorageDonutPainter oldDelegate) {
     return oldDelegate.animation.value != animation.value ||
-        oldDelegate.isDark != isDark;
+        oldDelegate.isDark != isDark ||
+        oldDelegate.selectedIndex != selectedIndex;
   }
 }
 
