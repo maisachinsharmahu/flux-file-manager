@@ -30,7 +30,9 @@ class DownloadsGrid extends ConsumerWidget {
 
     // Filter files containing '/Downloads/' or '/Download/' or having downloads-associated extensions/categories
     final allFiles = ref.watch(allFilesProvider);
-    final downloads = allFiles.where((f) => f.path.toLowerCase().contains('download')).toList();
+    final downloads = allFiles
+        .where((f) => f.path.toLowerCase().contains('download'))
+        .toList();
 
     // Fallback if no explicit download files found: take the first 8 files from allFilesProvider
     final list = downloads.isNotEmpty ? downloads : allFiles;
@@ -91,10 +93,13 @@ class DownloadsGrid extends ConsumerWidget {
               // The 6th spot is "+ X more" card if list size is larger
               if (index == maxSpots - 1 && list.length > maxSpots) {
                 return GestureDetector(
-                  onTap: () => context.push('/all_files?title=Recent Downloads'),
+                  onTap: () =>
+                      context.push('/all_files?title=Recent Downloads'),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppColors.mintAccent.withValues(alpha: isDark ? 0.06 : 0.04),
+                      color: AppColors.mintAccent.withValues(
+                        alpha: isDark ? 0.06 : 0.04,
+                      ),
                       borderRadius: BorderRadius.circular(16.0.r),
                       border: Border.all(
                         color: AppColors.mintAccent.withValues(alpha: 0.2),
@@ -150,10 +155,14 @@ class DownloadsGrid extends ConsumerWidget {
               final file = list[index];
 
               // Build friendly dynamic relative time subtitle
-              final hoursAgo = DateTime.now().difference(file.modifiedDate).inHours;
-              final String timeString = hoursAgo <= 0 
-                  ? 'Just now' 
-                  : (hoursAgo < 24 ? '${hoursAgo}h ago' : '${(hoursAgo/24).round()}d ago');
+              final hoursAgo = DateTime.now()
+                  .difference(file.modifiedDate)
+                  .inHours;
+              final String timeString = hoursAgo <= 0
+                  ? 'Just now'
+                  : (hoursAgo < 24
+                        ? '${hoursAgo}h ago'
+                        : '${(hoursAgo / 24).round()}d ago');
 
               return GestureDetector(
                 onTap: () {
@@ -161,7 +170,8 @@ class DownloadsGrid extends ConsumerWidget {
                     name: file.name,
                     size: file.sizeString,
                     createdDate: 'June 28, 2026, 12:14 PM',
-                    modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                    modifiedDate:
+                        '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
                     type: file.category,
                     themeColor: file.themeColor,
                     fallbackIcon: file.fallbackIcon,
@@ -173,10 +183,7 @@ class DownloadsGrid extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: cardBg,
                     borderRadius: BorderRadius.circular(16.0.r),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 1.0.r,
-                    ),
+                    border: Border.all(color: borderColor, width: 1.0.r),
                   ),
                   padding: EdgeInsets.all(12.0.r),
                   child: Column(

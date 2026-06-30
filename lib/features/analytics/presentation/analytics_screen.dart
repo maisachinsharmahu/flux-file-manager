@@ -358,16 +358,37 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                           ),
                           SizedBox(height: 24.0.h),
 
-                           // Concentric Circular Progress Chart (now displaying 8 rings)
-                          Center(
+                            // Custom Donut Progress Chart
+                           Center(
                             child: SizedBox(
                               width: 180.0.r,
                               height: 180.0.r,
                               child: CustomPaint(
-                                painter: ConcentricRingsPainter(
+                                painter: StorageDonutPainter(
                                   isDark: isDark,
                                   animation: _controller,
-                                  percentages: [pPhotos, pVideos, pDocs, pAudio, pApps, pBin, pGames, pSystem],
+                                  values: [
+                                    photos.toDouble(),
+                                    videos.toDouble(),
+                                    docs.toDouble(),
+                                    audio.toDouble(),
+                                    apps.toDouble(),
+                                    bin.toDouble(),
+                                    games.toDouble(),
+                                    system.toDouble(),
+                                    others.toDouble(),
+                                  ],
+                                  colors: const [
+                                    Color(0xFF38BDF8), // Images
+                                    Color(0xFF10B981), // Videos
+                                    Color(0xFFFBBF24), // Docs
+                                    Color(0xFFF97316), // Audio
+                                    Color(0xFFFF4D4D), // Application
+                                    Color(0xFF607D8B), // Bin
+                                    Color(0xFF4CAF50), // Games
+                                    Color(0xFF9C27B0), // System
+                                    Color(0xFF9E9E9E), // Others
+                                  ],
                                 ),
                                 child: Center(
                                   child: Text(
@@ -522,85 +543,107 @@ class _TabItemData {
 }
 
 // Concentric Circular Rings custom painter (displaying 5 rings)
-class ConcentricRingsPainter extends CustomPainter {
+class StorageDonutPainter extends CustomPainter {
   final bool isDark;
   final Animation<double> animation;
-  final List<double> percentages;
+  final List<double> values;
+  final List<Color> colors;
 
-  ConcentricRingsPainter({
+  StorageDonutPainter({
     required this.isDark,
     required this.animation,
-    required this.percentages,
+    required this.values,
+    required this.colors,
   }) : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 10.0.r;
 
-    // Tiny deterministic starry background matching mockup
-    final rand = math.Random(42);
-    final starPaint = Paint()..style = PaintingStyle.fill;
-    for (int i = 0; i < 40; i++) {
-      final x = rand.nextDouble() * size.width;
-      final y = rand.nextDouble() * size.height;
-      starPaint.color = Colors.white.withValues(
-        alpha: rand.nextDouble() * 0.25,
-      );
-      canvas.drawCircle(Offset(x, y), rand.nextDouble() * 1.5, starPaint);
-    }
-
-    // Radii of concentric circles (8 rings)
-    final radii = [86.0.r, 78.0.r, 70.0.r, 62.0.r, 54.0.r, 46.0.r, 38.0.r, 30.0.r];
-    final colors = [
-      const Color(0xFF38BDF8), // Images
-      const Color(0xFF10B981), // Videos
-      const Color(0xFFFBBF24), // Docs
-      const Color(0xFFF97316), // Audio
-      const Color(0xFFFF4D4D), // Application
-      const Color(0xFF607D8B), // Bin
-      const Color(0xFF4CAF50), // Games
-      const Color(0xFF9C27B0), // System
-    ];
-
-    final startAngles = [
-      math.pi * 0.65,
-      math.pi * 0.75,
-      math.pi * 0.85,
-      math.pi * 0.95,
-      math.pi * 1.05,
-      math.pi * 1.15,
-      math.pi * 1.25,
-      math.pi * 1.35,
-    ];
-    final sweepProgress = List.generate(8, (i) => percentages[i] * animation.value);
-
+    // Draw background track ring
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6.0.r
+      ..strokeWidth = 14.0.r
       ..color = isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05);
+    canvas.drawCircle(center, radius, trackPaint);
 
-    for (int i = 0; i < radii.length; i++) {
-      final r = radii[i];
-      canvas.drawCircle(center, r, trackPaint);
+    // Sum total values
+    final total = values.fold<double>(0, (sum, val) => sum + val);
+    if (total <= 0) return;
+
+    // Calculate segments with a minimum visible angle (to prevent small parts from disappearing)
+    final double minAngle = 0.14; // in radians (~8 degrees)
+    final double gapAngle = 0.035; // in radians (~2 degrees) between segments
+    
+    // Find active segments
+    int activeCount = 0;
+    for (var val in values) {
+      if (val > 0) activeCount++;
+    }
+
+    if (activeCount == 0) return;
+
+    // Total gaps angle
+    final double totalGaps = activeCount * gapAngle;
+    final double availableAngle = 2 * math.pi - totalGaps;
+
+    // Compute min angles sum
+    final double minAnglesSum = activeCount * minAngle;
+
+    List<double> segmentAngles = List.filled(values.length, 0.0);
+
+    if (minAnglesSum >= availableAngle) {
+      // If we have too many segments, just distribute equally
+      final double equalAngle = availableAngle / activeCount;
+      for (int i = 0; i < values.length; i++) {
+        if (values[i] > 0) segmentAngles[i] = equalAngle;
+      }
+    } else {
+      // Allocate minimum angles first, then distribute the remaining angle proportionally
+      final double remainingAngle = availableAngle - minAnglesSum;
+      double remainingValuesSum = 0.0;
+      for (var val in values) {
+        if (val > 0) remainingValuesSum += val;
+      }
+
+      for (int i = 0; i < values.length; i++) {
+        if (values[i] > 0) {
+          final double proportionalShare = (values[i] / remainingValuesSum) * remainingAngle;
+          segmentAngles[i] = minAngle + proportionalShare;
+        }
+      }
+    }
+
+    // Draw the segments with animations
+    double startAngle = -math.pi / 2; // Start from top (12 o'clock)
+
+    for (int i = 0; i < values.length; i++) {
+      if (segmentAngles[i] <= 0) continue;
+
+      final sweepAngle = segmentAngles[i] * animation.value;
 
       final fillPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 6.0.r
+        ..strokeWidth = 14.0.r
         ..strokeCap = StrokeCap.round
         ..color = colors[i];
 
+      // Draw active arc segment
       canvas.drawArc(
-        Rect.fromCircle(center: center, radius: r),
-        startAngles[i],
-        sweepProgress[i] * 2 * math.pi,
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle + (gapAngle / 2),
+        sweepAngle - gapAngle,
         false,
         fillPaint,
       );
+
+      startAngle += segmentAngles[i];
     }
   }
 
   @override
-  bool shouldRepaint(covariant ConcentricRingsPainter oldDelegate) {
+  bool shouldRepaint(covariant StorageDonutPainter oldDelegate) {
     return oldDelegate.animation.value != animation.value ||
         oldDelegate.isDark != isDark;
   }
