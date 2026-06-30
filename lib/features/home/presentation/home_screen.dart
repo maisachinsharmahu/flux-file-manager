@@ -384,7 +384,7 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            ref.read(allFilesProvider.notifier).initAndLoad();
+                            ref.read(allFilesProvider.notifier).initAndLoad(force: true);
                           },
                           child: Container(
                             padding: EdgeInsets.symmetric(vertical: 10.0.h),
@@ -467,6 +467,44 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                         ),
                       ),
                     ],
+                  ),
+                  SizedBox(height: 8.0.h),
+                  GestureDetector(
+                    onTap: () async {
+                      ref.read(platformMonitorProvider.notifier).logAction(
+                            'requestUsageStatsPermission',
+                            'PENDING',
+                            'Launching App Usage Stats settings screen...',
+                          );
+                      await FluxBridge.requestUsageStatsPermission();
+                      ref.read(platformMonitorProvider.notifier).logAction(
+                            'requestUsageStatsPermission',
+                            'SUCCESS',
+                            'Usage Stats settings screen launched.',
+                          );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 10.0.h),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white10
+                            : Colors.black.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(10.0.r),
+                      ),
+                      child: Text(
+                        'Request App Usage Stats Permission',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12.0.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? AppColors.pureWhite
+                              : AppColors.neutral900,
+                        ),
+                      ),
+                    ),
                   ),
 
                   SizedBox(height: 18.0.h),

@@ -4,14 +4,26 @@ class FluxBridge {
   static const MethodChannel _methodChannel = MethodChannel('com.flux.channel/methods');
   static const EventChannel _searchChannel = EventChannel('com.flux.channel/search_stream');
 
-  static Future<bool> initializeIndex() async {
+  static Future<bool> initializeIndex({bool force = false}) async {
     try {
-      print('[FluxBridge] Request: initializeIndex()');
-      final bool result = await _methodChannel.invokeMethod('initializeIndex');
+      print('[FluxBridge] Request: initializeIndex(force: $force)');
+      final bool result = await _methodChannel.invokeMethod('initializeIndex', {'force': force});
       print('[FluxBridge] Response: initializeIndex() -> $result');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: initializeIndex() -> $e');
+      return false;
+    }
+  }
+
+  static Future<bool> requestUsageStatsPermission() async {
+    try {
+      print('[FluxBridge] Request: requestUsageStatsPermission()');
+      final bool result = await _methodChannel.invokeMethod('requestUsageStatsPermission');
+      print('[FluxBridge] Response: requestUsageStatsPermission() -> $result');
+      return result;
+    } on PlatformException catch (e) {
+      print('[FluxBridge] Error: requestUsageStatsPermission() -> $e');
       return false;
     }
   }

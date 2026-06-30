@@ -31,9 +31,6 @@ class MainActivity : FlutterActivity() {
                     val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
                     startActivity(intent)
                 }
-            } else {
-                // Storage permission is already granted, now request Usage Stats permission for app size query
-                checkAndRequestUsageStatsPermission()
             }
         } else {
             val permissions = arrayOf(
@@ -120,7 +117,8 @@ class MainActivity : FlutterActivity() {
                 try {
                     when (call.method) {
                         "initializeIndex" -> {
-                            fluxIndex.initialize()
+                            val force = call.argument<Boolean>("force") ?: false
+                            fluxIndex.initialize(force)
                             runOnUiThread { result.success(true) }
                         }
                         "getAllFiles" -> {
@@ -141,6 +139,10 @@ class MainActivity : FlutterActivity() {
                             val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
                             val success = fluxIndex.restoreBatch(fids)
                             runOnUiThread { result.success(success) }
+                        }
+                        "requestUsageStatsPermission" -> {
+                            checkAndRequestUsageStatsPermission()
+                            runOnUiThread { result.success(true) }
                         }
                         "getStorageStatistics" -> {
                             val stats = fluxIndex.getStorageStatistics()

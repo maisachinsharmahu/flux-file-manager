@@ -223,8 +223,8 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
     initAndLoad();
   }
 
-  Future<void> initAndLoad() async {
-    print('[AllFiles] initAndLoad() called — starting native scan...');
+  Future<void> initAndLoad({bool force = false}) async {
+    print('[AllFiles] initAndLoad(force: $force) called — starting native scan...');
     // Defer state mutation: cannot modify another provider during THIS provider's init phase
     // (Riverpod assertion: _debugCurrentlyBuildingElement == null)
     Future.microtask(() {
@@ -236,7 +236,7 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
       'PENDING',
       'Scanning device storage — building 9 composite indexes...',
     );
-    final ok = await FluxBridge.initializeIndex();
+    final ok = await FluxBridge.initializeIndex(force: force);
     if (ok) {
       print('[AllFiles] initializeIndex() SUCCESS');
       ref.read(platformMonitorProvider.notifier).logAction(

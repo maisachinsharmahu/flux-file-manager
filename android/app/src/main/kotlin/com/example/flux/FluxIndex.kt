@@ -126,7 +126,11 @@ class FluxIndex(private val context: Context) {
      * and seeds mock files if no files were found.
      */
     @Synchronized
-    fun initialize() {
+    fun initialize(force: Boolean = false) {
+        if (!force && fileCount > 1) {
+            Log.d(TAG, "FluxIndex is already initialized with $fileCount entries. Skipping redundant scan.")
+            return
+        }
         Log.d(TAG, "Initializing FluxIndex...")
         showScanningNotification("FLUX Indexer", "Scanning storage partitions...", showProgress = true)
         val startTime = System.currentTimeMillis()
