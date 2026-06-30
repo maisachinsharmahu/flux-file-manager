@@ -209,141 +209,90 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
 
-    // Define all 9 tabs in our static back-to-front stacking deck
-    final List<_TabItemData> allTabs = [
-      _TabItemData(
-        name: 'Photos',
-        child: _StackedFolderTab(
-          title: 'Photos',
-          icon: Icons.image,
-          color: const Color(0xFF38BDF8),
-          isDark: isDark,
-          sizeString: _formatSize(photos),
-          onTap: () {
-            context.push('/all_files?title=Photos&category=Photos');
-          },
-        ),
-      ),
-      _TabItemData(
-        name: 'Videos',
-        child: _StackedFolderTab(
-          title: 'Videos',
-          icon: Icons.play_arrow,
-          color: const Color(0xFF10B981),
-          isDark: isDark,
-          sizeString: _formatSize(videos),
-          onTap: () {
-            context.push('/all_files?title=Videos&category=Videos');
-          },
-        ),
-      ),
-      _TabItemData(
-        name: 'Documents',
-        child: _StackedFolderTab(
-          title: 'Documents',
-          icon: Icons.description_outlined,
-          color: const Color(0xFFFBBF24),
-          isDark: isDark,
-          sizeString: _formatSize(docs),
-          onTap: () {
-            context.push('/all_files?title=Documents&category=Documents');
-          },
-        ),
-      ),
-      _TabItemData(
-        name: 'Audio',
-        child: _StackedFolderTab(
-          title: 'Audio',
-          icon: Icons.music_note,
-          color: const Color(0xFFF97316),
-          isDark: isDark,
-          sizeString: _formatSize(audio),
-          onTap: () {
-            context.push('/all_files?title=Audio&category=Audio');
-          },
-        ),
-      ),
-      _TabItemData(
-        name: 'Application',
-        child: _StackedFolderTab(
-          title: 'Application',
-          icon: Icons.apps,
-          color: const Color(0xFFFF4D4D),
-          isDark: isDark,
-          sizeString: _formatSize(apps),
-          onTap: () {
-            context.push('/all_files?title=Application&category=Application');
-          },
-        ),
-      ),
-      _TabItemData(
-        name: 'Bin',
-        child: _StackedFolderTab(
-          title: 'Bin',
-          icon: Icons.delete_outline,
-          color: const Color(0xFF607D8B),
-          isDark: isDark,
-          sizeString: _formatSize(bin),
-          onTap: () {
-            context.push('/all_files?title=Bin&category=Bin');
-          },
-        ),
-      ),
-      _TabItemData(
-        name: 'Games',
-        child: _StackedFolderTab(
-          title: 'Games',
-          icon: Icons.sports_esports_outlined,
-          color: const Color(0xFF4CAF50),
-          isDark: isDark,
-          sizeString: _formatSize(games),
-          onTap: () {
-            context.push('/all_files?title=Games&category=Games');
-          },
-        ),
-      ),
-      _TabItemData(
-        name: 'System',
-        child: _StackedFolderTab(
-          title: 'System',
-          icon: Icons.settings_system_daydream_outlined,
-          color: const Color(0xFF9C27B0),
-          isDark: isDark,
-          sizeString: _formatSize(system),
-          onTap: () {
-            context.push('/all_files?title=System&category=System');
-          },
-        ),
-      ),
-      _TabItemData(
-        name: 'Others',
-        child: _StackedFolderTab(
-          title: 'Others',
-          icon: Icons.folder_open,
-          color: const Color(0xFF9E9E9E),
-          isDark: isDark,
-          sizeString: _formatSize(others),
-          onTap: () {
-            context.push('/all_files?title=Others&category=Others');
-          },
-        ),
-      ),
+    // Define all 9 categories for the modern grid layout
+    final List<Map<String, dynamic>> categoryCardsData = [
+      {
+        'title': 'Photos',
+        'icon': Icons.image_outlined,
+        'color': const Color(0xFF38BDF8),
+        'size': _formatSize(photos),
+        'percentage': getPctString(photos),
+        'ratio': getPercentage(photos),
+        'route': '/all_files?title=Photos&category=Photos',
+      },
+      {
+        'title': 'Videos',
+        'icon': Icons.play_circle_outline,
+        'color': const Color(0xFF10B981),
+        'size': _formatSize(videos),
+        'percentage': getPctString(videos),
+        'ratio': getPercentage(videos),
+        'route': '/all_files?title=Videos&category=Videos',
+      },
+      {
+        'title': 'Docs',
+        'icon': Icons.description_outlined,
+        'color': const Color(0xFFFBBF24),
+        'size': _formatSize(docs),
+        'percentage': getPctString(docs),
+        'ratio': getPercentage(docs),
+        'route': '/all_files?title=Documents&category=Documents',
+      },
+      {
+        'title': 'Audio',
+        'icon': Icons.music_note_outlined,
+        'color': const Color(0xFFF97316),
+        'size': _formatSize(audio),
+        'percentage': getPctString(audio),
+        'ratio': getPercentage(audio),
+        'route': '/all_files?title=Audio&category=Audio',
+      },
+      {
+        'title': 'Application',
+        'icon': Icons.apps_outlined,
+        'color': const Color(0xFFFF4D4D),
+        'size': _formatSize(apps),
+        'percentage': getPctString(apps),
+        'ratio': getPercentage(apps),
+        'route': '/all_files?title=Application&category=Application',
+      },
+      {
+        'title': 'Bin',
+        'icon': Icons.delete_outline_rounded,
+        'color': const Color(0xFF607D8B),
+        'size': _formatSize(bin),
+        'percentage': getPctString(bin),
+        'ratio': getPercentage(bin),
+        'route': '/all_files?title=Bin&category=Bin',
+      },
+      {
+        'title': 'Games',
+        'icon': Icons.sports_esports_outlined,
+        'color': const Color(0xFF4CAF50),
+        'size': _formatSize(games),
+        'percentage': getPctString(games),
+        'ratio': getPercentage(games),
+        'route': '/all_files?title=Games&category=Games',
+      },
+      {
+        'title': 'System',
+        'icon': Icons.settings_system_daydream_outlined,
+        'color': const Color(0xFF9C27B0),
+        'size': _formatSize(system),
+        'percentage': getPctString(system),
+        'ratio': getPercentage(system),
+        'route': '/all_files?title=System&category=System',
+      },
+      {
+        'title': 'Others',
+        'icon': Icons.folder_open_outlined,
+        'color': const Color(0xFF9E9E9E),
+        'size': _formatSize(others),
+        'percentage': getPctString(others),
+        'ratio': getPercentage(others),
+        'route': '/all_files?title=Others&category=Others',
+      },
     ];
-
-    // Static back-to-front stacking order: lower folders overlap the upper ones, forming a clean tabbed deck.
-    final List<Widget> positionedWidgets = [];
-    final List<double> topOffsets = List.generate(allTabs.length, (i) => i * 52.0.h);
-
-    for (int i = 0; i < allTabs.length; i++) {
-      positionedWidgets.add(
-        Positioned(
-          top: topOffsets[i],
-          left: 0,
-          right: 0,
-          child: allTabs[i].child,
-        ),
-      );
-    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -641,11 +590,32 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                     ),
                     SizedBox(height: 16.0.h),
 
-                    // Overlapping Stack (Height increased to 520.h to display all 9 tabs)
-                    SizedBox(
-                      height: 520.0.h,
-                      width: double.infinity,
-                      child: Stack(children: positionedWidgets),
+                    // Modern 2-column Grid of category storage details
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 14.0.h,
+                        crossAxisSpacing: 14.0.w,
+                        childAspectRatio: 1.15.r,
+                      ),
+                      itemCount: categoryCardsData.length,
+                      itemBuilder: (context, idx) {
+                        final data = categoryCardsData[idx];
+                        return CategoryCard(
+                          title: data['title'] as String,
+                          icon: data['icon'] as IconData,
+                          color: data['color'] as Color,
+                          size: data['size'] as String,
+                          percentage: data['percentage'] as String,
+                          ratio: data['ratio'] as double,
+                          isDark: isDark,
+                          onTap: () {
+                            context.push(data['route'] as String);
+                          },
+                        );
+                      },
                     ),
                     SizedBox(height: 20.0.h),
                   ],
@@ -824,158 +794,151 @@ class StorageDonutPainter extends CustomPainter {
   }
 }
 
-// Overlapping folder shape tab widget
-class _StackedFolderTab extends StatelessWidget {
+// Premium Grid Category Card representation
+class CategoryCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Color color;
-  final bool isDark;
-  final String sizeString;
+  final String size;
+  final String percentage;
+  final double ratio; // size / totalStorage
   final VoidCallback onTap;
+  final bool isDark;
 
-  const _StackedFolderTab({
+  const CategoryCard({
     Key? key,
     required this.title,
     required this.icon,
     required this.color,
-    required this.isDark,
-    required this.sizeString,
+    required this.size,
+    required this.percentage,
+    required this.ratio,
     required this.onTap,
+    required this.isDark,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final cardBg = isDark
+        ? AppColors.neutral900.withValues(alpha: 0.5)
+        : Colors.white.withValues(alpha: 0.8);
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.black.withValues(alpha: 0.04);
+    final textColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
+    final subColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
     return GestureDetector(
       onTap: onTap,
-      child: ClipPath(
-        clipper: FolderTabClipper(),
-        child: Container(
-          width: double.infinity,
-          height: 100.0.h,
-          color: color,
-          child: Stack(
-            children: [
-              // Left side circle icon and title: Placed high up in the Tab area (visible region)
-              Positioned(
-                top: 6.0.h,
-                left: 20.0.w,
-                child: Row(
+      child: Container(
+        padding: EdgeInsets.all(14.0.r),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(20.0.r),
+          border: Border.all(color: borderColor, width: 1.0.r),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(isDark ? 0.03 : 0.06),
+              blurRadius: 10.0.r,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Top Row: Icon and Arrow
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8.0.r),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 18.0.r,
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: subColor.withOpacity(0.5),
+                  size: 10.0.r,
+                ),
+              ],
+            ),
+            SizedBox(height: 8.0.h),
+            // Middle: Title and Size
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14.0.sp,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                  ),
+                ),
+                SizedBox(height: 2.0.h),
+                Text(
+                  size,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11.0.sp,
+                    fontWeight: FontWeight.w600,
+                    color: subColor,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.0.h),
+            // Bottom: Progress Bar and Percentage
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      width: 38.0.r,
-                      height: 38.0.r,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF171717),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Icon(icon, color: color, size: 20.0.r),
-                      ),
-                    ),
-                    SizedBox(width: 14.0.w),
                     Text(
-                      title,
+                      'Ratio',
                       style: TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 16.0.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF171717),
+                        fontSize: 9.0.sp,
+                        fontWeight: FontWeight.w500,
+                        color: subColor.withOpacity(0.6),
+                      ),
+                    ),
+                    Text(
+                      percentage,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 10.0.sp,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
                       ),
                     ),
                   ],
                 ),
-              ),
-              // Right side size text and chevron: Placed high up in the visible region
-              Positioned(
-                top: 18.0.h,
-                right: 20.0.w,
-                child: Row(
-                  children: [
-                    Text(
-                      sizeString,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13.0.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF171717).withValues(alpha: 0.7),
-                      ),
-                    ),
-                    SizedBox(width: 8.0.w),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: const Color(0xFF171717),
-                      size: 13.0.r,
-                    ),
-                  ],
+                SizedBox(height: 4.0.h),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4.0.r),
+                  child: LinearProgressIndicator(
+                    value: ratio.clamp(0.0, 1.0),
+                    minHeight: 4.0.h,
+                    backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
-}
-
-// Custom Clipper path for rounded overlapping horizontal folder shapes
-class FolderTabClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    final tabW = size.width * 0.42;
-    const slopeW = 60.0;
-    const tabH = 22.0;
-    const r = 16.0; // Rounded corners radius matching mockup exactly
-
-    // Start at left edge, below top-left corner
-    path.moveTo(0, r);
-
-    // Round top-left corner of the tab
-    path.quadraticBezierTo(0, 0, r, 0);
-
-    // Line to start of tab flat top edge
-    path.lineTo(tabW - r, 0);
-
-    // Round tab outer corner down into the slope transition
-    path.quadraticBezierTo(tabW, 0, tabW + 8, 4);
-
-    // S-curve slope down to the folder body top edge
-    path.cubicTo(
-      tabW + slopeW * 0.4,
-      4,
-      tabW + slopeW * 0.1,
-      tabH,
-      tabW + slopeW,
-      tabH,
-    );
-
-    // Line to top-right corner of body (before corner curve)
-    path.lineTo(size.width - r, tabH);
-
-    // Round top-right corner of the folder body
-    path.quadraticBezierTo(size.width, tabH, size.width, tabH + r);
-
-    // Line to bottom-right corner of body (before corner curve)
-    path.lineTo(size.width, size.height - r);
-
-    // Round bottom-right corner of the folder body
-    path.quadraticBezierTo(
-      size.width,
-      size.height,
-      size.width - r,
-      size.height,
-    );
-
-    // Line to bottom-left corner of body (before corner curve)
-    path.lineTo(r, size.height);
-
-    // Round bottom-left corner of the folder body
-    path.quadraticBezierTo(0, size.height, 0, size.height - r);
-
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
