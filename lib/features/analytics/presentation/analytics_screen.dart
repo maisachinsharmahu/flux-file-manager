@@ -263,53 +263,26 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Top Row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '48 GB',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 24.0.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: textColor,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4.0.h),
-                                  Text(
-                                    'of 120 GB Used',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 13.0.sp,
-                                      fontWeight: FontWeight.w500,
-                                      color: subtitleColor,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                '48 GB',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 24.0.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: textColor,
+                                ),
                               ),
-                              // Upgrade Button
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16.0.w,
-                                  vertical: 8.0.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.neutral900,
-                                  borderRadius: BorderRadius.circular(20.0.r),
-                                ),
-                                child: Text(
-                                  'Upgrade Plan',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 12.0.sp,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark ? Colors.black : Colors.white,
-                                  ),
+                              SizedBox(height: 4.0.h),
+                              Text(
+                                'of 120 GB Used',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13.0.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: subtitleColor,
                                 ),
                               ),
                             ],
@@ -421,6 +394,22 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             '512 MB',
                             '8%',
                             const Color(0xFF9E9E9E),
+                          ),
+                          Divider(
+                            color: borderColor,
+                            height: 24.0.h,
+                            thickness: 1.0.r,
+                          ),
+                          _buildLegendRow(
+                            textColor,
+                            subtitleColor,
+                            borderColor,
+                            'Free Space',
+                            '72.0 GB',
+                            '60%',
+                            isDark
+                                ? Colors.white.withValues(alpha: 0.25)
+                                : Colors.black.withValues(alpha: 0.15),
                           ),
                         ],
                       ),
@@ -549,17 +538,21 @@ class ConcentricRingsPainter extends CustomPainter {
       canvas.drawCircle(Offset(x, y), rand.nextDouble() * 1.5, starPaint);
     }
 
-    // Radii of concentric circles (5 rings)
-    final radii = [82.0.r, 70.0.r, 58.0.r, 46.0.r, 34.0.r];
+    // Radii of concentric circles (6 rings now)
+    final radii = [88.0.r, 77.0.r, 66.0.r, 55.0.r, 44.0.r, 33.0.r];
     final colors = [
-      const Color(0xFFFFD020), // Photos Yellow
-      const Color(0xFFFF9010), // Videos Orange
-      const Color(0xFFA020F0), // Docs Purple
-      const Color(0xFFFF40A0), // Audio Pink
-      const Color(0xFFFF4D4D), // Application Red
+      isDark
+          ? Colors.white.withValues(alpha: 0.25)
+          : Colors.black.withValues(alpha: 0.15), // Free Space (60%)
+      const Color(0xFFA020F0), // Docs Purple (32%)
+      const Color(0xFFFFD020), // Photos Yellow (28%)
+      const Color(0xFFFF9010), // Videos Orange (15%)
+      const Color(0xFFFF4D4D), // Application Red (12%)
+      const Color(0xFF9E9E9E), // Others Grey (8%)
     ];
 
     final startAngles = [
+      math.pi * 0.5,
       math.pi * 0.65,
       math.pi * 0.8,
       math.pi * 0.95,
@@ -567,11 +560,12 @@ class ConcentricRingsPainter extends CustomPainter {
       math.pi * 1.25,
     ];
     final sweepProgress = [
-      0.72 * animation.value,
-      0.45 * animation.value,
-      0.65 * animation.value,
-      0.30 * animation.value,
-      0.55 * animation.value,
+      0.60 * animation.value,
+      0.32 * animation.value,
+      0.28 * animation.value,
+      0.15 * animation.value,
+      0.12 * animation.value,
+      0.08 * animation.value,
     ];
 
     final trackPaint = Paint()
