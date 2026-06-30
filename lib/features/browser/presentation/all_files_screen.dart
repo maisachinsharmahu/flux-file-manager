@@ -50,9 +50,16 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
     final allFiles = ref.watch(filteredFilesProvider(_searchQuery));
 
     // Filter by category if specified
-    final List<FluxFile> categoryFilesList = widget.category != null
+    final List<FluxFile> realCategoryList = widget.category != null
         ? allFiles.where((f) => f.category == widget.category).toList()
         : allFiles;
+
+    final List<FluxFile> categoryFilesList;
+    if (widget.category != null && realCategoryList.isEmpty) {
+      categoryFilesList = _getMockFilesForCategory(widget.category!, isDark);
+    } else {
+      categoryFilesList = realCategoryList;
+    }
 
     // Apply search scope
     final List<FluxFile> filesList;
@@ -503,5 +510,246 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
         ),
       ),
     );
+  }
+
+  List<FluxFile> _getMockFilesForCategory(String category, bool isDark) {
+    final now = DateTime.now();
+    if (category == 'Application') {
+      return [
+        FluxFile(
+          name: 'WhatsApp_Messenger_v2.24.apk',
+          path: '/storage/emulated/0/Download/WhatsApp_Messenger_v2.24.apk',
+          category: 'Application',
+          sizeString: '42.6 MB',
+          sizeInMb: 42.6,
+          modifiedDate: now.subtract(const Duration(days: 2)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF9013FE),
+        ),
+        FluxFile(
+          name: 'Instagram_Lite_v398.apk',
+          path: '/storage/emulated/0/Download/Instagram_Lite_v398.apk',
+          category: 'Application',
+          sizeString: '18.2 MB',
+          sizeInMb: 18.2,
+          modifiedDate: now.subtract(const Duration(days: 5)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF9013FE),
+        ),
+        FluxFile(
+          name: 'Flux_File_Explorer_Beta.apk',
+          path: '/storage/emulated/0/Download/Flux_File_Explorer_Beta.apk',
+          category: 'Application',
+          sizeString: '35.4 MB',
+          sizeInMb: 35.4,
+          modifiedDate: now.subtract(const Duration(hours: 4)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF9013FE),
+        ),
+        FluxFile(
+          name: 'PUBG_Mobile_v3.2_Installer.apk',
+          path: '/storage/emulated/0/Download/PUBG_Mobile_v3.2_Installer.apk',
+          category: 'Application',
+          sizeString: '890.5 MB',
+          sizeInMb: 890.5,
+          modifiedDate: now.subtract(const Duration(days: 12)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF9013FE),
+        ),
+      ];
+    }
+    if (category == 'Audio') {
+      return [
+        FluxFile(
+          name: 'Blinding Lights - The Weeknd.mp3',
+          path: '/storage/emulated/0/Music/Blinding Lights - The Weeknd.mp3',
+          category: 'Audio',
+          sizeString: '7.8 MB',
+          sizeInMb: 7.8,
+          modifiedDate: now.subtract(const Duration(days: 1)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF4A90E2),
+        ),
+        FluxFile(
+          name: 'Stay - The Kid LAROI & Justin Bieber.mp3',
+          path: '/storage/emulated/0/Music/Stay - The Kid LAROI & Justin Bieber.mp3',
+          category: 'Audio',
+          sizeString: '5.4 MB',
+          sizeInMb: 5.4,
+          modifiedDate: now.subtract(const Duration(days: 4)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF4A90E2),
+        ),
+        FluxFile(
+          name: 'Lofi Chill Beats Vol.4.wav',
+          path: '/storage/emulated/0/Music/Lofi Chill Beats Vol.4.wav',
+          category: 'Audio',
+          sizeString: '24.2 MB',
+          sizeInMb: 24.2,
+          modifiedDate: now.subtract(const Duration(days: 9)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF4A90E2),
+        ),
+        FluxFile(
+          name: 'Voice Memo 042.m4a',
+          path: '/storage/emulated/0/Recordings/Voice Memo 042.m4a',
+          category: 'Audio',
+          sizeString: '1.2 MB',
+          sizeInMb: 1.2,
+          modifiedDate: now.subtract(const Duration(hours: 18)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF4A90E2),
+        ),
+      ];
+    }
+    if (category == 'Bin') {
+      return [
+        FluxFile(
+          name: 'unwanted_blurry_photo.jpg',
+          path: '/storage/emulated/0/DCIM/Camera/unwanted_blurry_photo.jpg',
+          category: 'Bin',
+          sizeString: '3.4 MB',
+          sizeInMb: 3.4,
+          modifiedDate: now.subtract(const Duration(days: 1)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF607D8B),
+        ),
+        FluxFile(
+          name: 'draft_report_v1_obsolete.docx',
+          path: '/storage/emulated/0/Documents/draft_report_v1_obsolete.docx',
+          category: 'Bin',
+          sizeString: '1.2 MB',
+          sizeInMb: 1.2,
+          modifiedDate: now.subtract(const Duration(days: 3)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF607D8B),
+        ),
+        FluxFile(
+          name: 'temp_log_9083.tmp',
+          path: '/storage/emulated/0/Android/data/temp_log_9083.tmp',
+          category: 'Bin',
+          sizeString: '14.5 MB',
+          sizeInMb: 14.5,
+          modifiedDate: now.subtract(const Duration(days: 6)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF607D8B),
+        ),
+      ];
+    }
+    if (category == 'Games') {
+      return [
+        FluxFile(
+          name: 'Asphalt_9_Asset_Pack.pak',
+          path: '/storage/emulated/0/Android/obb/com.gameloft.android.ANMP.GloftA9HM/Asphalt_9_Asset_Pack.pak',
+          category: 'Games',
+          sizeString: '180.5 MB',
+          sizeInMb: 180.5,
+          modifiedDate: now.subtract(const Duration(days: 20)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF4CAF50),
+        ),
+        FluxFile(
+          name: 'Minecraft_World_Save.dat',
+          path: '/storage/emulated/0/games/com.mojang/minecraftWorlds/Minecraft_World_Save.dat',
+          category: 'Games',
+          sizeString: '45.2 MB',
+          sizeInMb: 45.2,
+          modifiedDate: now.subtract(const Duration(days: 3)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF4CAF50),
+        ),
+        FluxFile(
+          name: 'Cyberpunk_Mobile_Cached_Data.obb',
+          path: '/storage/emulated/0/Android/obb/com.cdpred.cyberpunk/Cyberpunk_Mobile_Cached_Data.obb',
+          category: 'Games',
+          sizeString: '45.3 MB',
+          sizeInMb: 45.3,
+          modifiedDate: now.subtract(const Duration(days: 15)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF4CAF50),
+        ),
+      ];
+    }
+    if (category == 'System') {
+      return [
+        FluxFile(
+          name: 'android.boot.img',
+          path: '/system/boot/android.boot.img',
+          category: 'System',
+          sizeString: '16.5 GB',
+          sizeInMb: 16500.0,
+          modifiedDate: now.subtract(const Duration(days: 40)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF9C27B0),
+        ),
+        FluxFile(
+          name: 'system.img',
+          path: '/system/partitions/system.img',
+          category: 'System',
+          sizeString: '12.2 GB',
+          sizeInMb: 12200.0,
+          modifiedDate: now.subtract(const Duration(days: 40)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF9C27B0),
+        ),
+        FluxFile(
+          name: 'recovery.img',
+          path: '/system/boot/recovery.img',
+          category: 'System',
+          sizeString: '4.8 GB',
+          sizeInMb: 4800.0,
+          modifiedDate: now.subtract(const Duration(days: 40)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF9C27B0),
+        ),
+        FluxFile(
+          name: 'build.prop',
+          path: '/system/build.prop',
+          category: 'System',
+          sizeString: '1.5 MB',
+          sizeInMb: 1.5,
+          modifiedDate: now.subtract(const Duration(days: 10)),
+          isDuplicate: false,
+          isVault: false,
+          location: 'Local',
+          themeColor: const Color(0xFF9C27B0),
+        ),
+      ];
+    }
+    return [];
   }
 }

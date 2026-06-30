@@ -38,6 +38,9 @@ class FluxFile {
     if (category == 'Documents') return Icons.description_outlined;
     if (category == 'Audio') return Icons.music_note_outlined;
     if (category == 'Application') return Icons.android_outlined;
+    if (category == 'Bin') return Icons.delete_outline_rounded;
+    if (category == 'Games') return Icons.sports_esports_outlined;
+    if (category == 'System') return Icons.settings_system_daydream_outlined;
     return Icons.insert_drive_file_outlined;
   }
 
