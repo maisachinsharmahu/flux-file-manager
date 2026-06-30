@@ -18,42 +18,55 @@ class MainActivity : FlutterActivity() {
 
         // Set up MethodChannel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "initializeIndex" -> {
-                    fluxIndex.initialize()
-                    result.success(true)
-                }
-                "getAllFiles" -> {
-                    result.success(fluxIndex.getAllFiles())
-                }
-                "getDirectoryContents" -> {
-                    val parentPath = call.argument<String>("parentPath") ?: "/"
-                    result.success(fluxIndex.getDirectoryContents(parentPath))
-                }
-                "executeBatchDelete" -> {
-                    val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
-                    result.success(fluxIndex.deleteBatch(fids))
-                }
-                "restoreTombstones" -> {
-                    val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
-                    result.success(fluxIndex.restoreBatch(fids))
-                }
-                "getStorageStatistics" -> {
-                    result.success(fluxIndex.getStorageStatistics())
-                }
-                "getAppStorageUsage" -> {
-                    result.success(listOf(
-                        mapOf("packageName" to "com.android.chrome", "appName" to "Google Chrome", "size" to 512 * 1024 * 1024L, "sizeString" to "512 MB"),
-                        mapOf("packageName" to "com.whatsapp", "appName" to "WhatsApp", "size" to 1024 * 1024 * 1024L, "sizeString" to "1.0 GB"),
-                        mapOf("packageName" to "com.google.android.youtube", "appName" to "YouTube", "size" to 800 * 1024 * 1024L, "sizeString" to "800 MB"),
-                        mapOf("packageName" to "com.instagram.android", "appName" to "Instagram", "size" to 600 * 1024 * 1024L, "sizeString" to "600 MB")
-                    ))
-                }
-                "scanJunkFiles" -> {
-                    result.success(fluxIndex.scanJunkFiles())
-                }
-                else -> {
-                    result.notImplemented()
+            java.util.concurrent.ForkJoinPool.commonPool().execute {
+                try {
+                    when (call.method) {
+                        "initializeIndex" -> {
+                            fluxIndex.initialize()
+                            runOnUiThread { result.success(true) }
+                        }
+                        "getAllFiles" -> {
+                            val files = fluxIndex.getAllFiles()
+                            runOnUiThread { result.success(files) }
+                        }
+                        "getDirectoryContents" -> {
+                            val parentPath = call.argument<String>("parentPath") ?: "/"
+                            val contents = fluxIndex.getDirectoryContents(parentPath)
+                            runOnUiThread { result.success(contents) }
+                        }
+                        "executeBatchDelete" -> {
+                            val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
+                            val success = fluxIndex.deleteBatch(fids)
+                            runOnUiThread { result.success(success) }
+                        }
+                        "restoreTombstones" -> {
+                            val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
+                            val success = fluxIndex.restoreBatch(fids)
+                            runOnUiThread { result.success(success) }
+                        }
+                        "getStorageStatistics" -> {
+                            val stats = fluxIndex.getStorageStatistics()
+                            runOnUiThread { result.success(stats) }
+                        }
+                        "getAppStorageUsage" -> {
+                            val usage = listOf(
+                                mapOf("packageName" to "com.android.chrome", "appName" to "Google Chrome", "size" to 512 * 1024 * 1024L, "sizeString" to "512 MB"),
+                                mapOf("packageName" to "com.whatsapp", "appName" to "WhatsApp", "size" to 1024 * 1024 * 1024L, "sizeString" to "1.0 GB"),
+                                mapOf("packageName" to "com.google.android.youtube", "appName" to "YouTube", "size" to 800 * 1024 * 1024L, "sizeString" to "800 MB"),
+                                mapOf("packageName" to "com.instagram.android", "appName" to "Instagram", "size" to 600 * 1024 * 1024L, "sizeString" to "600 MB")
+                            )
+                            runOnUiThread { result.success(usage) }
+                        }
+                        "scanJunkFiles" -> {
+                            val junk = fluxIndex.scanJunkFiles()
+                            runOnUiThread { result.success(junk) }
+                        }
+                        else -> {
+                            runOnUiThread { result.notImplemented() }
+                        }
+                    }
+                } catch (e: Exception) {
+                    runOnUiThread { result.error("KOTLIN_BRIDGE_ERROR", e.message, null) }
                 }
             }
         }

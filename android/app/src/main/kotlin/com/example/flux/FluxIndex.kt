@@ -547,6 +547,7 @@ class FluxIndex(private val context: Context) {
     }
 
     /**
+     * Complexity: O(N) [masterIndex junk scan]
      * Section 8.2: Junk Cleaner Engine scanning logic obeying Hard Safety Rules 1 & 2
      */
     fun scanJunkFiles(): List<Map<String, Any>> {
@@ -554,8 +555,15 @@ class FluxIndex(private val context: Context) {
         val now = System.currentTimeMillis() / 1000L
         val oneDaySeconds = 24 * 60 * 60L
 
-        for (record in getActiveRecords()) {
+        val records = getActiveRecords()
+        for (i in records.indices) {
+            val record = records[i]
             if (record.isDeleted || record.isDirectory) continue
+
+            // Thermal check: Any loop processing >100 files must check thermal status
+            if (i % 100 == 0 && thermalGovernor.currentState() == ThermalGovernor.ThermalState.CRITICAL) {
+                java.lang.Thread.yield()
+            }
 
             // Safety Rule 1: DCIM is never touched
             if (record.path.contains("/DCIM", ignoreCase = true)) continue
@@ -606,6 +614,7 @@ class FluxIndex(private val context: Context) {
     }
 
     /**
+     * Complexity: O(N) [masterIndex stats scan]
      * Computes storage statistics grouped by category.
      */
     fun getStorageStatistics(): Map<String, Any> {
@@ -616,8 +625,16 @@ class FluxIndex(private val context: Context) {
         var appsSize = 0L
         var othersSize = 0L
 
-        for (record in getActiveRecords()) {
+        val records = getActiveRecords()
+        for (i in records.indices) {
+            val record = records[i]
             if (record.isDeleted || record.isDirectory) continue
+
+            // Thermal check: Any loop processing >100 files must check thermal status
+            if (i % 100 == 0 && thermalGovernor.currentState() == ThermalGovernor.ThermalState.CRITICAL) {
+                java.lang.Thread.yield()
+            }
+
             val map = record.toMap()
             val category = map["category"] as? String ?: "Others"
             val size = record.size
