@@ -287,10 +287,7 @@ void _showSystemFileAlert(BuildContext context, String filename, bool isDark) {
             backgroundColor: isDark ? AppColors.neutral950 : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24.0.r),
-              side: BorderSide(
-                color: cardBorderColor,
-                width: 1.2.r,
-              ),
+              side: BorderSide(color: cardBorderColor, width: 1.2.r),
             ),
             title: Column(
               children: [
@@ -327,7 +324,9 @@ void _showSystemFileAlert(BuildContext context, String filename, bool isDark) {
                     fontFamily: 'Inter',
                     fontSize: 14.0.sp,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.pureWhite.withValues(alpha: 0.8) : AppColors.neutral700,
+                    color: isDark
+                        ? AppColors.pureWhite.withValues(alpha: 0.8)
+                        : AppColors.neutral700,
                   ),
                 ),
                 SizedBox(height: 16.0.h),
@@ -347,7 +346,9 @@ void _showSystemFileAlert(BuildContext context, String filename, bool isDark) {
                       fontFamily: 'Inter',
                       fontSize: 12.0.sp,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
                       height: 1.4,
                     ),
                   ),
@@ -360,7 +361,10 @@ void _showSystemFileAlert(BuildContext context, String filename, bool isDark) {
                 onPressed: () => Navigator.of(context).pop(),
                 style: TextButton.styleFrom(
                   backgroundColor: AppColors.mintAccent,
-                  padding: EdgeInsets.symmetric(horizontal: 28.0.w, vertical: 12.0.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 28.0.w,
+                    vertical: 12.0.h,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16.0.r),
                   ),

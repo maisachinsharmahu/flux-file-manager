@@ -312,27 +312,83 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        filterState.nameSort != 'Off'
-                            ? 'Name'
-                            : (filterState.sizeSort != 'Off' ? 'Size' : 'Date'),
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14.0.sp,
-                          fontWeight: FontWeight.w600,
-                          color: subtitleColor,
+                  PopupMenuButton<String>(
+                    onSelected: (String value) {
+                      final filterNotifier = ref.read(fileFilterProvider.notifier);
+                      if (value == 'name') {
+                        filterNotifier.setDateSort('Off');
+                        filterNotifier.setSizeSort('Off');
+                        filterNotifier.setNameSort('Ascending');
+                      } else if (value == 'size') {
+                        filterNotifier.setNameSort('Off');
+                        filterNotifier.setDateSort('Off');
+                        filterNotifier.setSizeSort('Descending');
+                      } else if (value == 'date') {
+                        filterNotifier.setNameSort('Off');
+                        filterNotifier.setSizeSort('Off');
+                        filterNotifier.setDateSort('Descending');
+                      }
+                    },
+                    offset: Offset(0, 30.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.0.r),
+                      side: BorderSide(color: dividerColor, width: 1.0.r),
+                    ),
+                    color: isDark ? AppColors.neutral950 : Colors.white,
+                    itemBuilder: (context) => [
+                      PopupMenuItem<String>(
+                        value: 'date',
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today_outlined, size: 18.0.r, color: textColor),
+                            SizedBox(width: 8.0.w),
+                            Text('Sort by Date', style: TextStyle(fontFamily: 'Inter', fontSize: 14.0.sp, color: textColor)),
+                          ],
                         ),
                       ),
-                      SizedBox(width: 4.0.w),
-                      Icon(
-                        Icons.arrow_drop_down,
-                        size: 20.0.r,
-                        color: subtitleColor,
+                      PopupMenuItem<String>(
+                        value: 'size',
+                        child: Row(
+                          children: [
+                            Icon(Icons.crop_free_outlined, size: 18.0.r, color: textColor),
+                            SizedBox(width: 8.0.w),
+                            Text('Sort by Size', style: TextStyle(fontFamily: 'Inter', fontSize: 14.0.sp, color: textColor)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'name',
+                        child: Row(
+                          children: [
+                            Icon(Icons.sort_by_alpha_outlined, size: 18.0.r, color: textColor),
+                            SizedBox(width: 8.0.w),
+                            Text('Sort by Name', style: TextStyle(fontFamily: 'Inter', fontSize: 14.0.sp, color: textColor)),
+                          ],
+                        ),
                       ),
                     ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          filterState.nameSort != 'Off'
+                              ? 'Name'
+                              : (filterState.sizeSort != 'Off' ? 'Size' : 'Date'),
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14.0.sp,
+                            fontWeight: FontWeight.w600,
+                            color: subtitleColor,
+                          ),
+                        ),
+                        SizedBox(width: 4.0.w),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          size: 20.0.r,
+                          color: subtitleColor,
+                        ),
+                      ],
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {
