@@ -111,6 +111,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                         ),
                       ],
                     ),
+                  ),
                   SizedBox(height: 18.0.h),
                   // Animated Segmented Horizontal Progress Bar (growing sequentially left-to-right from largest to smallest segment, ending with Free space)
                   AnimatedBuilder(
