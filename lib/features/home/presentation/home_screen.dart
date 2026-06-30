@@ -173,7 +173,7 @@ class _DevSimulationConsole extends ConsumerStatefulWidget {
 }
 
 class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
-  bool _isExpanded = false;
+  bool _isExpanded = true; // Default expanded so logs are always visible
 
   @override
   Widget build(BuildContext context) {

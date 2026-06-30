@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../widgets/flux_icon.dart';
 import '../../bridge/flux_bridge.dart';
 import 'platform_monitor_provider.dart';
+import '../../features/home/providers/storage_status_provider.dart';
 
 class FluxFile {
   final String name;
@@ -212,6 +213,9 @@ final fileFilterProvider =
       return FileFilterNotifier();
     });
 
+// Global flag to show scan progress on home screen
+final isScanInProgressProvider = StateProvider<bool>((ref) => false);
+
 class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
   final Ref ref;
 
@@ -220,19 +224,23 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
   }
 
   Future<void> initAndLoad() async {
+    print('[AllFiles] initAndLoad() called — starting native scan...');
+    ref.read(isScanInProgressProvider.notifier).state = true;
     ref.read(platformMonitorProvider.notifier).logAction(
       'initializeIndex',
       'PENDING',
-      'Scanning device storage and pre-seeding mockup files...',
+      'Scanning device storage — building 9 composite indexes...',
     );
     final ok = await FluxBridge.initializeIndex();
     if (ok) {
+      print('[AllFiles] initializeIndex() SUCCESS');
       ref.read(platformMonitorProvider.notifier).logAction(
         'initializeIndex',
         'SUCCESS',
         '9 composite indexes fully initialized and WAL parsed.',
       );
     } else {
+      print('[AllFiles] initializeIndex() ERROR — native returned false');
       ref.read(platformMonitorProvider.notifier).logAction(
         'initializeIndex',
         'ERROR',
@@ -240,15 +248,21 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
       );
     }
     await refreshFiles();
+    // Invalidate storageStatusProvider so storage numbers refresh on home screen
+    ref.invalidate(storageStatusProvider);
+    ref.read(isScanInProgressProvider.notifier).state = false;
+    print('[AllFiles] initAndLoad() complete. isScanInProgress = false.');
   }
 
   Future<void> refreshFiles() async {
+    print('[AllFiles] refreshFiles() — querying native master array...');
     ref.read(platformMonitorProvider.notifier).logAction(
       'getAllFiles',
       'PENDING',
       'Querying file records from native O(1) master array...',
     );
     final rawFiles = await FluxBridge.getAllFiles();
+    print('[AllFiles] refreshFiles() — got ${rawFiles.length} records from native.');
     ref.read(platformMonitorProvider.notifier).logAction(
       'getAllFiles',
       'SUCCESS',

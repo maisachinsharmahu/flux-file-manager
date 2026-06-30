@@ -242,6 +242,7 @@ class FluxIndex(private val context: Context) {
             )
 
             // Index it
+            Log.d("FluxIndex", "scanDirRecursive: file = ${f.absolutePath}, isDirectory = ${isDir}, size = ${f.length()}")
             insertRecordToIndexes(record)
 
             if (isDir) {
@@ -717,6 +718,7 @@ class FluxIndex(private val context: Context) {
         for (i in 0 until stopIndex) {
             results.add(filteredRecords[i].toMap())
         }
+        Log.d("FluxIndex", "searchAndFilter output: query = '$query', categories = $categories, sizeRange = '$sizeRange', dateRange = '$dateRange', resultsCount = ${results.size}")
         return results
     }
 

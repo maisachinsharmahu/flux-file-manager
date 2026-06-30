@@ -123,4 +123,11 @@ class RadixTrie {
             collectAllFids(child, results)
         }
     }
+
+    fun clear() {
+        root.children.clear()
+        root.fids.clear()
+        root.prefix = ""
+        root.isEnd = false
+    }
 }

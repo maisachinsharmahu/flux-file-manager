@@ -82,3 +82,4 @@ final platformMonitorProvider =
     StateNotifierProvider<PlatformMonitorNotifier, PlatformMonitorState>((ref) {
   return PlatformMonitorNotifier();
 });
+ 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/file_filter_provider.dart';
 import '../../../navigation/providers/navigation_provider.dart';
 import '../../providers/storage_status_provider.dart';
 
@@ -76,6 +77,82 @@ class _StorageBarState extends ConsumerState<StorageBar>
         : AppColors.neutral400;
 
     final storageAsync = ref.watch(storageStatusProvider);
+    final isScanning = ref.watch(isScanInProgressProvider);
+
+    // Show live scanning state banner when native scan is actively running
+    if (isScanning) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28.0.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
+            child: Container(
+              padding: EdgeInsets.all(24.0.r),
+              decoration: BoxDecoration(
+                color: cardBgColor,
+                borderRadius: BorderRadius.circular(28.0.r),
+                border: Border.all(color: borderColor, width: 1.5.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 16.r,
+                        height: 16.r,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.0,
+                          color: AppColors.mintAccent,
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Text(
+                        'Scanning Storage...',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w700,
+                          color: usedTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 14.h),
+                  Text(
+                    'Building 9 composite indexes (RadixTrie, VEB, HNSW...)',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11.sp,
+                      color: totalTextColor,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4.r),
+                    child: LinearProgressIndicator(
+                      minHeight: 6.h,
+                      backgroundColor: isDark ? Colors.white12 : Colors.black12,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.mintAccent),
+                    ),
+                  ),
+                  SizedBox(height: 14.h),
+                  Text(
+                    'This happens once. Subsequent reads are O(1).',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 10.sp,
+                      color: AppColors.mintAccent.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return storageAsync.when(
       loading: () => Container(
