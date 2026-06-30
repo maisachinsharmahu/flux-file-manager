@@ -378,7 +378,7 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            ref.read(allFilesProvider.notifier).initAndLoad(force: true);
+                            ref.read(allFilesProvider.notifier).initAndLoad(force: true, showBanner: true);
                           },
                           child: Container(
                             padding: EdgeInsets.symmetric(vertical: 10.0.h),

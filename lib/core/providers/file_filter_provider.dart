@@ -226,9 +226,9 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
     initAndLoad();
   }
 
-  Future<void> initAndLoad({bool force = false}) async {
-    print('[AllFiles] initAndLoad(force: $force) called — starting native scan...');
-    final shouldShowBanner = force || state.isEmpty;
+  Future<void> initAndLoad({bool force = false, bool showBanner = false}) async {
+    print('[AllFiles] initAndLoad(force: $force, showBanner: $showBanner) called — starting native scan...');
+    final shouldShowBanner = showBanner || state.isEmpty;
     if (shouldShowBanner) {
       Future.microtask(() {
         if (mounted) ref.read(isScanInProgressProvider.notifier).state = true;
