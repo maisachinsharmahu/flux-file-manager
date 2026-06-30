@@ -820,7 +820,6 @@ class FluxIndex(private val context: Context) {
             "apk" -> "application/vnd.android.package-archive"
             else -> "application/octet-stream"
         }
-        }
     }
 
     fun scanDirAsync(path: String) {
