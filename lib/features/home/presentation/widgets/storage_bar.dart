@@ -62,8 +62,9 @@ class _StorageBarState extends ConsumerState<StorageBar>
         : Colors.black.withValues(alpha: 0.05);
 
     final usedTextColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final totalTextColor =
-        isDark ? AppColors.textSecondaryDark : AppColors.neutral400;
+    final totalTextColor = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.neutral400;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
@@ -89,9 +90,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                   // Top Row: 48 GB of 120 GB Used
                   RichText(
                     text: TextSpan(
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                      ),
+                      style: const TextStyle(fontFamily: 'Inter'),
                       children: [
                         TextSpan(
                           text: '48 GB ',
@@ -344,10 +343,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
           Container(
             width: 6.0.r,
             height: 6.0.r,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           SizedBox(width: 8.0.w),
           Expanded(

@@ -58,12 +58,8 @@ class FluxIcon extends StatelessWidget {
   final double? size;
   final Color? color;
 
-  const FluxIcon(
-    this.icon, {
-    Key? key,
-    this.size,
-    this.color,
-  }) : super(key: key);
+  const FluxIcon(this.icon, {Key? key, this.size, this.color})
+    : super(key: key);
 
   String get _assetPath {
     switch (icon) {
@@ -174,7 +170,9 @@ class FluxIcon extends StatelessWidget {
       _assetPath,
       width: size,
       height: size,
-      colorFilter: color != null ? ColorFilter.mode(color!, BlendMode.srcIn) : null,
+      colorFilter: color != null
+          ? ColorFilter.mode(color!, BlendMode.srcIn)
+          : null,
     );
   }
 }
