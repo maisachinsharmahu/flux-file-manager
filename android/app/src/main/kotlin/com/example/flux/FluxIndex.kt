@@ -69,6 +69,9 @@ class FluxIndex(private val context: Context) {
     // The Deletion BitSet (O(1) logical deletion)
     val deletionSet = BitSet()
 
+    // Ring Buffer for O(1) Recent Files List
+    val recentFilesBuffer = RingBuffer(50)
+
     // Root directory FID definition
     val rootFid = 1L
 
@@ -239,6 +242,11 @@ class FluxIndex(private val context: Context) {
         // Index 9: HNSW Vector Graph
         val dummyVector = FloatArray(384) { (it * 0.01f) + (record.fid * 0.05f) }
         hnswGraph.insert(record.fid, dummyVector)
+
+        // Recent Files Ring Buffer
+        if (!record.isDirectory && !record.isDeleted) {
+            recentFilesBuffer.add(record.fid)
+        }
     }
 
     /**
@@ -477,6 +485,43 @@ class FluxIndex(private val context: Context) {
     }
 
     /**
+     * Rename/move file: O(1) path index modification only (Listing 3.10)
+     */
+    fun renameFile(fid: Long, newPath: String): Boolean {
+        val record = getRecord(fid) ?: return false
+        
+        // Remove old path mappings
+        pathMap.remove(xxHash64(record.path))
+        pathMap.remove(xxHash64(record.path.lowercase()))
+
+        // Set the new path inside the record
+        val newRecord = FileRecord.create(
+            fid = record.fid,
+            parentDirFid = record.parentDirFid,
+            name = newPath.substringAfterLast('/'),
+            path = newPath,
+            size = record.size,
+            mtime = System.currentTimeMillis() / 1000L,
+            atime = record.atime.toLong(),
+            ctime = record.ctime.toLong(),
+            mimeType = record.mimeType,
+            flags = record.flags,
+            vectorSlot = record.vectorSlot,
+            accessCount = record.accessCount,
+            checksum = record.checksum
+        )
+        
+        val idx = fid.toInt()
+        masterIndex[idx] = newRecord
+
+        // Insert new path mappings
+        pathMap[xxHash64(newPath)] = fid
+        pathMap[xxHash64(newPath.lowercase())] = fid
+
+        return true
+    }
+
+    /**
      * Computes storage statistics grouped by category.
      */
     fun getStorageStatistics(): Map<String, Any> {
@@ -660,5 +705,34 @@ class HNSWProximityGraph {
             norm2 += v2[i] * v2[i]
         }
         return if (norm1 > 0 && norm2 > 0) dot / (Math.sqrt(norm1.toDouble()) * Math.sqrt(norm2.toDouble())).toFloat() else 0f
+    }
+}
+
+/**
+ * Ring Buffer executing updates in constant O(1) time for recent files mapping.
+ */
+class RingBuffer(private val capacity: Int) {
+    private val buffer = LongArray(capacity)
+    private var head = 0
+    private var size = 0
+
+    @Synchronized
+    fun add(fid: Long) {
+        buffer[head] = fid
+        head = (head + 1) % capacity
+        if (size < capacity) {
+            size++
+        }
+    }
+
+    @Synchronized
+    fun getRecent(): List<Long> {
+        val list = mutableListOf<Long>()
+        var index = (head - 1 + capacity) % capacity
+        for (i in 0 until size) {
+            list.add(buffer[index])
+            index = (index - 1 + capacity) % capacity
+        }
+        return list
     }
 }
