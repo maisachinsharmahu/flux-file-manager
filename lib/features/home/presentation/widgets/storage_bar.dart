@@ -111,27 +111,31 @@ class _StorageBarState extends ConsumerState<StorageBar>
                         ),
                       ],
                     ),
-                  ),
                   SizedBox(height: 18.0.h),
-                  // Animated Segmented Horizontal Progress Bar (growing sequentially left-to-right from largest to smallest segment)
+                  // Animated Segmented Horizontal Progress Bar (growing sequentially left-to-right from largest to smallest segment, ending with Free space)
                   AnimatedBuilder(
                     animation: _progressAnimation,
                     builder: (context, child) {
                       final val = _progressAnimation.value;
 
-                      // High-to-Low sorted staggered grow durations (Apps -> Videos -> Others -> Images -> Docs -> Audio)
-                      final p1 = _getSegmentProgress(val, 0.0, 35 / 100);
-                      final p2 = _getSegmentProgress(val, 35 / 100, 25 / 100);
-                      final p3 = _getSegmentProgress(val, 60 / 100, 18 / 100);
-                      final p4 = _getSegmentProgress(val, 78 / 100, 12 / 100);
-                      final p5 = _getSegmentProgress(val, 90 / 100, 8 / 100);
-                      final p6 = _getSegmentProgress(val, 98 / 100, 2 / 100);
+                      // High-to-Low sorted staggered grow durations (Apps -> Videos -> Others -> Images -> Docs -> Audio -> Free)
+                      final p1 = _getSegmentProgress(val, 0.0, 14 / 100);
+                      final p2 = _getSegmentProgress(val, 14 / 100, 10 / 100);
+                      final p3 = _getSegmentProgress(val, 24 / 100, 7 / 100);
+                      final p4 = _getSegmentProgress(val, 31 / 100, 5 / 100);
+                      final p5 = _getSegmentProgress(val, 36 / 100, 3 / 100);
+                      final p6 = _getSegmentProgress(val, 39 / 100, 1 / 100);
+                      final p7 = _getSegmentProgress(val, 40 / 100, 60 / 100);
+
+                      final freeSegmentColor = isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : Colors.black.withValues(alpha: 0.06);
 
                       return Row(
                         children: [
-                          // 1. Apps (Red, 35 flex)
+                          // 1. Apps (Red, 14 flex)
                           Expanded(
-                            flex: 35,
+                            flex: 14,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
                               widthFactor: p1,
@@ -145,9 +149,9 @@ class _StorageBarState extends ConsumerState<StorageBar>
                             ),
                           ),
                           SizedBox(width: 4.0.w),
-                          // 2. Videos (Mint, 25 flex)
+                          // 2. Videos (Mint, 10 flex)
                           Expanded(
-                            flex: 25,
+                            flex: 10,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
                               widthFactor: p2,
@@ -161,9 +165,9 @@ class _StorageBarState extends ConsumerState<StorageBar>
                             ),
                           ),
                           SizedBox(width: 4.0.w),
-                          // 3. Others (Grey, 18 flex)
+                          // 3. Others (Grey, 7 flex)
                           Expanded(
-                            flex: 18,
+                            flex: 7,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
                               widthFactor: p3,
@@ -177,9 +181,9 @@ class _StorageBarState extends ConsumerState<StorageBar>
                             ),
                           ),
                           SizedBox(width: 4.0.w),
-                          // 4. Images (Blue, 12 flex)
+                          // 4. Images (Blue, 5 flex)
                           Expanded(
-                            flex: 12,
+                            flex: 5,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
                               widthFactor: p4,
@@ -193,9 +197,9 @@ class _StorageBarState extends ConsumerState<StorageBar>
                             ),
                           ),
                           SizedBox(width: 4.0.w),
-                          // 5. Docs (Yellow, 8 flex)
+                          // 5. Docs (Yellow, 3 flex)
                           Expanded(
-                            flex: 8,
+                            flex: 3,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
                               widthFactor: p5,
@@ -209,9 +213,9 @@ class _StorageBarState extends ConsumerState<StorageBar>
                             ),
                           ),
                           SizedBox(width: 4.0.w),
-                          // 6. Audio (Orange, 2 flex)
+                          // 6. Audio (Orange, 1 flex)
                           Expanded(
-                            flex: 2,
+                            flex: 1,
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
                               widthFactor: p6,
@@ -219,6 +223,22 @@ class _StorageBarState extends ConsumerState<StorageBar>
                                 height: 10.0.h,
                                 decoration: BoxDecoration(
                                   color: AppColors.storageOrange,
+                                  borderRadius: BorderRadius.circular(5.0.r),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 4.0.w),
+                          // 7. Free Space (Light/Dark Neutral, 60 flex)
+                          Expanded(
+                            flex: 60,
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: p7,
+                              child: Container(
+                                height: 10.0.h,
+                                decoration: BoxDecoration(
+                                  color: freeSegmentColor,
                                   borderRadius: BorderRadius.circular(5.0.r),
                                 ),
                               ),
