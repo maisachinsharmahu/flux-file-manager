@@ -32,6 +32,12 @@ class FileDetailSheet extends StatefulWidget {
   const FileDetailSheet({Key? key, required this.detail}) : super(key: key);
 
   static void show(BuildContext context, FileDetail detail) {
+    if (detail.type == 'System') {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      _showSystemFileAlert(context, detail.name, isDark);
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -252,6 +258,209 @@ class _FileDetailSheetState extends State<FileDetailSheet>
           ),
         ),
       ),
+    );
+  }
+}
+
+void _showSystemFileAlert(BuildContext context, String filename, bool isDark) {
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: 'SystemFileAlert',
+    barrierColor: Colors.black.withValues(alpha: 0.6),
+    transitionDuration: const Duration(milliseconds: 350),
+    pageBuilder: (context, anim1, anim2) {
+      return const SizedBox.shrink();
+    },
+    transitionBuilder: (context, anim1, anim2, child) {
+      final curvedValue = Curves.easeInOutBack.transform(anim1.value);
+      return Transform.scale(
+        scale: curvedValue,
+        child: FadeTransition(
+          opacity: anim1,
+          child: AlertDialog(
+            backgroundColor: isDark
+                ? const Color(0xFF151212)
+                : const Color(0xFFFFF5F5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24.0.r),
+              side: BorderSide(
+                color: const Color(
+                  0xFFEF4444,
+                ).withValues(alpha: isDark ? 0.3 : 0.15),
+                width: 1.5.r,
+              ),
+            ),
+            title: Column(
+              children: [
+                _CautionPulseIcon(isDark: isDark),
+                SizedBox(height: 16.0.h),
+                Text(
+                  'Access Restricted',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 20.0.sp,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Opening "$filename" is restricted.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14.0.sp,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? AppColors.pureWhite.withValues(alpha: 0.8)
+                        : AppColors.neutral700,
+                  ),
+                ),
+                SizedBox(height: 12.0.h),
+                Container(
+                  padding: EdgeInsets.all(12.0.r),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12.0.r),
+                  ),
+                  child: Text(
+                    'Modifying or accessing core system files can cause operating system instability, partition corruption, or device malfunction.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12.0.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFEF4444),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFEF4444),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.0.w,
+                    vertical: 12.0.h,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14.0.r),
+                  ),
+                ),
+                child: Text(
+                  'Acknowledge & Close',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13.0.sp,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _CautionPulseIcon extends StatefulWidget {
+  final bool isDark;
+  const _CautionPulseIcon({required this.isDark});
+
+  @override
+  State<_CautionPulseIcon> createState() => _CautionPulseIconState();
+}
+
+class _CautionPulseIconState extends State<_CautionPulseIcon>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _shakeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(
+      begin: 0.9,
+      end: 1.1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _shakeAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween<double>(begin: 0, end: -0.05),
+            weight: 1,
+          ),
+          TweenSequenceItem(
+            tween: Tween<double>(begin: -0.05, end: 0.05),
+            weight: 2,
+          ),
+          TweenSequenceItem(
+            tween: Tween<double>(begin: 0.05, end: 0),
+            weight: 1,
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.0, 0.4, curve: Curves.linear),
+          ),
+        );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _pulseAnimation.value,
+          child: Transform.rotate(
+            angle: _shakeAnimation.value,
+            child: Container(
+              padding: EdgeInsets.all(16.0.r),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                    blurRadius: 16.0.r * _pulseAnimation.value,
+                    spreadRadius: 2.0.r,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFEF4444),
+                size: 40.0,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
