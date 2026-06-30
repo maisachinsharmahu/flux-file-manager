@@ -26,6 +26,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
   final Map<String, double> _dragOffsets = {};
   final Map<String, double> _baseOffsets = {};
   int _selectedIndex = -1;
+  bool _isGridView = true;
 
   @override
   void initState() {
@@ -293,6 +294,43 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         'route': '/all_files?title=Others&category=Others',
       },
     ];
+
+    // Compute overlapping positioned tabs only when Stack View is active to save resources
+    final List<Widget> positionedWidgets = [];
+    if (!_isGridView) {
+      final List<double> topOffsets = List.generate(categoryCardsData.length, (i) => i * 52.0.h);
+      for (int i = 0; i < categoryCardsData.length; i++) {
+        final data = categoryCardsData[i];
+        
+        // Convert outlined icons to standard filled icons for folder tabs styling
+        IconData stackedIcon = data['icon'] as IconData;
+        if (stackedIcon == Icons.image_outlined) stackedIcon = Icons.image;
+        if (stackedIcon == Icons.play_circle_outline) stackedIcon = Icons.play_arrow;
+        if (stackedIcon == Icons.description_outlined) stackedIcon = Icons.description;
+        if (stackedIcon == Icons.music_note_outlined) stackedIcon = Icons.music_note;
+        if (stackedIcon == Icons.apps_outlined) stackedIcon = Icons.apps;
+        if (stackedIcon == Icons.delete_outline_rounded) stackedIcon = Icons.delete_outline;
+        if (stackedIcon == Icons.folder_open_outlined) stackedIcon = Icons.folder_open;
+
+        positionedWidgets.add(
+          Positioned(
+            top: topOffsets[i],
+            left: 0,
+            right: 0,
+            child: _StackedFolderTab(
+              title: data['title'] as String,
+              icon: stackedIcon,
+              color: data['color'] as Color,
+              isDark: isDark,
+              sizeString: data['size'] as String,
+              onTap: () {
+                context.push(data['route'] as String);
+              },
+            ),
+          ),
+        );
+      }
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -578,44 +616,175 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                     ),
                     SizedBox(height: 24.0.h),
 
-                    // Categories Header
-                    Text(
-                      'Categories',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 18.0.sp,
-                        fontWeight: FontWeight.w700,
-                        color: textColor,
-                      ),
+                    // Categories Header Row with Toggle Switch on the right
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Categories',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 18.0.sp,
+                            fontWeight: FontWeight.w700,
+                            color: textColor,
+                          ),
+                        ),
+                        // Layout Selection Toggle
+                        Container(
+                          padding: EdgeInsets.all(2.0.r),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(10.0.r),
+                            border: Border.all(
+                              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                              width: 1.0.r,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _isGridView = true;
+                                  });
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
+                                  decoration: BoxDecoration(
+                                    color: _isGridView 
+                                        ? (isDark ? AppColors.neutral800 : Colors.white) 
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8.0.r),
+                                    boxShadow: _isGridView ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.08),
+                                        blurRadius: 4.r,
+                                        offset: const Offset(0, 2),
+                                      )
+                                    ] : null,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.grid_view_rounded,
+                                        size: 14.0.r,
+                                        color: _isGridView 
+                                            ? AppColors.mintAccent 
+                                            : subtitleColor.withValues(alpha: 0.6),
+                                      ),
+                                      if (_isGridView) ...[
+                                        SizedBox(width: 4.0.w),
+                                        Text(
+                                          'Grid',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 11.0.sp,
+                                            fontWeight: FontWeight.w700,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _isGridView = false;
+                                  });
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
+                                  decoration: BoxDecoration(
+                                    color: !_isGridView 
+                                        ? (isDark ? AppColors.neutral800 : Colors.white) 
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8.0.r),
+                                    boxShadow: !_isGridView ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.08),
+                                        blurRadius: 4.r,
+                                        offset: const Offset(0, 2),
+                                      )
+                                    ] : null,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.layers_outlined,
+                                        size: 14.0.r,
+                                        color: !_isGridView 
+                                            ? AppColors.mintAccent 
+                                            : subtitleColor.withValues(alpha: 0.6),
+                                      ),
+                                      if (!_isGridView) ...[
+                                        SizedBox(width: 4.0.w),
+                                        Text(
+                                          'Stack',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 11.0.sp,
+                                            fontWeight: FontWeight.w700,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 16.0.h),
 
-                    // Modern 2-column Grid of category storage details
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 14.0.h,
-                        crossAxisSpacing: 14.0.w,
-                        childAspectRatio: 1.15.r,
-                      ),
-                      itemCount: categoryCardsData.length,
-                      itemBuilder: (context, idx) {
-                        final data = categoryCardsData[idx];
-                        return CategoryCard(
-                          title: data['title'] as String,
-                          icon: data['icon'] as IconData,
-                          color: data['color'] as Color,
-                          size: data['size'] as String,
-                          percentage: data['percentage'] as String,
-                          ratio: data['ratio'] as double,
-                          isDark: isDark,
-                          onTap: () {
-                            context.push(data['route'] as String);
-                          },
+                    // Dynamically toggle between the modern Grid view and classic Stacked folders deck view
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
                         );
                       },
+                      child: _isGridView
+                          ? GridView.builder(
+                              key: const ValueKey<String>('grid_categories'),
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 14.0.h,
+                                crossAxisSpacing: 14.0.w,
+                                childAspectRatio: 1.15.r,
+                              ),
+                              itemCount: categoryCardsData.length,
+                              itemBuilder: (context, idx) {
+                                final data = categoryCardsData[idx];
+                                return CategoryCard(
+                                  title: data['title'] as String,
+                                  icon: data['icon'] as IconData,
+                                  color: data['color'] as Color,
+                                  size: data['size'] as String,
+                                  percentage: data['percentage'] as String,
+                                  ratio: data['ratio'] as double,
+                                  isDark: isDark,
+                                  onTap: () {
+                                    context.push(data['route'] as String);
+                                  },
+                                );
+                              },
+                            )
+                          : SizedBox(
+                              key: const ValueKey<String>('stack_categories'),
+                              height: 520.0.h,
+                              width: double.infinity,
+                              child: Stack(children: positionedWidgets),
+                            ),
                     ),
                     SizedBox(height: 20.0.h),
                   ],
@@ -941,4 +1110,160 @@ class CategoryCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// Overlapping folder shape tab widget
+class _StackedFolderTab extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final bool isDark;
+  final String sizeString;
+  final VoidCallback onTap;
+
+  const _StackedFolderTab({
+    Key? key,
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.isDark,
+    required this.sizeString,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipPath(
+        clipper: FolderTabClipper(),
+        child: Container(
+          width: double.infinity,
+          height: 100.0.h,
+          color: color,
+          child: Stack(
+            children: [
+              // Left side circle icon and title: Placed high up in the Tab area (visible region)
+              Positioned(
+                top: 6.0.h,
+                left: 20.0.w,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38.0.r,
+                      height: 38.0.r,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF171717),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Icon(icon, color: color, size: 20.0.r),
+                      ),
+                    ),
+                    SizedBox(width: 14.0.w),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 16.0.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF171717),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Right side size text and chevron: Placed high up in the visible region
+              Positioned(
+                top: 18.0.h,
+                right: 20.0.w,
+                child: Row(
+                  children: [
+                    Text(
+                      sizeString,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.0.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF171717).withValues(alpha: 0.7),
+                      ),
+                    ),
+                    SizedBox(width: 8.0.w),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: const Color(0xFF171717),
+                      size: 13.0.r,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Custom Clipper path for rounded overlapping horizontal folder shapes
+class FolderTabClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final tabW = size.width * 0.42;
+    const slopeW = 60.0;
+    const tabH = 22.0;
+    const r = 16.0; // Rounded corners radius matching mockup exactly
+
+    // Start at left edge, below top-left corner
+    path.moveTo(0, r);
+
+    // Round top-left corner of the tab
+    path.quadraticBezierTo(0, 0, r, 0);
+
+    // Line to start of tab flat top edge
+    path.lineTo(tabW - r, 0);
+
+    // Round tab outer corner down into the slope transition
+    path.quadraticBezierTo(tabW, 0, tabW + 8, 4);
+
+    // S-curve slope down to the folder body top edge
+    path.cubicTo(
+      tabW + slopeW * 0.4,
+      4,
+      tabW + slopeW * 0.1,
+      tabH,
+      tabW + slopeW,
+      tabH,
+    );
+
+    // Line to top-right corner of body (before corner curve)
+    path.lineTo(size.width - r, tabH);
+
+    // Round top-right corner of the folder body
+    path.quadraticBezierTo(size.width, tabH, size.width, tabH + r);
+
+    // Line to bottom-right corner of body (before corner curve)
+    path.lineTo(size.width, size.height - r);
+
+    // Round bottom-right corner of the folder body
+    path.quadraticBezierTo(
+      size.width,
+      size.height,
+      size.width - r,
+      size.height,
+    );
+
+    // Line to bottom-left corner of body (before corner curve)
+    path.lineTo(r, size.height);
+
+    // Round bottom-left corner of the folder body
+    path.quadraticBezierTo(0, size.height, 0, size.height - r);
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
