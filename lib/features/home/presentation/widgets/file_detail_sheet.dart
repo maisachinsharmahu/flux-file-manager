@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/flux_icon.dart';
+import 'package:lottie/lottie.dart';
 
 class FileDetail {
   final String name;
@@ -274,27 +275,36 @@ void _showSystemFileAlert(BuildContext context, String filename, bool isDark) {
     },
     transitionBuilder: (context, anim1, anim2, child) {
       final curvedValue = Curves.easeInOutBack.transform(anim1.value);
+      final cardBorderColor = isDark
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.black.withValues(alpha: 0.05);
+
       return Transform.scale(
         scale: curvedValue,
         child: FadeTransition(
           opacity: anim1,
           child: AlertDialog(
-            backgroundColor: isDark
-                ? const Color(0xFF151212)
-                : const Color(0xFFFFF5F5),
+            backgroundColor: isDark ? AppColors.neutral950 : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24.0.r),
               side: BorderSide(
-                color: const Color(
-                  0xFFEF4444,
-                ).withValues(alpha: isDark ? 0.3 : 0.15),
-                width: 1.5.r,
+                color: cardBorderColor,
+                width: 1.2.r,
               ),
             ),
             title: Column(
               children: [
-                _CautionPulseIcon(isDark: isDark),
-                SizedBox(height: 16.0.h),
+                // Premium cute Wumpus 'no' denial Lottie animation
+                SizedBox(
+                  width: 140.0.r,
+                  height: 140.0.r,
+                  child: Lottie.asset(
+                    'assets/newsv/no.json',
+                    repeat: true,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                SizedBox(height: 12.0.h),
                 Text(
                   'Access Restricted',
                   textAlign: TextAlign.center,
@@ -317,26 +327,27 @@ void _showSystemFileAlert(BuildContext context, String filename, bool isDark) {
                     fontFamily: 'Inter',
                     fontSize: 14.0.sp,
                     fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.pureWhite.withValues(alpha: 0.8)
-                        : AppColors.neutral700,
+                    color: isDark ? AppColors.pureWhite.withValues(alpha: 0.8) : AppColors.neutral700,
                   ),
                 ),
-                SizedBox(height: 12.0.h),
+                SizedBox(height: 16.0.h),
                 Container(
-                  padding: EdgeInsets.all(12.0.r),
+                  padding: EdgeInsets.all(14.0.r),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12.0.r),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.03)
+                        : Colors.black.withValues(alpha: 0.02),
+                    borderRadius: BorderRadius.circular(16.0.r),
+                    border: Border.all(color: cardBorderColor, width: 1.0.r),
                   ),
                   child: Text(
-                    'Modifying or accessing core system files can cause operating system instability, partition corruption, or device malfunction.',
+                    'Modifying or accessing core system files is disabled to prevent operating system instability, partition corruption, or device malfunction.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 12.0.sp,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFFEF4444),
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                       height: 1.4,
                     ),
                   ),
@@ -348,14 +359,13 @@ void _showSystemFileAlert(BuildContext context, String filename, bool isDark) {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 24.0.w,
-                    vertical: 12.0.h,
-                  ),
+                  backgroundColor: AppColors.mintAccent,
+                  padding: EdgeInsets.symmetric(horizontal: 28.0.w, vertical: 12.0.h),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14.0.r),
+                    borderRadius: BorderRadius.circular(16.0.r),
                   ),
+                  elevation: 2,
+                  shadowColor: AppColors.mintAccent.withValues(alpha: 0.3),
                 ),
                 child: Text(
                   'Acknowledge & Close',
@@ -373,94 +383,4 @@ void _showSystemFileAlert(BuildContext context, String filename, bool isDark) {
       );
     },
   );
-}
-
-class _CautionPulseIcon extends StatefulWidget {
-  final bool isDark;
-  const _CautionPulseIcon({required this.isDark});
-
-  @override
-  State<_CautionPulseIcon> createState() => _CautionPulseIconState();
-}
-
-class _CautionPulseIconState extends State<_CautionPulseIcon>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _pulseAnimation;
-  late Animation<double> _shakeAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-
-    _pulseAnimation = Tween<double>(
-      begin: 0.9,
-      end: 1.1,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    _shakeAnimation =
-        TweenSequence<double>([
-          TweenSequenceItem(
-            tween: Tween<double>(begin: 0, end: -0.05),
-            weight: 1,
-          ),
-          TweenSequenceItem(
-            tween: Tween<double>(begin: -0.05, end: 0.05),
-            weight: 2,
-          ),
-          TweenSequenceItem(
-            tween: Tween<double>(begin: 0.05, end: 0),
-            weight: 1,
-          ),
-        ]).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: const Interval(0.0, 0.4, curve: Curves.linear),
-          ),
-        );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _pulseAnimation.value,
-          child: Transform.rotate(
-            angle: _shakeAnimation.value,
-            child: Container(
-              padding: EdgeInsets.all(16.0.r),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444).withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.2),
-                    blurRadius: 16.0.r * _pulseAnimation.value,
-                    spreadRadius: 2.0.r,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.warning_amber_rounded,
-                color: Color(0xFFEF4444),
-                size: 40.0,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 }
