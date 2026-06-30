@@ -185,10 +185,10 @@ data class FileRecord(
     }
 
     private fun formatSize(bytes: Long): String {
-        if (bytes < 1024) return "$bytes B"
-        val exp = (Math.log(bytes.toDouble()) / Math.log(1024.0)).toInt()
+        if (bytes < 1000) return "$bytes B"
+        val exp = (Math.log(bytes.toDouble()) / Math.log(1000.0)).toInt()
         val pre = "KMGTPE"[exp - 1]
-        return String.format("%.1f %sB", bytes / Math.pow(1024.0, exp.toDouble()), pre)
+        return String.format("%.1f %sB", bytes / Math.pow(1000.0, exp.toDouble()), pre)
     }
 
     private fun getCategoryFromMime(mime: String, filename: String): String {

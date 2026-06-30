@@ -26,7 +26,7 @@ class FluxBridge {
       print('[FluxBridge] Error: getAllFiles() -> $e');
       return [];
     }
-  }
+  }r
 
   static Future<List<dynamic>> getDirectoryContents(String parentPath) async {
     try {

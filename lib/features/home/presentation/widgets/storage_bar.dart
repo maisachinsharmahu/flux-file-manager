@@ -53,10 +53,13 @@ class _StorageBarState extends ConsumerState<StorageBar>
 
   String _formatSize(int bytes) {
     if (bytes <= 0) return '0 B';
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+    final double kb = bytes / 1000.0;
+    if (kb < 1.0) return '$bytes B';
+    final double mb = kb / 1000.0;
+    if (mb < 1.0) return '${kb.toStringAsFixed(1)} KB';
+    final double gb = mb / 1000.0;
+    if (gb < 1.0) return '${mb.toStringAsFixed(1)} MB';
+    return '${gb.toStringAsFixed(1)} GB';
   }
 
   @override

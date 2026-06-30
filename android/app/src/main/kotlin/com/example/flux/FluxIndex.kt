@@ -676,13 +676,41 @@ class FluxIndex(private val context: Context) {
                 else -> othersSize += size
             }
         }
+
         val rootStorage = android.os.Environment.getExternalStorageDirectory()
-        val totalStorage = if (rootStorage != null && rootStorage.exists()) rootStorage.totalSpace else 128 * 1024 * 1024 * 1024L
-        val freeStorage = if (rootStorage != null && rootStorage.exists()) rootStorage.usableSpace else totalStorage - (photosSize + videosSize + audioSize + documentsSize + appsSize + othersSize)
+        val rawTotalBytes = if (rootStorage != null && rootStorage.exists()) rootStorage.totalSpace else 128 * 1024 * 1024 * 1024L
+        val freeStorage = if (rootStorage != null && rootStorage.exists()) rootStorage.usableSpace else 20 * 1024 * 1024 * 1024L
+
+        // Round up raw total space to standard marketed sizes in GB (decimal)
+        val rawTotalGb = rawTotalBytes / 1_000_000_000.0
+        val marketedGb = when {
+            rawTotalGb <= 16.0 -> 16L
+            rawTotalGb <= 32.0 -> 32L
+            rawTotalGb <= 64.0 -> 64L
+            rawTotalGb <= 128.0 -> 128L
+            rawTotalGb <= 256.0 -> 256L
+            rawTotalGb <= 512.0 -> 512L
+            else -> 1024L
+        }
+        val totalStorage = marketedGb * 1_000_000_000L
         val totalUsed = totalStorage - freeStorage
 
-        // Adjust 'Others' to include system partition overhead, caches, and restricted app data so totals match real device state
-        val categorizedSize = photosSize + videosSize + audioSize + documentsSize + appsSize
+        // Dynamically query actual total app size from system profile (StorageStatsManager)
+        var realAppsSize = appsSize
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            try {
+                val statsManager = context.getSystemService(Context.STORAGE_STATS_SERVICE) as? android.app.usage.StorageStatsManager
+                if (statsManager != null) {
+                    val stats = statsManager.queryStatsForUser(android.os.storage.StorageManager.UUID_DEFAULT, android.os.Process.myUserHandle())
+                    realAppsSize = stats.appBytes + stats.dataBytes + stats.cacheBytes
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to query stats for user: ${e.message}")
+            }
+        }
+
+        // Adjust 'Others' to encapsulate remaining unaccounted system size & general files
+        val categorizedSize = photosSize + videosSize + audioSize + documentsSize + realAppsSize
         val adjustedOthersSize = maxOf(othersSize, totalUsed - categorizedSize)
 
         return mapOf(
@@ -693,7 +721,7 @@ class FluxIndex(private val context: Context) {
             "Videos" to videosSize,
             "Audio" to audioSize,
             "Documents" to documentsSize,
-            "Application" to appsSize,
+            "Application" to realAppsSize,
             "Others" to adjustedOthersSize,
             "scanDurationMs" to scanDurationMs,
             "indexDurationMs" to indexDurationMs,
