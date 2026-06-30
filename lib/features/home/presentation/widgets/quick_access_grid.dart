@@ -19,7 +19,7 @@ class QuickAccessGrid extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 8.0.h),
+          padding: EdgeInsets.fromLTRB(24.0.w, 16.0.h, 24.0.w, 0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -49,9 +49,9 @@ class QuickAccessGrid extends ConsumerWidget {
             ],
           ),
         ),
-        SizedBox(height: 12.0.h),
+        SizedBox(height: 8.0.h),
         SizedBox(
-          height: 120.0.h,
+          height: 110.0.h,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
