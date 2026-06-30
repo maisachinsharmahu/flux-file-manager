@@ -230,6 +230,14 @@ class FluxIndex(private val context: Context) {
             Triple("invoice_pending.xlsx", 85_000L, "/Documents"),
             Triple("meeting_minutes.docx", 220_000L, "/Documents"),
             Triple("encrypted_payload.bin", 92_000_000L, "/Documents"),
+            Triple("database_schema.sql", 45_000L, "/Documents"),
+            Triple("index.html", 120_000L, "/Documents"),
+            Triple("AppController.java", 350_000L, "/Documents"),
+            Triple("pom.xml", 8_500L, "/Documents"),
+            Triple("users_list.csv", 1_400_000L, "/Documents"),
+            Triple("website_logo.psd", 15_000_000L, "/Documents"),
+            Triple("banner_vector.ai", 8_500_000L, "/Documents"),
+            Triple("blueprint_house.dwg", 34_000_000L, "/Documents"),
 
             // Music
             Triple("audio_track.mp3", 4_200_000L, "/Music"),
@@ -257,6 +265,16 @@ class FluxIndex(private val context: Context) {
                 "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 "apk" -> "application/vnd.android.package-archive"
+                "sql" -> "application/sql"
+                "html" -> "text/html"
+                "java" -> "text/x-java-source"
+                "xml" -> "text/xml"
+                "csv" -> "text/csv"
+                "psd" -> "image/vnd.adobe.photoshop"
+                "ai" -> "application/postscript"
+                "dwg" -> "image/vnd.dwg"
+                "zip" -> "application/zip"
+                "rar" -> "application/x-rar-compressed"
                 else -> "application/octet-stream"
             }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../widgets/flux_icon.dart';
 import '../../bridge/flux_bridge.dart';
+import 'platform_monitor_provider.dart';
 
 class FluxFile {
   final String name;
@@ -212,12 +213,48 @@ final fileFilterProvider =
     });
 
 class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
-  AllFilesNotifier() : super([]) {
-    refreshFiles();
+  final Ref ref;
+
+  AllFilesNotifier(this.ref) : super([]) {
+    initAndLoad();
+  }
+
+  Future<void> initAndLoad() async {
+    ref.read(platformMonitorProvider.notifier).logAction(
+      'initializeIndex',
+      'PENDING',
+      'Scanning device storage and pre-seeding mockup files...',
+    );
+    final ok = await FluxBridge.initializeIndex();
+    if (ok) {
+      ref.read(platformMonitorProvider.notifier).logAction(
+        'initializeIndex',
+        'SUCCESS',
+        '9 composite indexes fully initialized and WAL parsed.',
+      );
+    } else {
+      ref.read(platformMonitorProvider.notifier).logAction(
+        'initializeIndex',
+        'ERROR',
+        'Failed to initialize native indexing engine.',
+      );
+    }
+    await refreshFiles();
   }
 
   Future<void> refreshFiles() async {
+    ref.read(platformMonitorProvider.notifier).logAction(
+      'getAllFiles',
+      'PENDING',
+      'Querying file records from native O(1) master array...',
+    );
     final rawFiles = await FluxBridge.getAllFiles();
+    ref.read(platformMonitorProvider.notifier).logAction(
+      'getAllFiles',
+      'SUCCESS',
+      'Retrieved ${rawFiles.length} file records from native master array.',
+    );
+    
     state = rawFiles.map((f) {
       final map = f as Map<dynamic, dynamic>;
       final isDuplicate = map['isDuplicate'] as bool? ?? false;
@@ -250,7 +287,7 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
 
 // All files source database provider
 final allFilesProvider = StateNotifierProvider<AllFilesNotifier, List<FluxFile>>((ref) {
-  return AllFilesNotifier();
+  return AllFilesNotifier(ref);
 });
 
 // Helper selector to apply both query and active filters to the files database
