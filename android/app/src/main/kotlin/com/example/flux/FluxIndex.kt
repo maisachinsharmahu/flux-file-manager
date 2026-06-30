@@ -128,10 +128,10 @@ class FluxIndex(private val context: Context) {
     @Synchronized
     fun initialize(force: Boolean = false) {
         if (!force && fileCount > 1) {
-            Log.d(TAG, "FluxIndex is already initialized with $fileCount entries. Skipping redundant scan.")
+            Log.d(TAG, "[PERFORMANCE] initializeIndex: Already initialized with $fileCount entries. Skipping redundant scan.")
             return
         }
-        Log.d(TAG, "Initializing FluxIndex...")
+        Log.d(TAG, "[PERFORMANCE] initializeIndex: Scan started...")
         showScanningNotification("FLUX Indexer", "Scanning storage partitions...", showProgress = true)
         val startTime = System.currentTimeMillis()
         
@@ -170,7 +170,7 @@ class FluxIndex(private val context: Context) {
         }
 
         indexDurationMs = System.currentTimeMillis() - startTime
-        Log.d(TAG, "FluxIndex initialized successfully with $fileCount entries. Scan: $scanDurationMs ms, Index: $indexDurationMs ms")
+        Log.d(TAG, "[PERFORMANCE] initializeIndex: Scan completed. Indexed $fileCount files in $scanDurationMs ms (Total setup: $indexDurationMs ms)")
         showScanningNotification("FLUX Indexer", "Scanned $fileCount files successfully ($scanDurationMs ms)")
     }
 
@@ -219,8 +219,6 @@ class FluxIndex(private val context: Context) {
         try {
             val rootStorage = Environment.getExternalStorageDirectory()
             if (rootStorage != null && rootStorage.exists() && rootStorage.canRead()) {
-                Log.d(TAG, "=== Priority Scan Started ===")
-                
                 // Add the Root Storage record itself
                 val rootRecord = FileRecord.create(
                     fid = rootFid,
@@ -252,14 +250,12 @@ class FluxIndex(private val context: Context) {
 
                 // Scan Tier 1 first
                 for (dir in tier1Dirs) {
-                    Log.d(TAG, "Priority Scan: Scanning Tier 1 Folder -> ${dir.name}")
                     scanDirRecursive(dir, rootFid)
                 }
 
                 // Scan Tier 2 next
                 for (entry in tier2Entries) {
                     if (entry.isDirectory) {
-                        Log.d(TAG, "Priority Scan: Scanning Tier 2 Folder -> ${entry.name}")
                         scanDirRecursive(entry, rootFid)
                     } else {
                         // Root files
@@ -282,11 +278,8 @@ class FluxIndex(private val context: Context) {
 
                 // Scan Tier 3 (Android app/media data) last
                 for (dir in tier3Dirs) {
-                    Log.d(TAG, "Priority Scan: Scanning Tier 3 Folder -> ${dir.name}")
                     scanDirRecursive(dir, rootFid)
                 }
-
-                Log.d(TAG, "=== Priority Scan Completed: $fileCount total entries indexed ===")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed scanning external storage: ${e.message}")
@@ -299,7 +292,7 @@ class FluxIndex(private val context: Context) {
      * (e.g. WhatsApp/Media/WhatsApp Voice Notes/202621/...).
      * MAX_SCAN_FILES cap prevents OOM on masterIndex resize.
      */
-    private val MAX_SCAN_FILES = 50_000
+    private val MAX_SCAN_FILES = 1_000_000
 
     private fun scanDirRecursive(dir: File, parentFid: Long) {
         // Use an explicit stack instead of recursion to avoid StackOverflow
@@ -350,17 +343,11 @@ class FluxIndex(private val context: Context) {
                 insertRecordToIndexes(record)
                 scannedCount++
 
-                // Log milestone every 500 files instead of per-file
-                if (scannedCount % 500 == 0) {
-                    Log.d(TAG, "Scan milestone: $scannedCount files indexed. Last: ${f.absolutePath}")
-                }
-
                 if (isDir) {
                     stack.addLast(Pair(f, fid))
                 }
             }
         }
-        Log.d(TAG, "scanDirRecursive complete: $scannedCount files in ${dir.absolutePath}")
     }
 
     private fun insertRecordToIndexes(record: FileRecord) {
@@ -369,7 +356,6 @@ class FluxIndex(private val context: Context) {
         // Safety: only resize if still within sane bounds
         if (idx >= masterIndex.size) {
             val newSize = minOf(masterIndex.size * 2, MAX_SCAN_FILES + 1024)
-            Log.d(TAG, "Resizing masterIndex: ${masterIndex.size} → $newSize")
             val newArray = Array<FileRecord>(newSize) { FileRecord.EMPTY }
             System.arraycopy(masterIndex, 0, newArray, 0, masterIndex.size)
             masterIndex = newArray
@@ -422,6 +408,7 @@ class FluxIndex(private val context: Context) {
      * Moves FIDs to the deletion bitset in O(1) time. Persists operation in WAL.
      */
     fun deleteBatch(fids: List<Long>): Boolean {
+        val startTime = System.nanoTime()
         try {
             java.io.FileOutputStream(walFile, true).use { out ->
                 for (fid in fids) {
@@ -439,9 +426,12 @@ class FluxIndex(private val context: Context) {
                     out.write(entry.toBytes())
                 }
             }
+            val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
+            Log.d(TAG, "[PERFORMANCE] deleteBatch: Deleted ${fids.size} files in ${String.format("%.3f", durationMs)} ms")
             return true
         } catch (e: Exception) {
-            Log.e(TAG, "Batch delete failed: ${e.message}")
+            val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
+            Log.e(TAG, "[PERFORMANCE] deleteBatch failed after ${String.format("%.3f", durationMs)} ms: ${e.message}")
             return false
         }
     }
@@ -778,6 +768,7 @@ class FluxIndex(private val context: Context) {
         sizeSort: String,
         limit: Int = 1000
     ): List<Map<String, Any>> {
+        val startTime = System.nanoTime()
         val queryLower = query.lowercase().trim()
         val matchingFids = mutableSetOf<Long>()
         val hasQuery = queryLower.isNotEmpty()
@@ -895,7 +886,8 @@ class FluxIndex(private val context: Context) {
         for (i in 0 until stopIndex) {
             results.add(filteredRecords[i].toMap())
         }
-        Log.d("FluxIndex", "searchAndFilter output: query = '$query', categories = $categories, sizeRange = '$sizeRange', dateRange = '$dateRange', resultsCount = ${results.size}")
+        val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
+        Log.d(TAG, "[PERFORMANCE] searchAndFilter: Query \"$query\" -> found ${results.size} matches in ${String.format("%.3f", durationMs)} ms (Candidates: ${filteredRecords.size})")
         return results
     }
 

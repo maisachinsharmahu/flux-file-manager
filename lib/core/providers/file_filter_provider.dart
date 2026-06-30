@@ -227,7 +227,6 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
   }
 
   Future<void> initAndLoad({bool force = false, bool showBanner = false}) async {
-    print('[AllFiles] initAndLoad(force: $force, showBanner: $showBanner) called — starting native scan...');
     final shouldShowBanner = showBanner || state.isEmpty;
     if (shouldShowBanner) {
       Future.microtask(() {
@@ -242,14 +241,12 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
     );
     final ok = await FluxBridge.initializeIndex(force: force);
     if (ok) {
-      print('[AllFiles] initializeIndex() SUCCESS');
       ref.read(platformMonitorProvider.notifier).logAction(
         'initializeIndex',
         'SUCCESS',
         '9 composite indexes fully initialized and WAL parsed.',
       );
     } else {
-      print('[AllFiles] initializeIndex() ERROR — native returned false');
       ref.read(platformMonitorProvider.notifier).logAction(
         'initializeIndex',
         'ERROR',
@@ -260,18 +257,15 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
     // Invalidate storageStatusProvider so storage numbers refresh on home screen
     ref.invalidate(storageStatusProvider);
     ref.read(isScanInProgressProvider.notifier).state = false;
-    print('[AllFiles] initAndLoad() complete. isScanInProgress = false.');
   }
 
   Future<void> refreshFiles() async {
-    print('[AllFiles] refreshFiles() — querying native master array...');
     ref.read(platformMonitorProvider.notifier).logAction(
       'getAllFiles',
       'PENDING',
       'Querying file records from native O(1) master array...',
     );
     final rawFiles = await FluxBridge.getAllFiles();
-    print('[AllFiles] refreshFiles() — got ${rawFiles.length} records from native.');
     ref.read(platformMonitorProvider.notifier).logAction(
       'getAllFiles',
       'SUCCESS',

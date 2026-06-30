@@ -6,9 +6,7 @@ class FluxBridge {
 
   static Future<bool> initializeIndex({bool force = false}) async {
     try {
-      print('[FluxBridge] Request: initializeIndex(force: $force)');
       final bool result = await _methodChannel.invokeMethod('initializeIndex', {'force': force});
-      print('[FluxBridge] Response: initializeIndex() -> $result');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: initializeIndex() -> $e');
@@ -18,9 +16,7 @@ class FluxBridge {
 
   static Future<bool> requestUsageStatsPermission() async {
     try {
-      print('[FluxBridge] Request: requestUsageStatsPermission()');
       final bool result = await _methodChannel.invokeMethod('requestUsageStatsPermission');
-      print('[FluxBridge] Response: requestUsageStatsPermission() -> $result');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: requestUsageStatsPermission() -> $e');
@@ -30,9 +26,7 @@ class FluxBridge {
 
   static Future<List<dynamic>> getAllFiles() async {
     try {
-      print('[FluxBridge] Request: getAllFiles()');
       final List<dynamic> result = await _methodChannel.invokeMethod('getAllFiles');
-      print('[FluxBridge] Response: getAllFiles() -> ${result.length} entries');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: getAllFiles() -> $e');
@@ -42,12 +36,10 @@ class FluxBridge {
 
   static Future<List<dynamic>> getDirectoryContents(String parentPath) async {
     try {
-      print('[FluxBridge] Request: getDirectoryContents(parentPath: "$parentPath")');
       final List<dynamic> result = await _methodChannel.invokeMethod(
         'getDirectoryContents',
         {'parentPath': parentPath},
       );
-      print('[FluxBridge] Response: getDirectoryContents(parentPath: "$parentPath") -> ${result.length} entries');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: getDirectoryContents(parentPath: "$parentPath") -> $e');
@@ -57,12 +49,10 @@ class FluxBridge {
 
   static Future<bool> executeBatchDelete(List<int> fids) async {
     try {
-      print('[FluxBridge] Request: executeBatchDelete(fids: $fids)');
       final bool result = await _methodChannel.invokeMethod(
         'executeBatchDelete',
         {'fids': fids},
       );
-      print('[FluxBridge] Response: executeBatchDelete(fids: $fids) -> $result');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: executeBatchDelete(fids: $fids) -> $e');
@@ -72,12 +62,10 @@ class FluxBridge {
 
   static Future<bool> restoreTombstones(List<int> fids) async {
     try {
-      print('[FluxBridge] Request: restoreTombstones(fids: $fids)');
       final bool result = await _methodChannel.invokeMethod(
         'restoreTombstones',
         {'fids': fids},
       );
-      print('[FluxBridge] Response: restoreTombstones(fids: $fids) -> $result');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: restoreTombstones(fids: $fids) -> $e');
@@ -87,9 +75,7 @@ class FluxBridge {
 
   static Future<Map<dynamic, dynamic>> getStorageStatistics() async {
     try {
-      print('[FluxBridge] Request: getStorageStatistics()');
       final Map<dynamic, dynamic> result = await _methodChannel.invokeMethod('getStorageStatistics');
-      print('[FluxBridge] Response: getStorageStatistics() -> $result');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: getStorageStatistics() -> $e');
@@ -99,9 +85,7 @@ class FluxBridge {
 
   static Future<List<dynamic>> getAppStorageUsage() async {
     try {
-      print('[FluxBridge] Request: getAppStorageUsage()');
       final List<dynamic> result = await _methodChannel.invokeMethod('getAppStorageUsage');
-      print('[FluxBridge] Response: getAppStorageUsage() -> ${result.length} entries');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: getAppStorageUsage() -> $e');
@@ -123,7 +107,6 @@ class FluxBridge {
     required int limit,
   }) async {
     try {
-      print('[FluxBridge] Request: searchAndFilter(query: "$query", categories: $categories, sizeRange: "$sizeRange", dateRange: "$dateRange")');
       final List<dynamic> result = await _methodChannel.invokeMethod(
         'searchAndFilter',
         {
@@ -140,7 +123,6 @@ class FluxBridge {
           'limit': limit,
         },
       );
-      print('[FluxBridge] Response: searchAndFilter(query: "$query") -> ${result.length} files');
       return result;
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: searchAndFilter(query: "$query") -> $e');
@@ -149,10 +131,38 @@ class FluxBridge {
   }
 
   static Stream<dynamic> searchStream(String query, int limit) {
-    print('[FluxBridge] Request Stream: searchStream(query: "$query")');
     return _searchChannel.receiveBroadcastStream({
       'query': query,
       'limit': limit,
     });
+  }
+
+  static Future<Map<String, dynamic>?> generateTestFiles({int count = 1000000, double targetSizeGb = 25.0}) async {
+    try {
+      print('[FluxBridge] Request: generateTestFiles(count: $count, targetSizeGb: $targetSizeGb)');
+      final startTime = DateTime.now();
+      final res = await _methodChannel.invokeMethod('generateTestFiles', {
+        'count': count,
+        'targetSizeGb': targetSizeGb,
+      });
+      final elapsed = DateTime.now().difference(startTime).inSeconds;
+      print('[FluxBridge] Response: generateTestFiles() -> Success, generated ${res["filesCreated"]} files in ${elapsed}s');
+      return Map<String, dynamic>.from(res);
+    } catch (e) {
+      print('[FluxBridge] Error: generateTestFiles() -> $e');
+      return null;
+    }
+  }
+
+  static Future<int> clearTestFiles() async {
+    try {
+      print('[FluxBridge] Request: clearTestFiles()');
+      final int result = await _methodChannel.invokeMethod('clearTestFiles');
+      print('[FluxBridge] Response: clearTestFiles() -> Deleted $result test files');
+      return result;
+    } catch (e) {
+      print('[FluxBridge] Error: clearTestFiles() -> $e');
+      return 0;
+    }
   }
 }
