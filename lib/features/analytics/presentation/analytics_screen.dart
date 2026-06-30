@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../navigation/providers/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../home/providers/storage_status_provider.dart';
+import '../../../../core/providers/file_filter_provider.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({Key? key}) : super(key: key);
@@ -53,11 +54,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
   }
 
   Future<void> _handleRefresh() async {
-    // Simulate a network refresh delay
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) {
-      _controller.forward(from: 0.0);
-    }
+    // Perform a real file index scan/refresh in the background
+    await ref.read(allFilesProvider.notifier).initAndLoad(force: true);
   }
 
   String _formatSize(int bytes) {

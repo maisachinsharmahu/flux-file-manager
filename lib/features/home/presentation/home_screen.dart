@@ -28,14 +28,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Key _storageBarKey = UniqueKey();
 
   Future<void> _handleRefresh() async {
-    // Simulate a network refresh delay
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) {
-      setState(() {
-        // Force StorageBar state reset so its entry capsule animation plays again
-        _storageBarKey = UniqueKey();
-      });
-    }
+    // Perform a real file index scan/refresh in the background
+    await ref.read(allFilesProvider.notifier).initAndLoad(force: true);
   }
 
   @override

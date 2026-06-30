@@ -228,11 +228,12 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
 
   Future<void> initAndLoad({bool force = false}) async {
     print('[AllFiles] initAndLoad(force: $force) called — starting native scan...');
-    // Defer state mutation: cannot modify another provider during THIS provider's init phase
-    // (Riverpod assertion: _debugCurrentlyBuildingElement == null)
-    Future.microtask(() {
-      if (mounted) ref.read(isScanInProgressProvider.notifier).state = true;
-    });
+    final shouldShowBanner = force || state.isEmpty;
+    if (shouldShowBanner) {
+      Future.microtask(() {
+        if (mounted) ref.read(isScanInProgressProvider.notifier).state = true;
+      });
+    }
 
     ref.read(platformMonitorProvider.notifier).logAction(
       'initializeIndex',
