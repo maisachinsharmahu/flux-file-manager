@@ -138,7 +138,7 @@ class ModelDownloadService : Service() {
      * Parallel download: split remaining bytes into CHUNKS ranges.
      * Each chunk downloads concurrently, then chunks are assembled in order.
      */
-    private suspend fun parallelChunkDownload(modelFile: File, startByte: Long, totalSize: Long) {
+    private suspend fun parallelChunkDownload(modelFile: File, startByte: Long, totalSize: Long) = coroutineScope {
         val remaining = totalSize - startByte
         val chunkSize = remaining / CHUNKS
 
@@ -203,7 +203,7 @@ class ModelDownloadService : Service() {
         } catch (e: Exception) {
             if (e is CancellationException) {
                 Log.d(TAG, "Download cancelled. Partial chunks preserved for resume.")
-                return
+                return@coroutineScope
             }
             // Preserve whatever chunks we have — next run resumes from last good byte
             Log.e(TAG, "Parallel download error: ${e.message}")
