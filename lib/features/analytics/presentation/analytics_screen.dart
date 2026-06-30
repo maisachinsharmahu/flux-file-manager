@@ -27,7 +27,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
   final Map<String, double> _dragOffsets = {};
   final Map<String, double> _baseOffsets = {};
   int _selectedIndex = -1;
-  bool _isGridView = true;
+  bool _isGridView = false;
 
   @override
   void initState() {
