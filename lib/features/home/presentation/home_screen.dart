@@ -506,6 +506,44 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
                       ),
                     ),
                   ),
+                  SizedBox(height: 8.0.h),
+                  GestureDetector(
+                    onTap: () {
+                      context.push('/settings');
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 10.0.h),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.amber.withValues(alpha: 0.15)
+                            : Colors.amber.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10.0.r),
+                        border: Border.all(color: Colors.amber.withValues(alpha: 0.3), width: 1.0.r),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.settings_rounded,
+                            color: Colors.amber,
+                            size: 14.0.r,
+                          ),
+                          SizedBox(width: 6.0.w),
+                          Text(
+                            'Open Benchmark & Dev Settings',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12.0.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                   SizedBox(height: 18.0.h),
 
