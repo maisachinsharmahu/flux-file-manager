@@ -1182,11 +1182,11 @@ class _StackedFolderTab extends StatelessWidget {
                   ],
                 ),
               ),
-              // Right side: size and chevron (lower body region: top: 22.0.h, height: 30.0.h to clear the tab slope and prevent clipping)
+              // Right side: size and chevron (lower body region: top: 26.0.h, height: 24.0.h to clear the tab slope and prevent clipping)
               Positioned(
-                top: 22.0.h,
+                top: 26.0.h,
                 right: 20.0.w,
-                height: 30.0.h,
+                height: 24.0.h,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,

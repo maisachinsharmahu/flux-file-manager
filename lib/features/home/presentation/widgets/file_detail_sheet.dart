@@ -19,8 +19,7 @@ class FileDetail {
     required this.name,
     required this.size,
     required this.createdDate,
-    required this.modifiedDate,aur neeche hoga thoda
-    
+    required this.modifiedDate,
     required this.type,
     required this.themeColor,
     required this.fallbackIcon,
