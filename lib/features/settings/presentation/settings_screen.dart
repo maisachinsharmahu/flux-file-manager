@@ -31,6 +31,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
+
+    _controller.forward();
   }
 
   @override
@@ -41,21 +43,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Detect visibility changes inside IndexedStack (SettingsScreen is at index 4)
-    final isActive = ref.watch(activeIndexProvider) == 4;
-    if (isActive) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !_controller.isAnimating && _controller.value == 0.0) {
-          _controller.forward();
-        }
-      });
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _controller.value > 0.0) {
-          _controller.reset();
-        }
-      });
-    }
 
     return Scaffold(
       appBar: AppBar(

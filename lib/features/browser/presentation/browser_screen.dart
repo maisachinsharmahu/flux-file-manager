@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../navigation/providers/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../home/presentation/widgets/file_detail_sheet.dart';
@@ -42,6 +43,8 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
+
+    _controller.forward();
   }
 
   @override
@@ -61,21 +64,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Detect visibility changes inside IndexedStack (BrowserScreen is at index 3)
-    final isActive = ref.watch(activeIndexProvider) == 3;
-    if (isActive) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !_controller.isAnimating && _controller.value == 0.0) {
-          _controller.forward();
-        }
-      });
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _controller.value > 0.0) {
-          _controller.reset();
-        }
-      });
-    }
 
     final activeCategory = ref.watch(selectedBrowserCategoryProvider);
     final theme = Theme.of(context);
@@ -158,9 +146,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
       canPop: activeCategory == null,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        final source = ref.read(categoryNavigationSourceProvider);
         ref.read(selectedBrowserCategoryProvider.notifier).state = null;
-        ref.read(activeIndexProvider.notifier).state = source;
       },
       child: Scaffold(
         backgroundColor: bgColor,
@@ -287,11 +273,9 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                     GestureDetector(
                                       onTap: () {
                                         if (activeCategory != null) {
-                                          final source = ref.read(categoryNavigationSourceProvider);
                                           ref.read(selectedBrowserCategoryProvider.notifier).state = null;
-                                          ref.read(activeIndexProvider.notifier).state = source;
                                         } else {
-                                          ref.read(activeIndexProvider.notifier).state = 0;
+                                          context.pop();
                                         }
                                       },
                                     child: Container(

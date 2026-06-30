@@ -92,23 +92,18 @@ class FluxNavigationDrawer extends ConsumerWidget {
                         
                         // Highlight check
                         bool isActive = false;
-                        if (itemIndex == 3) {
-                          isActive = (activeIndex == 3 && browserCategory == category);
-                        } else {
-                          isActive = (activeIndex == itemIndex);
-                        }
 
                         return Padding(
                           padding: EdgeInsets.symmetric(vertical: 4.0.h),
                           child: InkWell(
                             onTap: () {
+                              Navigator.of(context).pop(); // Close drawer
                               if (category != null) {
-                                Navigator.of(context).pop(); // Close drawer
                                 context.push('/all_files?title=$title&category=$category');
-                              } else {
-                                ref.read(selectedBrowserCategoryProvider.notifier).state = null;
-                                ref.read(activeIndexProvider.notifier).state = itemIndex;
-                                Navigator.of(context).pop(); // Close drawer
+                              } else if (title == 'Internal') {
+                                context.push('/browser');
+                              } else if (title == 'Recent') {
+                                context.push('/all_files?title=Recent Uploads');
                               }
                             },
                             borderRadius: BorderRadius.circular(12.0.r),

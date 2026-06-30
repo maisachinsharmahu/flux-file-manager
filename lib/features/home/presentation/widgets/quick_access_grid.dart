@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/storage_category_icon.dart';
 import '../../../navigation/providers/navigation_provider.dart';
@@ -19,12 +20,12 @@ class QuickAccessGrid extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(24.0.w, 16.0.h, 24.0.w, 0),
+          padding: EdgeInsets.fromLTRB(24.0.w, 24.0.h, 24.0.w, 12.0.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Category',
+                'Quick Access',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 18.0.sp,
@@ -34,7 +35,7 @@ class QuickAccessGrid extends ConsumerWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  ref.read(activeIndexProvider.notifier).state = 3; // Navigates to Browser
+                  context.push('/browser');
                 },
                 child: Text(
                   'View All',
@@ -58,21 +59,21 @@ class QuickAccessGrid extends ConsumerWidget {
             padding: EdgeInsets.symmetric(horizontal: 24.0.w),
             child: Row(
               children: [
-                _buildFolderCard(ref, 'Images', '9,128 Items', StorageCategoryIcon.images, isDark),
+                _buildFolderCard(context, ref, 'Images', '9,128 Items', StorageCategoryIcon.images, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'Videos', '823 Items', StorageCategoryIcon.videos, isDark),
+                _buildFolderCard(context, ref, 'Videos', '823 Items', StorageCategoryIcon.videos, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'Docs', '135 Items', StorageCategoryIcon.documents, isDark),
+                _buildFolderCard(context, ref, 'Docs', '135 Items', StorageCategoryIcon.documents, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'Audio', '12 Items', StorageCategoryIcon.audio, isDark),
+                _buildFolderCard(context, ref, 'Audio', '12 Items', StorageCategoryIcon.audio, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'Archives', '42 Items', StorageCategoryIcon.archives, isDark),
+                _buildFolderCard(context, ref, 'Archives', '42 Items', StorageCategoryIcon.archives, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'APKs', '8 Items', StorageCategoryIcon.apks, isDark),
+                _buildFolderCard(context, ref, 'APKs', '8 Items', StorageCategoryIcon.apks, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'Shared', '15 Items', StorageCategoryIcon.shared, isDark),
+                _buildFolderCard(context, ref, 'Shared', '15 Items', StorageCategoryIcon.shared, isDark),
                 SizedBox(width: 14.0.w),
-                _buildFolderCard(ref, 'More', 'Browse', StorageCategoryIcon.more, isDark),
+                _buildFolderCard(context, ref, 'More', 'Browse', StorageCategoryIcon.more, isDark),
               ],
             ),
           ),
@@ -82,6 +83,7 @@ class QuickAccessGrid extends ConsumerWidget {
   }
 
   Widget _buildFolderCard(
+    BuildContext context,
     WidgetRef ref,
     String title,
     String count,
@@ -104,7 +106,21 @@ class QuickAccessGrid extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        ref.read(activeIndexProvider.notifier).state = 3; // Navigates to Browser
+        if (title == 'Images') {
+          context.push('/all_files?title=Photos&category=Photos');
+        } else if (title == 'Videos') {
+          context.push('/all_files?title=Videos&category=Videos');
+        } else if (title == 'Docs') {
+          context.push('/all_files?title=Documents&category=Documents');
+        } else if (title == 'Audio') {
+          context.push('/all_files?title=Audio&category=Audio');
+        } else if (title == 'Archives') {
+          context.push('/all_files?title=Archives&category=Others');
+        } else if (title == 'APKs') {
+          context.push('/all_files?title=Applications&category=Application');
+        } else {
+          context.push('/browser');
+        }
       },
       child: SizedBox(
         width: 140.0.w,
