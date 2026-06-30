@@ -7,6 +7,11 @@ import 'core/theme/theme_provider.dart';
 import 'features/search/presentation/search_screen.dart';
 import 'features/browser/presentation/all_files_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
+import 'features/home/presentation/home_screen.dart';
+import 'features/analytics/presentation/analytics_screen.dart';
+import 'features/browser/presentation/browser_screen.dart';
+import 'features/settings/presentation/settings_screen.dart';
+import 'features/trash/presentation/trash_screen.dart';
 import 'features/navigation/presentation/main_navigation_shell.dart';
 
 final GoRouter _router = GoRouter(
@@ -47,7 +52,32 @@ final GoRouter _router = GoRouter(
       path: '/all_files',
       builder: (BuildContext context, GoRouterState state) {
         final title = state.uri.queryParameters['title'] ?? 'All Files';
-        return AllFilesScreen(title: title);
+        final category = state.uri.queryParameters['category'];
+        return AllFilesScreen(title: title, category: category);
+      },
+    ),
+    GoRoute(
+      path: '/analytics',
+      builder: (BuildContext context, GoRouterState state) {
+        return const AnalyticsScreen();
+      },
+    ),
+    GoRoute(
+      path: '/browser',
+      builder: (BuildContext context, GoRouterState state) {
+        return const BrowserScreen();
+      },
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (BuildContext context, GoRouterState state) {
+        return const SettingsScreen();
+      },
+    ),
+    GoRoute(
+      path: '/trash',
+      builder: (BuildContext context, GoRouterState state) {
+        return const TrashScreen();
       },
     ),
   ],

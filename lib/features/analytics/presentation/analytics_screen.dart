@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../navigation/providers/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../home/providers/storage_status_provider.dart';
@@ -18,6 +19,11 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
   late AnimationController _controller;
   late Animation<double> _opacityAnimation;
   late Animation<double> _scaleAnimation;
+  
+  // Stacking deck tracking variables
+  int _activeIndex = 5; // Start with the top tab (Others) active.
+  final Map<String, double> _dragOffsets = {};
+  final Map<String, double> _baseOffsets = {};
 
   @override
   void initState() {
@@ -94,9 +100,6 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     final audio = storageData['Audio'] as int? ?? 0;
     final docs = storageData['Documents'] as int? ?? 0;
     final apps = storageData['Application'] as int? ?? 0;
-    final bin = storageData['Bin'] as int? ?? 0;
-    final games = storageData['Games'] as int? ?? 0;
-    final system = storageData['System'] as int? ?? 0;
     final others = storageData['Others'] as int? ?? 0;
 
     double getPercentage(int bytes) {
@@ -144,11 +147,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(photos),
           onTap: () {
-            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Photos';
-            ref.read(selectedBrowserCategoryProvider.notifier).state = 'Photos';
-            ref.read(activeIndexProvider.notifier).state = 3; // Go to browser
+            context.push('/all_files?title=Photos&category=Photos');
           },
         ),
       ),
@@ -161,11 +160,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(videos),
           onTap: () {
-            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Videos';
-            ref.read(selectedBrowserCategoryProvider.notifier).state = 'Videos';
-            ref.read(activeIndexProvider.notifier).state = 3;
+            context.push('/all_files?title=Videos&category=Videos');
           },
         ),
       ),
@@ -178,12 +173,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(docs),
           onTap: () {
-            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Documents';
-            ref.read(selectedBrowserCategoryProvider.notifier).state =
-                'Documents';
-            ref.read(activeIndexProvider.notifier).state = 3;
+            context.push('/all_files?title=Documents&category=Documents');
           },
         ),
       ),
@@ -196,11 +186,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(audio),
           onTap: () {
-            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Audio';
-            ref.read(selectedBrowserCategoryProvider.notifier).state = 'Audio';
-            ref.read(activeIndexProvider.notifier).state = 3;
+            context.push('/all_files?title=Audio&category=Audio');
           },
         ),
       ),
@@ -213,12 +199,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(apps),
           onTap: () {
-            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Application';
-            ref.read(selectedBrowserCategoryProvider.notifier).state =
-                'Application';
-            ref.read(activeIndexProvider.notifier).state = 3;
+            context.push('/all_files?title=Application&category=Application');
           },
         ),
       ),
@@ -231,11 +212,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(others),
           onTap: () {
-            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
-            ref.read(selectedAnalyticsCategoryProvider.notifier).state =
-                'Others';
-            ref.read(selectedBrowserCategoryProvider.notifier).state = 'Others';
-            ref.read(activeIndexProvider.notifier).state = 3;
+            context.push('/all_files?title=Others&category=Others');
           },
         ),
       ),

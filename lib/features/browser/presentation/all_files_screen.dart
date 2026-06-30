@@ -11,7 +11,9 @@ import '../../../core/widgets/file_type_icon.dart';
 
 class AllFilesScreen extends ConsumerStatefulWidget {
   final String title;
-  const AllFilesScreen({Key? key, this.title = 'All Files'}) : super(key: key);
+  final String? category;
+  const AllFilesScreen({Key? key, this.title = 'All Files', this.category})
+    : super(key: key);
 
   @override
   ConsumerState<AllFilesScreen> createState() => _AllFilesScreenState();
@@ -47,14 +49,23 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
     // Watch the unified sorted and filtered mixed files list (including search query)
     final allFiles = ref.watch(filteredFilesProvider(_searchQuery));
 
+    // Filter by category if specified
+    final List<FluxFile> categoryFilesList = widget.category != null
+        ? allFiles.where((f) => f.category == widget.category).toList()
+        : allFiles;
+
     // Apply search scope
     final List<FluxFile> filesList;
     if (_searchScope == 'local') {
-      filesList = allFiles.where((f) => f.location == 'Local').toList();
+      filesList = categoryFilesList
+          .where((f) => f.location == 'Local')
+          .toList();
     } else if (_searchScope == 'cloud') {
-      filesList = allFiles.where((f) => f.location == 'Cloud').toList();
+      filesList = categoryFilesList
+          .where((f) => f.location == 'Cloud')
+          .toList();
     } else {
-      filesList = allFiles;
+      filesList = categoryFilesList;
     }
 
     final filterState = ref.watch(fileFilterProvider);

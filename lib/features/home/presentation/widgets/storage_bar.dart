@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/file_filter_provider.dart';
 import '../../../navigation/providers/navigation_provider.dart';
@@ -202,7 +203,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
           padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
           child: GestureDetector(
             onTap: () {
-              ref.read(activeIndexProvider.notifier).state = 1;
+              context.push('/analytics');
             },
             behavior: HitTestBehavior.opaque,
             child: ClipRRect(

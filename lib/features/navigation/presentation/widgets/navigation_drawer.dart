@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -101,9 +102,14 @@ class FluxNavigationDrawer extends ConsumerWidget {
                           padding: EdgeInsets.symmetric(vertical: 4.0.h),
                           child: InkWell(
                             onTap: () {
-                              ref.read(selectedBrowserCategoryProvider.notifier).state = category;
-                              ref.read(activeIndexProvider.notifier).state = itemIndex;
-                              Navigator.of(context).pop(); // Close drawer
+                              if (category != null) {
+                                Navigator.of(context).pop(); // Close drawer
+                                context.push('/all_files?title=$title&category=$category');
+                              } else {
+                                ref.read(selectedBrowserCategoryProvider.notifier).state = null;
+                                ref.read(activeIndexProvider.notifier).state = itemIndex;
+                                Navigator.of(context).pop(); // Close drawer
+                              }
                             },
                             borderRadius: BorderRadius.circular(12.0.r),
                             child: AnimatedContainer(

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/storage_category_icon.dart';
 import '../../../navigation/providers/navigation_provider.dart';
@@ -69,9 +70,7 @@ class AllStorageSection extends ConsumerWidget {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        // Navigate to Internal Storage (Root list view)
-                        ref.read(selectedBrowserCategoryProvider.notifier).state = null;
-                        ref.read(activeIndexProvider.notifier).state = 3;
+                        context.push('/browser');
                       },
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20.0.r),

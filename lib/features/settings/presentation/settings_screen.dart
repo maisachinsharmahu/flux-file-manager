@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../navigation/providers/navigation_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -61,7 +62,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            ref.read(activeIndexProvider.notifier).state = 0; // Return to Home screen
+            context.pop();
           },
         ),
         title: const Text('Settings'),

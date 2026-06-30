@@ -15,37 +15,18 @@ class MainNavigationShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeIndex = ref.watch(activeIndexProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? AppColors.pureBlack : AppColors.pureWhite;
 
-    final List<Widget> screens = const [
-      HomeScreen(),
-      AnalyticsScreen(),
-      SizedBox.shrink(), // Center Add placeholder
-      BrowserScreen(),
-      SettingsScreen(),
-      TrashScreen(), // Index 5
-    ];
-
-    final canPopShell = Navigator.of(context).canPop();
-
-    return PopScope(
-      canPop: canPopShell || activeIndex == 0,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        ref.read(activeIndexProvider.notifier).state = 0;
-      },
-      child: Scaffold(
-        backgroundColor: bgColor,
-        extendBody: true,
-        drawer: const FluxNavigationDrawer(),
-        body: Stack(
-          children: [
-            IndexedStack(index: activeIndex, children: screens),
-            const CopyProgressOverlay(),
-          ],
-        ),
+    return Scaffold(
+      backgroundColor: bgColor,
+      extendBody: true,
+      drawer: const FluxNavigationDrawer(),
+      body: Stack(
+        children: [
+          const HomeScreen(),
+          const CopyProgressOverlay(),
+        ],
       ),
     );
   }
