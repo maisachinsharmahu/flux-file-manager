@@ -205,3 +205,43 @@ data class FileRecord(
         }
     }
 }
+
+/**
+ * Section 9.2: WAL Entry Schema - 32 Bytes aligned structure
+ */
+data class WalEntry(
+    val magic: Int = 0x464C5558, // 4B - 'FLUX'
+    val sequence: Long,          // 8B - monotonic sequence number
+    val timestamp: Long,         // 8B - epoch milliseconds
+    val opCode: Byte,            // 1B - INSERT=1, DELETE=2, UPDATE=3, RENAME=4
+    val fid: Int,                // 4B - target file ID
+    val payload: Short = 0,      // 2B - operation-specific data
+    val checksum: Int = 0        // 4B - CRC32 corruption detection
+) {
+    fun toBytes(): ByteArray {
+        val buffer = java.nio.ByteBuffer.allocate(32)
+        buffer.putInt(magic)
+        buffer.putLong(sequence)
+        buffer.putLong(timestamp)
+        buffer.put(opCode)
+        buffer.putInt(fid)
+        buffer.putShort(payload)
+        buffer.putInt(checksum)
+        buffer.put(0.toByte()) // 1B padding for 32B alignment
+        return buffer.array()
+    }
+
+    companion object {
+        fun fromBytes(bytes: ByteArray): WalEntry {
+            val buffer = java.nio.ByteBuffer.wrap(bytes)
+            val magic = buffer.getInt()
+            val sequence = buffer.getLong()
+            val timestamp = buffer.getLong()
+            val opCode = buffer.get()
+            val fid = buffer.getInt()
+            val payload = buffer.getShort()
+            val checksum = buffer.getInt()
+            return WalEntry(magic, sequence, timestamp, opCode, fid, payload, checksum)
+        }
+    }
+}

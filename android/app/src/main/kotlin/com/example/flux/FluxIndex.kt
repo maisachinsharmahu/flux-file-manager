@@ -390,14 +390,20 @@ class FluxIndex(private val context: Context) {
      */
     fun deleteBatch(fids: List<Long>): Boolean {
         try {
-            walFile.printWriter().use { out ->
+            java.io.FileOutputStream(walFile, true).use { out ->
                 for (fid in fids) {
                     val record = getRecord(fid) ?: continue
                     deletionSet.set(fid.toInt())
                     record.flags = record.flags or FileRecord.FLAG_DELETED
                     
-                    // Write to Write-Ahead Log
-                    out.println("DELETE:$fid")
+                    // Write binary 32-byte WAL entry (opCode 2 = DELETE)
+                    val entry = WalEntry(
+                        sequence = nextFid.get(),
+                        timestamp = System.currentTimeMillis(),
+                        opCode = 2,
+                        fid = fid.toInt()
+                    )
+                    out.write(entry.toBytes())
                 }
             }
             return true
@@ -412,14 +418,20 @@ class FluxIndex(private val context: Context) {
      */
     fun restoreBatch(fids: List<Long>): Boolean {
         try {
-            walFile.printWriter().use { out ->
+            java.io.FileOutputStream(walFile, true).use { out ->
                 for (fid in fids) {
                     val record = getRecord(fid) ?: continue
                     deletionSet.clear(fid.toInt())
                     record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
                     
-                    // Write restore event to WAL
-                    out.println("RESTORE:$fid")
+                    // Write binary 32-byte WAL entry (opCode 5 = RESTORE)
+                    val entry = WalEntry(
+                        sequence = nextFid.get(),
+                        timestamp = System.currentTimeMillis(),
+                        opCode = 5,
+                        fid = fid.toInt()
+                    )
+                    out.write(entry.toBytes())
                 }
             }
             return true
@@ -435,18 +447,19 @@ class FluxIndex(private val context: Context) {
     private fun applyWalLogs() {
         if (!walFile.exists()) return
         try {
-            walFile.forEachLine { line ->
-                val parts = line.split(":")
-                if (parts.size == 2) {
-                    val cmd = parts[0]
-                    val fid = parts[1].toLongOrNull() ?: return@forEachLine
-                    val record = getRecord(fid) ?: return@forEachLine
-                    if (cmd == "DELETE") {
-                        deletionSet.set(fid.toInt())
-                        record.flags = record.flags or FileRecord.FLAG_DELETED
-                    } else if (cmd == "RESTORE") {
-                        deletionSet.clear(fid.toInt())
-                        record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
+            java.io.FileInputStream(walFile).use { input ->
+                val buffer = ByteArray(32)
+                while (input.read(buffer) == 32) {
+                    val entry = WalEntry.fromBytes(buffer)
+                    if (entry.magic == 0x464C5558) {
+                        val record = getRecord(entry.fid.toLong()) ?: continue
+                        if (entry.opCode.toInt() == 2) {
+                            deletionSet.set(entry.fid)
+                            record.flags = record.flags or FileRecord.FLAG_DELETED
+                        } else if (entry.opCode.toInt() == 5) {
+                            deletionSet.clear(entry.fid)
+                            record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
+                        }
                     }
                 }
             }
