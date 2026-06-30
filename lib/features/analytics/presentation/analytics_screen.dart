@@ -1149,89 +1149,85 @@ class _StackedFolderTab extends StatelessWidget {
           color: color,
           child: Stack(
             children: [
-              // Visible header region of the folder tab (exactly 52.0.h height)
+              // Left side: icon and title (high tab region: top: 0, height: 52.0.h)
               Positioned(
                 top: 0,
-                left: 0,
-                right: 0,
+                left: 20.0.w,
                 height: 52.0.h,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.0.w),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Left side: icon and title (vertically aligned)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 30.0.r,
-                            height: 30.0.r,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF171717),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Icon(icon, color: color, size: 16.0.r),
-                            ),
-                          ),
-                          SizedBox(width: 12.0.w),
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 15.0.sp,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF171717),
-                            ),
-                          ),
-                        ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 32.0.r,
+                      height: 32.0.r,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF171717),
+                        shape: BoxShape.circle,
                       ),
-                      // Right side: tabular numbers and chevron (perfectly structured)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Tabular numbers aligned to the right
-                          SizedBox(
-                            width: 52.0.w,
-                            child: Text(
-                              numberPart,
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13.0.sp,
-                                fontWeight: FontWeight.w800,
-                                fontFeatures: const [FontFeature.tabularFigures()],
-                                color: const Color(0xFF171717).withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 4.0.w),
-                          // Unit labels left aligned
-                          SizedBox(
-                            width: 26.0.w,
-                            child: Text(
-                              unitPart,
-                              textAlign: TextAlign.left,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 11.0.sp,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF171717).withValues(alpha: 0.5),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 4.0.w),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: const Color(0xFF171717),
-                            size: 12.0.r,
-                          ),
-                        ],
+                      child: Center(
+                        child: Icon(icon, color: color, size: 16.0.r),
                       ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: 12.0.w),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 15.0.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF171717),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Right side: size and chevron (lower body region: top: 22.0.h, height: 30.0.h to clear the tab slope and prevent clipping)
+              Positioned(
+                top: 22.0.h,
+                right: 20.0.w,
+                height: 30.0.h,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Tabular numbers aligned to the right
+                    SizedBox(
+                      width: 52.0.w,
+                      child: Text(
+                        numberPart,
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13.0.sp,
+                          fontWeight: FontWeight.w800,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          color: const Color(0xFF171717).withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 4.0.w),
+                    // Unit labels left aligned
+                    SizedBox(
+                      width: 26.0.w,
+                      child: Text(
+                        unitPart,
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11.0.sp,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF171717).withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 4.0.w),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: const Color(0xFF171717),
+                      size: 12.0.r,
+                    ),
+                  ],
                 ),
               ),
             ],
