@@ -75,6 +75,9 @@ class FluxIndex(private val context: Context) {
     // Thermal Governor (Section 4.3)
     val thermalGovernor = ThermalGovernor(context)
 
+    // File Observer Hub for Linux inotify updates (Section 5.2)
+    val fileObserverHub = FileObserverHub(this)
+
     // Root directory FID definition
     val rootFid = 1L
 
@@ -155,6 +158,12 @@ class FluxIndex(private val context: Context) {
 
         // 5. Update duplicate flags
         detectDuplicates()
+
+        // 6. Register observer hub for downloads/mock watching
+        val extDir = context.getExternalFilesDir(null)
+        if (extDir != null) {
+            fileObserverHub.register(extDir.absolutePath)
+        }
 
         Log.d(TAG, "FluxIndex initialized successfully with $fileCount entries.")
     }
@@ -669,6 +678,54 @@ class FluxIndex(private val context: Context) {
         }
         }
     }
+
+    fun scanDirAsync(path: String) {
+        java.util.concurrent.ForkJoinPool.commonPool().execute {
+            val dir = File(path)
+            val files = dir.listFiles() ?: return@execute
+            for (f in files) {
+                if (f.isFile) {
+                    insertAsync(f.absolutePath)
+                }
+            }
+        }
+    }
+
+    fun insertAsync(path: String) {
+        java.util.concurrent.ForkJoinPool.commonPool().execute {
+            val f = File(path)
+            if (!f.exists() || f.isDirectory) return@execute
+            val now = System.currentTimeMillis() / 1000L
+            val record = FileRecord.create(
+                fid = nextFid.getAndIncrement(),
+                parentDirFid = rootFid,
+                name = f.name,
+                path = f.absolutePath,
+                size = f.length(),
+                mtime = now,
+                atime = now,
+                ctime = now,
+                mimeType = "application/octet-stream",
+                flags = FileRecord.FLAG_INDEXED
+            )
+            insertRecordToIndexes(record)
+        }
+    }
+
+    fun logicalDelete(path: String) {
+        val fid = pathMap[xxHash64(path.lowercase())] ?: return
+        deletionSet.set(fid.toInt())
+        val record = getRecord(fid)
+        if (record != null) {
+            record.flags = record.flags or FileRecord.FLAG_DELETED
+        }
+    }
+
+    fun invalidateChecksumAndThumb(path: String) {
+        val fid = pathMap[xxHash64(path.lowercase())] ?: return
+        val record = getRecord(fid) ?: return
+        record.flags = record.flags and FileRecord.FLAG_DUPLICATE.inv()
+    }
 }
 
 /**
@@ -789,5 +846,59 @@ class ThermalGovernor(private val context: Context) {
             ThermalState.HOT -> WorkerParams(1, 50, 200L)
             ThermalState.CRITICAL -> WorkerParams(0, 0, -1L)
         }
+    }
+}
+
+/**
+ * Section 5.2: Self-Registering FileObserverHub executing O(1) inotify kernel syncs.
+ */
+class FileObserverHub(private val flux: FluxIndex) {
+    private val activeObservers = java.util.concurrent.ConcurrentHashMap<String, android.os.FileObserver>()
+
+    fun register(dirPath: String) {
+        if (activeObservers.containsKey(dirPath)) return
+
+        val observer = @Suppress("DEPRECATION") object : android.os.FileObserver(dirPath,
+            android.os.FileObserver.CREATE or 
+            android.os.FileObserver.DELETE or 
+            android.os.FileObserver.MOVED_FROM or 
+            android.os.FileObserver.MOVED_TO or 
+            android.os.FileObserver.CLOSE_WRITE
+        ) {
+            override fun onEvent(event: Int, filename: String?) {
+                filename ?: return
+                val fullPath = if (dirPath.endsWith("/")) "$dirPath$filename" else "$dirPath/$filename"
+                when (event and android.os.FileObserver.ALL_EVENTS) {
+                    android.os.FileObserver.CREATE -> {
+                        val f = File(fullPath)
+                        if (f.isDirectory) {
+                            register(fullPath) // recursive watch registration
+                            flux.scanDirAsync(fullPath)
+                        } else {
+                            flux.insertAsync(fullPath)
+                        }
+                    }
+                    android.os.FileObserver.DELETE, android.os.FileObserver.MOVED_FROM -> {
+                        flux.logicalDelete(fullPath) // O(1) tombstone
+                        activeObservers.remove(fullPath)?.stopWatching()
+                    }
+                    android.os.FileObserver.MOVED_TO -> {
+                        flux.insertAsync(fullPath)
+                    }
+                    android.os.FileObserver.CLOSE_WRITE -> {
+                        flux.invalidateChecksumAndThumb(fullPath)
+                    }
+                }
+            }
+        }
+        observer.startWatching()
+        activeObservers[dirPath] = observer
+    }
+
+    fun stopAll() {
+        for (observer in activeObservers.values) {
+            observer.stopWatching()
+        }
+        activeObservers.clear()
     }
 }
