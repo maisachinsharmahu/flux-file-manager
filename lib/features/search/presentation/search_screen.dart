@@ -363,7 +363,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Search Results',
+              'Search Results (${ref.watch(searchLatencyProvider).toStringAsFixed(3)} ms)',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 15.0.sp,

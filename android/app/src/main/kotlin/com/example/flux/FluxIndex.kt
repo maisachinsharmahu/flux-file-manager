@@ -25,6 +25,8 @@ class FluxIndex(private val context: Context) {
     private val MAX_FILES = 200_000
     var masterIndex = Array<FileRecord>(MAX_FILES) { FileRecord.EMPTY }
     var fileCount = 0
+    var scanDurationMs = 0L
+    var indexDurationMs = 0L
 
     // xxHash64 helper for O(1) path mapping
     fun xxHash64(str: String): Long {
@@ -126,6 +128,8 @@ class FluxIndex(private val context: Context) {
     @Synchronized
     fun initialize() {
         Log.d(TAG, "Initializing FluxIndex...")
+        showScanningNotification("FLUX Indexer", "Scanning storage partitions...", showProgress = true)
+        val startTime = System.currentTimeMillis()
         
         // 1. Clear existing in-memory structures (keep root)
         val root = getRecord(rootFid)
@@ -145,27 +149,60 @@ class FluxIndex(private val context: Context) {
         }
 
         // 2. Scan standard storage paths
+        val scanStart = System.currentTimeMillis()
         scanStorage()
+        scanDurationMs = System.currentTimeMillis() - scanStart
 
-        // 3. If standard storage is empty or denied, generate simulated/mock files
-        if (fileCount <= 1) {
-            Log.d(TAG, "Storage empty or permissions missing, seeding premium mockup files.")
-            seedMockFiles()
-        }
-
-        // 4. Recover tombstones from WAL
+        // 3. Recover tombstones from WAL
         applyWalLogs()
 
-        // 5. Update duplicate flags
+        // 4. Update duplicate flags
         detectDuplicates()
 
-        // 6. Register observer hub for downloads/mock watching
+        // 5. Register observer hub for downloads watching
         val extDir = context.getExternalFilesDir(null)
         if (extDir != null) {
             fileObserverHub.register(extDir.absolutePath)
         }
 
-        Log.d(TAG, "FluxIndex initialized successfully with $fileCount entries.")
+        indexDurationMs = System.currentTimeMillis() - startTime
+        Log.d(TAG, "FluxIndex initialized successfully with $fileCount entries. Scan: $scanDurationMs ms, Index: $indexDurationMs ms")
+        showScanningNotification("FLUX Indexer", "Scanned $fileCount files successfully ($scanDurationMs ms)")
+    }
+
+    private fun showScanningNotification(title: String, text: String, showProgress: Boolean = false) {
+        val channelId = "flux_scanner_channel"
+        val notificationId = 9999
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager ?: return
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(
+                channelId,
+                "FLUX Storage Indexer",
+                android.app.NotificationManager.IMPORTANCE_LOW
+            )
+            nm.createNotificationChannel(channel)
+        }
+
+        val builder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            android.app.Notification.Builder(context, channelId)
+        } else {
+            @Suppress("DEPRECATION")
+            android.app.Notification.Builder(context)
+        }
+
+        builder.setContentTitle(title)
+            .setContentText(text)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setAutoCancel(true)
+
+        if (showProgress) {
+            builder.setProgress(100, 0, true)
+        } else {
+            builder.setProgress(0, 0, false)
+        }
+
+        nm.notify(notificationId, builder.build())
     }
 
     /**
@@ -261,129 +298,7 @@ class FluxIndex(private val context: Context) {
         }
     }
 
-    /**
-     * Seeds mockup files to demonstrate performance and rich metadata in both dark/light modes.
-     */
-    private fun seedMockFiles() {
-        val now = System.currentTimeMillis() / 1000L
-        
-        // Define directory paths
-        val folders = listOf(
-            "/DCIM" to "DCIM",
-            "/Downloads" to "Downloads",
-            "/Documents" to "Documents",
-            "/Music" to "Music",
-            "/Archives" to "Archives",
-            "/APKs" to "APKs"
-        )
 
-        val folderFids = mutableMapOf<String, Long>()
-        for ((path, name) in folders) {
-            val fid = nextFid.getAndIncrement()
-            val record = FileRecord.create(
-                fid = fid,
-                parentDirFid = rootFid,
-                name = name,
-                path = path,
-                size = 0L,
-                mtime = now,
-                atime = now,
-                ctime = now,
-                mimeType = "directory",
-                flags = FileRecord.FLAG_INDEXED
-            )
-            insertRecordToIndexes(record)
-            folderFids[path] = fid
-        }
-
-        // Define mock files
-        val mockData = listOf(
-            // Photos in DCIM
-            Triple("vacation_pic_1.jpg", 2_400_000L, "/DCIM"),
-            Triple("screenshot_2.png", 850_000L, "/DCIM"),
-            Triple("profile_3.jpg", 1_200_000L, "/DCIM"),
-            Triple("insta_story_4.jpeg", 3_100_000L, "/DCIM"),
-            Triple("avatar_glowing.png", 400_000L, "/DCIM"),
-
-            // Videos/Downloads in Downloads
-            Triple("vlog_v3.mp4", 48_000_000L, "/Downloads"),
-            Triple("tutorial_flutter.mov", 125_000_000L, "/Downloads"),
-            Triple("intro_animation.mp4", 18_000_000L, "/Downloads"),
-            Triple("tiktok_dance.mp4", 12_500_000L, "/Downloads"),
-
-            // Documents
-            Triple("resume_2026.pdf", 1_800_000L, "/Documents"),
-            Triple("tax_return_2025.pdf", 4_500_000L, "/Documents"),
-            Triple("invoice_pending.xlsx", 85_000L, "/Documents"),
-            Triple("meeting_minutes.docx", 220_000L, "/Documents"),
-            Triple("encrypted_payload.bin", 92_000_000L, "/Documents"),
-            Triple("database_schema.sql", 45_000L, "/Documents"),
-            Triple("index.html", 120_000L, "/Documents"),
-            Triple("AppController.java", 350_000L, "/Documents"),
-            Triple("pom.xml", 8_500L, "/Documents"),
-            Triple("users_list.csv", 1_400_000L, "/Documents"),
-            Triple("website_logo.psd", 15_000_000L, "/Documents"),
-            Triple("banner_vector.ai", 8_500_000L, "/Documents"),
-            Triple("blueprint_house.dwg", 34_000_000L, "/Documents"),
-
-            // Music
-            Triple("audio_track.mp3", 4_200_000L, "/Music"),
-            Triple("podcast_episode_12.wav", 54_000_000L, "/Music"),
-            Triple("guitar_loop_clean.m4a", 1_100_000L, "/Music"),
-
-            // Archives
-            Triple("backup_june.zip", 420_000_000L, "/Archives"),
-            Triple("project_assets.rar", 120_000_000L, "/Archives"),
-
-            // APKs
-            Triple("flux_debug.apk", 35_000_000L, "/APKs"),
-            Triple("whatsapp_clone.apk", 45_000_000L, "/APKs")
-        )
-
-        for ((name, size, parentPath) in mockData) {
-            val parentFid = folderFids[parentPath] ?: rootFid
-            val fid = nextFid.getAndIncrement()
-            val ext = name.substringAfterLast('.', "").lowercase()
-            val mimeType = when (ext) {
-                "jpg", "jpeg", "png" -> "image/$ext"
-                "mp4", "mov" -> "video/$ext"
-                "mp3", "wav", "m4a" -> "audio/$ext"
-                "pdf" -> "application/pdf"
-                "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                "apk" -> "application/vnd.android.package-archive"
-                "sql" -> "application/sql"
-                "html" -> "text/html"
-                "java" -> "text/x-java-source"
-                "xml" -> "text/xml"
-                "csv" -> "text/csv"
-                "psd" -> "image/vnd.adobe.photoshop"
-                "ai" -> "application/postscript"
-                "dwg" -> "image/vnd.dwg"
-                "zip" -> "application/zip"
-                "rar" -> "application/x-rar-compressed"
-                else -> "application/octet-stream"
-            }
-
-            // Assign identical checksums to some files to simulate duplicates
-            val checksum = if (name.startsWith("resume") || name.startsWith("tax")) 9999L else (fid * 17L)
-
-            val record = FileRecord.create(
-                fid = fid,
-                parentDirFid = parentFid,
-                name = name,
-                path = "$parentPath/$name",
-                size = size,
-                mtime = now - (fid * 3600), // staggered modification dates
-                atime = now,
-                ctime = now - (fid * 3600),
-                mimeType = mimeType,
-                flags = FileRecord.FLAG_INDEXED,
-                checksum = checksum
-            )
-            insertRecordToIndexes(record)
-        }
-    }
 
     /**
      * Moves FIDs to the deletion bitset in O(1) time. Persists operation in WAL.
@@ -661,8 +576,148 @@ class FluxIndex(private val context: Context) {
             "Audio" to audioSize,
             "Documents" to documentsSize,
             "Application" to appsSize,
-            "Others" to othersSize
+            "Others" to othersSize,
+            "scanDurationMs" to scanDurationMs,
+            "indexDurationMs" to indexDurationMs,
+            "fileCount" to fileCount
         )
+    }
+
+    /**
+     * Complexity: O(N) [masterIndex traversal and filtering]
+     * Performs a combined search and multi-criteria filter on the pre-allocated master record index.
+     */
+    fun searchAndFilter(
+        query: String,
+        categories: List<String>,
+        location: String,
+        showVaultOnly: Boolean,
+        showDuplicatesOnly: Boolean,
+        sizeRange: String,
+        dateRange: String,
+        nameSort: String,
+        dateSort: String,
+        sizeSort: String,
+        limit: Int = 1000
+    ): List<Map<String, Any>> {
+        val queryLower = query.lowercase().trim()
+        val matchingFids = mutableSetOf<Long>()
+        val hasQuery = queryLower.isNotEmpty()
+
+        if (hasQuery) {
+            // 1. Exact/prefix matches from RadixTrie
+            val trieMatches = nameTrie.searchPrefix(queryLower)
+            matchingFids.addAll(trieMatches)
+
+            // 2. Tokenized matches from tokenIndex
+            val queryTokens = tokenize(queryLower)
+            if (queryTokens.isNotEmpty()) {
+                var tokenMatches: BitSet? = null
+                for (token in queryTokens) {
+                    val matches = tokenIndex[token]
+                    if (matches != null) {
+                        if (tokenMatches == null) {
+                            tokenMatches = matches.clone() as BitSet
+                        } else {
+                            tokenMatches.and(matches)
+                        }
+                    }
+                }
+                if (tokenMatches != null) {
+                    var idx = tokenMatches.nextSetBit(0)
+                    while (idx >= 0) {
+                        matchingFids.add(idx.toLong())
+                        idx = tokenMatches.nextSetBit(idx + 1)
+                    }
+                }
+            }
+        }
+
+        val filteredRecords = mutableListOf<FileRecord>()
+        val now = System.currentTimeMillis() / 1000L
+        val oneDay = 24 * 3600L
+
+        // Iterate active records
+        val records = getActiveRecords()
+        for (i in records.indices) {
+            val record = records[i]
+            if (record.isDeleted || record.isDirectory) continue
+
+            // Query check
+            if (hasQuery && !matchingFids.contains(record.fid)) {
+                // Fail-safe substring check for partial name matches
+                if (!record.name.lowercase().contains(queryLower)) {
+                    continue
+                }
+            }
+
+            // Categories Filter
+            val map = record.toMap()
+            val category = map["category"] as? String ?: "Others"
+            if (categories.isNotEmpty() && !categories.contains(category)) continue
+
+            // Location Filter (In real device this is always Local/SD Card)
+            val fileLoc = "Local"
+            if (location != "All" && location != fileLoc) continue
+
+            // Vault Filter
+            if (showVaultOnly && !record.isVault) continue
+
+            // Duplicates Filter
+            if (showDuplicatesOnly && !record.isDuplicate) continue
+
+            // Size Range Filter
+            if (sizeRange != "All") {
+                val sizeMb = record.size.toDouble() / (1024.0 * 1024.0)
+                when (sizeRange) {
+                    "Small (<1MB)" -> if (sizeMb >= 1.0) continue
+                    "Medium (1-10MB)" -> if (sizeMb < 1.0 || sizeMb > 10.0) continue
+                    "Large (10-100MB)" -> if (sizeMb < 10.0 || sizeMb > 100.0) continue
+                    "Huge (>100MB)" -> if (sizeMb <= 100.0) continue
+                }
+            }
+
+            // Date Range Filter
+            if (dateRange != "All") {
+                val diff = now - record.mtime
+                when (dateRange) {
+                    "Today" -> if (diff > oneDay) continue
+                    "This Week" -> if (diff > 7 * oneDay) continue
+                    "This Month" -> if (diff > 30 * oneDay) continue
+                    "Older" -> if (diff <= 30 * oneDay) continue
+                }
+            }
+
+            filteredRecords.add(record)
+        }
+
+        // Sort records
+        filteredRecords.sortWith(Comparator { a, b ->
+            if (nameSort != "Off") {
+                val comp = a.name.compareTo(b.name, ignoreCase = true)
+                val ret = if (nameSort == "Descending") -comp else comp
+                if (ret != 0) return@Comparator ret
+            }
+            if (dateSort != "Off") {
+                val comp = a.mtime.compareTo(b.mtime)
+                val ret = if (dateSort == "Descending") -comp else comp
+                if (ret != 0) return@Comparator ret
+            }
+            if (sizeSort != "Off") {
+                val comp = a.size.compareTo(b.size)
+                val ret = if (sizeSort == "Descending") -comp else comp
+                if (ret != 0) return@Comparator ret
+            }
+            0
+        })
+
+        // Limit list results to avoid bridge size overflows (Section 13.4 size limits)
+        val results = mutableListOf<Map<String, Any>>()
+        val stopIndex = minOf(filteredRecords.size, limit)
+        for (i in 0 until stopIndex) {
+            results.add(filteredRecords[i].toMap())
+        }
+        return results
     }
 
     /**

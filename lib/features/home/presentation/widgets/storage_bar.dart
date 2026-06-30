@@ -352,6 +352,17 @@ class _StorageBarState extends ConsumerState<StorageBar>
                           ),
                         ],
                       ),
+                      SizedBox(height: 18.0.h),
+                      Divider(color: borderColor, height: 1.0.r),
+                      SizedBox(height: 12.0.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildStatDetail('Scanned Files', '${data['fileCount'] ?? 0}'),
+                          _buildStatDetail('Scan Duration', '${data['scanDurationMs'] ?? 0} ms'),
+                          _buildStatDetail('9-Index Build', '${data['indexDurationMs'] ?? 0} ms'),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -360,6 +371,33 @@ class _StorageBarState extends ConsumerState<StorageBar>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildStatDetail(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13.0.sp,
+            fontWeight: FontWeight.w700,
+            color: AppColors.mintAccent,
+          ),
+        ),
+        SizedBox(height: 3.0.h),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 9.0.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+          ),
+        ),
+      ],
     );
   }
 

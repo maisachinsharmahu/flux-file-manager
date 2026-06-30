@@ -57,6 +57,34 @@ class MainActivity : FlutterActivity() {
                             )
                             runOnUiThread { result.success(usage) }
                         }
+                        "searchAndFilter" -> {
+                            val query = call.argument<String>("query") ?: ""
+                            val categories = call.argument<List<String>>("categories") ?: listOf()
+                            val location = call.argument<String>("location") ?: "All"
+                            val showVaultOnly = call.argument<Boolean>("showVaultOnly") ?: false
+                            val showDuplicatesOnly = call.argument<Boolean>("showDuplicatesOnly") ?: false
+                            val sizeRange = call.argument<String>("sizeRange") ?: "All"
+                            val dateRange = call.argument<String>("dateRange") ?: "All"
+                            val nameSort = call.argument<String>("nameSort") ?: "Off"
+                            val dateSort = call.argument<String>("dateSort") ?: "Off"
+                            val sizeSort = call.argument<String>("sizeSort") ?: "Off"
+                            val limit = call.argument<Int>("limit") ?: 1000
+
+                            val resultsList = fluxIndex.searchAndFilter(
+                                query = query,
+                                categories = categories,
+                                location = location,
+                                showVaultOnly = showVaultOnly,
+                                showDuplicatesOnly = showDuplicatesOnly,
+                                sizeRange = sizeRange,
+                                dateRange = dateRange,
+                                nameSort = nameSort,
+                                dateSort = dateSort,
+                                sizeSort = sizeSort,
+                                limit = limit
+                            )
+                            runOnUiThread { result.success(resultsList) }
+                        }
                         "scanJunkFiles" -> {
                             val junk = fluxIndex.scanJunkFiles()
                             runOnUiThread { result.success(junk) }

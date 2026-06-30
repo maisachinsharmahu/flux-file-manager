@@ -290,100 +290,94 @@ final allFilesProvider = StateNotifierProvider<AllFilesNotifier, List<FluxFile>>
   return AllFilesNotifier(ref);
 });
 
-// Helper selector to apply both query and active filters to the files database
-final filteredFilesProvider = Provider.family<List<FluxFile>, String>((
+// Provider to hold text search latency in milliseconds
+final searchLatencyProvider = StateProvider<double>((ref) => 0.0);
+
+class FilteredFilesNotifier extends StateNotifier<List<FluxFile>> {
+  final Ref ref;
+  final String query;
+
+  FilteredFilesNotifier(this.ref, this.query) : super([]) {
+    // Listen to changes in the active filterState or allFilesProvider and re-fetch from native side
+    ref.listen<FileFilterState>(fileFilterProvider, (previous, next) {
+      fetchFilteredFiles();
+    });
+    ref.listen<List<FluxFile>>(allFilesProvider, (previous, next) {
+      fetchFilteredFiles();
+    });
+    fetchFilteredFiles();
+  }
+
+  Future<void> fetchFilteredFiles() async {
+    final filter = ref.read(fileFilterProvider);
+
+    ref.read(platformMonitorProvider.notifier).logAction(
+      'searchAndFilter',
+      'PENDING',
+      'Querying native indexing engine for query: "$query"',
+    );
+
+    final stopwatch = Stopwatch()..start();
+    final results = await FluxBridge.searchAndFilter(
+      query: query,
+      categories: filter.categories.toList(),
+      location: filter.location,
+      showVaultOnly: filter.showVaultOnly,
+      showDuplicatesOnly: filter.showDuplicatesOnly,
+      sizeRange: filter.sizeRange,
+      dateRange: filter.dateRange,
+      nameSort: filter.nameSort,
+      dateSort: filter.dateSort,
+      sizeSort: filter.sizeSort,
+      limit: 1000,
+    );
+    stopwatch.stop();
+
+    final mapped = results.map((item) {
+      final map = Map<String, dynamic>.from(item as Map);
+      final isDuplicate = map['isDuplicate'] as bool? ?? false;
+      final isVault = map['isVault'] as bool? ?? false;
+      final category = map['category'] as String? ?? 'Others';
+
+      Color themeColor;
+      if (category == 'Photos') themeColor = const Color(0xFFFFD020);
+      else if (category == 'Videos') themeColor = const Color(0xFFFF9010);
+      else if (category == 'Audio') themeColor = const Color(0xFF4A90E2);
+      else if (category == 'Documents') themeColor = const Color(0xFF7ED321);
+      else if (category == 'Application') themeColor = const Color(0xFF9013FE);
+      else themeColor = const Color(0xFF9E9E9E);
+
+      return FluxFile(
+        name: map['name'] as String? ?? '',
+        path: map['path'] as String? ?? '',
+        category: category,
+        sizeString: map['sizeString'] as String? ?? '0 B',
+        sizeInMb: (map['size'] as num? ?? 0).toDouble() / (1024.0 * 1024.0),
+        modifiedDate: DateTime.fromMillisecondsSinceEpoch((map['mtime'] as num? ?? 0).toInt() * 1000),
+        isDuplicate: isDuplicate,
+        isVault: isVault,
+        location: map['location'] as String? ?? 'Local',
+        themeColor: themeColor,
+      );
+    }).toList();
+
+    state = mapped;
+
+    final double elapsedMs = stopwatch.elapsedMicroseconds / 1000.0;
+    ref.read(searchLatencyProvider.notifier).state = elapsedMs;
+
+    ref.read(platformMonitorProvider.notifier).logAction(
+      'searchAndFilter',
+      'SUCCESS',
+      'Native search filtered ${mapped.length} records in ${elapsedMs.toStringAsFixed(3)} ms.',
+    );
+  }
+}
+
+// Helper selector to apply both query and active filters to the files database using native indexes
+final filteredFilesProvider = StateNotifierProvider.family<FilteredFilesNotifier, List<FluxFile>, String>((
   ref,
   query,
 ) {
-  final allFiles = ref.watch(allFilesProvider);
-  final filter = ref.watch(fileFilterProvider);
-
-  List<FluxFile> list = List.from(allFiles);
-
-  // 1. Text Search Filter
-  if (query.isNotEmpty) {
-    final lower = query.toLowerCase();
-    list = list
-        .where((file) => file.name.toLowerCase().contains(lower))
-        .toList();
-  }
-
-  // 2. Categories Filter
-  if (filter.categories.isNotEmpty) {
-    list = list
-        .where((file) => filter.categories.contains(file.category))
-        .toList();
-  }
-
-  // 3. Location Filter
-  if (filter.location != 'All') {
-    list = list.where((file) => file.location == filter.location).toList();
-  }
-
-  // 4. Vault Filter
-  if (filter.showVaultOnly) {
-    list = list.where((file) => file.isVault).toList();
-  }
-
-  // 5. Duplicates Filter
-  if (filter.showDuplicatesOnly) {
-    list = list.where((file) => file.isDuplicate).toList();
-  }
-
-  // 6. Size Range Filter
-  if (filter.sizeRange != 'All') {
-    list = list.where((file) {
-      if (filter.sizeRange == 'Small (<1MB)') return file.sizeInMb < 1.0;
-      if (filter.sizeRange == 'Medium (1-10MB)')
-        return file.sizeInMb >= 1.0 && file.sizeInMb <= 10.0;
-      if (filter.sizeRange == 'Large (10-100MB)')
-        return file.sizeInMb >= 10.0 && file.sizeInMb <= 100.0;
-      if (filter.sizeRange == 'Huge (>100MB)') return file.sizeInMb > 100.0;
-      return true;
-    }).toList();
-  }
-
-  // 7. Date Range Filter
-  if (filter.dateRange != 'All') {
-    final today = DateTime.now();
-    list = list.where((file) {
-      final diff = today.difference(file.modifiedDate).inDays;
-      if (filter.dateRange == 'Today') return diff == 0;
-      if (filter.dateRange == 'This Week') return diff <= 7;
-      if (filter.dateRange == 'This Month') return diff <= 30;
-      if (filter.dateRange == 'Older') return diff > 30;
-      return true;
-    }).toList();
-  }
-
-  // 8. Chained Multi-Level Sorting
-  list.sort((a, b) {
-    // 1st Priority: Name sort (if active)
-    if (filter.nameSort != 'Off') {
-      final isDesc = filter.nameSort == 'Descending';
-      final comp = isDesc
-          ? b.name.toLowerCase().compareTo(a.name.toLowerCase())
-          : a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      if (comp != 0) return comp;
-    }
-    // 2nd Priority: Date sort (if active)
-    if (filter.dateSort != 'Off') {
-      final isDesc = filter.dateSort == 'Descending';
-      final comp = isDesc
-          ? b.modifiedDate.compareTo(a.modifiedDate)
-          : a.modifiedDate.compareTo(b.modifiedDate);
-      if (comp != 0) return comp;
-    }
-    // 3rd Priority: Size sort (if active)
-    if (filter.sizeSort != 'Off') {
-      final isDesc = filter.sizeSort == 'Descending';
-      final comp = isDesc
-          ? b.sizeInMb.compareTo(a.sizeInMb)
-          : a.sizeInMb.compareTo(b.sizeInMb);
-      if (comp != 0) return comp;
-    }
-    return 0;
-  });
-
-  return list;
+  return FilteredFilesNotifier(ref, query);
 });

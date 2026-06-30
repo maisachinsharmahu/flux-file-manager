@@ -76,6 +76,42 @@ class FluxBridge {
     }
   }
 
+  static Future<List<dynamic>> searchAndFilter({
+    required String query,
+    required List<String> categories,
+    required String location,
+    required bool showVaultOnly,
+    required bool showDuplicatesOnly,
+    required String sizeRange,
+    required String dateRange,
+    required String nameSort,
+    required String dateSort,
+    required String sizeSort,
+    required int limit,
+  }) async {
+    try {
+      final List<dynamic> result = await _methodChannel.invokeMethod(
+        'searchAndFilter',
+        {
+          'query': query,
+          'categories': categories,
+          'location': location,
+          'showVaultOnly': showVaultOnly,
+          'showDuplicatesOnly': showDuplicatesOnly,
+          'sizeRange': sizeRange,
+          'dateRange': dateRange,
+          'nameSort': nameSort,
+          'dateSort': dateSort,
+          'sizeSort': sizeSort,
+          'limit': limit,
+        },
+      );
+      return result;
+    } on PlatformException catch (_) {
+      return [];
+    }
+  }
+
   static Stream<dynamic> searchStream(String query, int limit) {
     return _searchChannel.receiveBroadcastStream({
       'query': query,
