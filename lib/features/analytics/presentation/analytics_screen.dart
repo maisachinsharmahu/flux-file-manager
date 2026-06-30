@@ -144,6 +144,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(photos),
           onTap: () {
+            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Photos';
             ref.read(selectedBrowserCategoryProvider.notifier).state = 'Photos';
@@ -160,6 +161,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(videos),
           onTap: () {
+            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Videos';
             ref.read(selectedBrowserCategoryProvider.notifier).state = 'Videos';
@@ -176,6 +178,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(docs),
           onTap: () {
+            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Documents';
             ref.read(selectedBrowserCategoryProvider.notifier).state =
@@ -193,6 +196,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(audio),
           onTap: () {
+            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Audio';
             ref.read(selectedBrowserCategoryProvider.notifier).state = 'Audio';
@@ -209,6 +213,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(apps),
           onTap: () {
+            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Application';
             ref.read(selectedBrowserCategoryProvider.notifier).state =
@@ -226,6 +231,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           isDark: isDark,
           sizeString: _formatSize(others),
           onTap: () {
+            ref.read(categoryNavigationSourceProvider.notifier).state = 1;
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Others';
             ref.read(selectedBrowserCategoryProvider.notifier).state = 'Others';

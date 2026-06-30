@@ -154,137 +154,146 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
       }
     }
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _opacityAnimation,
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Stack(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Row with Animated Switcher for Search Mode
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
-                      transitionBuilder: (Widget child, Animation<double> animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0.0, -0.2),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: _isSearching
-                          ? Padding(
-                              key: const ValueKey('searchHeader'),
-                              padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
-                              child: Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _isSearching = false;
-                                        _searchQuery = '';
-                                        _searchController.clear();
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: EdgeInsets.all(8.0.r),
-                                      child: Icon(
-                                        Icons.arrow_back_ios_new,
-                                        size: 20.0.r,
-                                        color: iconColor,
+    return PopScope(
+      canPop: activeCategory == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        final source = ref.read(categoryNavigationSourceProvider);
+        ref.read(selectedBrowserCategoryProvider.notifier).state = null;
+        ref.read(activeIndexProvider.notifier).state = source;
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
+        body: SafeArea(
+          child: FadeTransition(
+            opacity: _opacityAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Stack(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header Row with Animated Switcher for Search Mode
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0.0, -0.2),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: _isSearching
+                            ? Padding(
+                                key: const ValueKey('searchHeader'),
+                                padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                                child: Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _isSearching = false;
+                                          _searchQuery = '';
+                                          _searchController.clear();
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: EdgeInsets.all(8.0.r),
+                                        child: Icon(
+                                          Icons.arrow_back_ios_new,
+                                          size: 20.0.r,
+                                          color: iconColor,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(width: 8.0.w),
-                                  Expanded(
-                                    child: Container(
-                                      height: 40.0.h,
-                                      decoration: BoxDecoration(
-                                        color: isDark
-                                            ? Colors.white.withValues(alpha: 0.05)
-                                            : Colors.black.withValues(alpha: 0.03),
-                                        borderRadius: BorderRadius.circular(20.0.r),
-                                      ),
-                                      padding: EdgeInsets.symmetric(horizontal: 16.0.w),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.search,
-                                            size: 18.0.r,
-                                            color: subtitleColor,
-                                          ),
-                                          SizedBox(width: 8.0.w),
-                                          Expanded(
-                                            child: TextField(
-                                              controller: _searchController,
-                                              autofocus: true,
-                                              onChanged: (val) {
-                                                setState(() {
-                                                  _searchQuery = val;
-                                                });
-                                              },
-                                              style: TextStyle(
-                                                fontFamily: 'Inter',
-                                                fontSize: 14.0.sp,
-                                                color: textColor,
-                                              ),
-                                              decoration: InputDecoration(
-                                                hintText: 'Search...',
-                                                hintStyle: TextStyle(
+                                    SizedBox(width: 8.0.w),
+                                    Expanded(
+                                      child: Container(
+                                        height: 40.0.h,
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? Colors.white.withValues(alpha: 0.05)
+                                              : Colors.black.withValues(alpha: 0.03),
+                                          borderRadius: BorderRadius.circular(20.0.r),
+                                        ),
+                                        padding: EdgeInsets.symmetric(horizontal: 16.0.w),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.search,
+                                              size: 18.0.r,
+                                              color: subtitleColor,
+                                            ),
+                                            SizedBox(width: 8.0.w),
+                                            Expanded(
+                                              child: TextField(
+                                                controller: _searchController,
+                                                autofocus: true,
+                                                onChanged: (val) {
+                                                  setState(() {
+                                                    _searchQuery = val;
+                                                  });
+                                                },
+                                                style: TextStyle(
                                                   fontFamily: 'Inter',
                                                   fontSize: 14.0.sp,
+                                                  color: textColor,
+                                                ),
+                                                decoration: InputDecoration(
+                                                  hintText: 'Search...',
+                                                  hintStyle: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontSize: 14.0.sp,
+                                                    color: subtitleColor,
+                                                  ),
+                                                  border: InputBorder.none,
+                                                  isDense: true,
+                                                  contentPadding: EdgeInsets.zero,
+                                                ),
+                                              ),
+                                            ),
+                                            if (_searchQuery.isNotEmpty)
+                                              GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    _searchQuery = '';
+                                                    _searchController.clear();
+                                                  });
+                                                },
+                                                child: Icon(
+                                                  Icons.close_rounded,
+                                                  size: 18.0.r,
                                                   color: subtitleColor,
                                                 ),
-                                                border: InputBorder.none,
-                                                isDense: true,
-                                                contentPadding: EdgeInsets.zero,
                                               ),
-                                            ),
-                                          ),
-                                          if (_searchQuery.isNotEmpty)
-                                            GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _searchQuery = '';
-                                                  _searchController.clear();
-                                                });
-                                              },
-                                              child: Icon(
-                                                Icons.close_rounded,
-                                                size: 18.0.r,
-                                                color: subtitleColor,
-                                              ),
-                                            ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Padding(
-                              key: const ValueKey('normalHeader'),
-                              padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
-                              child: Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (activeCategory != null) {
-                                        ref.read(selectedBrowserCategoryProvider.notifier).state = null;
-                                        ref.read(activeIndexProvider.notifier).state = 1;
-                                      } else {
-                                        ref.read(activeIndexProvider.notifier).state = 0;
-                                      }
-                                    },
+                                  ],
+                                ),
+                              )
+                            : Padding(
+                                key: const ValueKey('normalHeader'),
+                                padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                                child: Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (activeCategory != null) {
+                                          final source = ref.read(categoryNavigationSourceProvider);
+                                          ref.read(selectedBrowserCategoryProvider.notifier).state = null;
+                                          ref.read(activeIndexProvider.notifier).state = source;
+                                        } else {
+                                          ref.read(activeIndexProvider.notifier).state = 0;
+                                        }
+                                      },
                                     child: Container(
                                       padding: EdgeInsets.all(8.0.r),
                                       child: Icon(
@@ -691,7 +700,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
           ),
         ),
       ),
-    );
+    ),);
   }
   Widget _buildScopePill({
     required String label,

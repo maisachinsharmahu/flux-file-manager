@@ -28,8 +28,10 @@ class MainNavigationShell extends ConsumerWidget {
       TrashScreen(), // Index 5
     ];
 
+    final canPopShell = Navigator.of(context).canPop();
+
     return PopScope(
-      canPop: activeIndex == 0,
+      canPop: canPopShell || activeIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         ref.read(activeIndexProvider.notifier).state = 0;

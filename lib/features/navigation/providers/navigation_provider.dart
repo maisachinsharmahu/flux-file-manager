@@ -11,3 +11,7 @@ final selectedAnalyticsCategoryProvider = StateProvider<String>((ref) {
 final selectedBrowserCategoryProvider = StateProvider<String?>((ref) {
   return null;
 });
+
+final categoryNavigationSourceProvider = StateProvider<int>((ref) {
+  return 3; // Default to Browser tab
+});
