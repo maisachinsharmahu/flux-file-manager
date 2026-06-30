@@ -219,51 +219,93 @@ class FluxIndex(private val context: Context) {
         }
     }
 
+    /**
+     * Complexity: O(N) file traversal using an iterative BFS stack.
+     * Iterative (non-recursive) to prevent StackOverflow on deep directory trees
+     * (e.g. WhatsApp/Media/WhatsApp Voice Notes/202621/...).
+     * MAX_SCAN_FILES cap prevents OOM on masterIndex resize.
+     */
+    private val MAX_SCAN_FILES = 50_000
+
     private fun scanDirRecursive(dir: File, parentFid: Long) {
-        val files = dir.listFiles() ?: return
-        for (f in files) {
-            if (f.name.startsWith(".")) continue // Ignore hidden dotfiles
+        // Use an explicit stack instead of recursion to avoid StackOverflow
+        // Each entry is Pair<directory, parentFid>
+        val stack = ArrayDeque<Pair<File, Long>>()
+        stack.addLast(Pair(dir, parentFid))
 
-            val fid = nextFid.getAndIncrement()
-            val isDir = f.isDirectory
-            val mimeType = if (isDir) "directory" else getMimeType(f)
-            
-            val record = FileRecord.create(
-                fid = fid,
-                parentDirFid = parentFid,
-                name = f.name,
-                path = f.absolutePath,
-                size = if (isDir) 0L else f.length(),
-                mtime = f.lastModified() / 1000L,
-                atime = System.currentTimeMillis() / 1000L,
-                ctime = f.lastModified() / 1000L,
-                mimeType = mimeType,
-                flags = FileRecord.FLAG_INDEXED
-            )
+        var scannedCount = 0
 
-            // Index it
-            Log.d("FluxIndex", "scanDirRecursive: file = ${f.absolutePath}, isDirectory = ${isDir}, size = ${f.length()}")
-            insertRecordToIndexes(record)
+        while (stack.isNotEmpty()) {
+            // Thermal check every 200 directories
+            if (scannedCount % 200 == 0 && thermalGovernor.currentState() == ThermalGovernor.ThermalState.CRITICAL) {
+                Thread.sleep(10)
+            }
 
-            if (isDir) {
-                scanDirRecursive(f, fid)
+            val (currentDir, currentParentFid) = stack.removeLast()
+            val files = currentDir.listFiles() ?: continue
+
+            for (f in files) {
+                // Skip hidden dotfiles and Android sandbox data dirs for other apps
+                if (f.name.startsWith(".")) continue
+                if (f.isDirectory && f.absolutePath.contains("/Android/data/") &&
+                    !f.absolutePath.contains("com.example.flux")) continue
+
+                // Hard cap to prevent OOM from unbounded masterIndex growth
+                if (nextFid.get() >= MAX_SCAN_FILES) {
+                    Log.w(TAG, "MAX_SCAN_FILES ($MAX_SCAN_FILES) reached. Stopping scan.")
+                    return
+                }
+
+                val fid = nextFid.getAndIncrement()
+                val isDir = f.isDirectory
+                val mimeType = if (isDir) "directory" else getMimeType(f)
+
+                val record = FileRecord.create(
+                    fid = fid,
+                    parentDirFid = currentParentFid,
+                    name = f.name,
+                    path = f.absolutePath,
+                    size = if (isDir) 0L else f.length(),
+                    mtime = f.lastModified() / 1000L,
+                    atime = System.currentTimeMillis() / 1000L,
+                    ctime = f.lastModified() / 1000L,
+                    mimeType = mimeType,
+                    flags = FileRecord.FLAG_INDEXED
+                )
+
+                insertRecordToIndexes(record)
+                scannedCount++
+
+                // Log milestone every 500 files instead of per-file
+                if (scannedCount % 500 == 0) {
+                    Log.d(TAG, "Scan milestone: $scannedCount files indexed. Last: ${f.absolutePath}")
+                }
+
+                if (isDir) {
+                    stack.addLast(Pair(f, fid))
+                }
             }
         }
+        Log.d(TAG, "scanDirRecursive complete: $scannedCount files in ${dir.absolutePath}")
     }
 
     private fun insertRecordToIndexes(record: FileRecord) {
         val idx = record.fid.toInt()
+
+        // Safety: only resize if still within sane bounds
         if (idx >= masterIndex.size) {
-            val newSize = masterIndex.size * 2
+            val newSize = minOf(masterIndex.size * 2, MAX_SCAN_FILES + 1024)
+            Log.d(TAG, "Resizing masterIndex: ${masterIndex.size} → $newSize")
             val newArray = Array<FileRecord>(newSize) { FileRecord.EMPTY }
             System.arraycopy(masterIndex, 0, newArray, 0, masterIndex.size)
             masterIndex = newArray
         }
+
         if (masterIndex[idx] == FileRecord.EMPTY) {
             fileCount++
         }
         masterIndex[idx] = record
-        
+
         pathMap[xxHash64(record.path)] = record.fid
         pathMap[xxHash64(record.path.lowercase())] = record.fid
 
@@ -289,9 +331,10 @@ class FluxIndex(private val context: Context) {
         // Index 7: Time Index (Van Emde Boas range index)
         timeIndex.insert(record.mtime.toLong(), record.fid)
 
-        // Index 9: HNSW Vector Graph
-        val dummyVector = FloatArray(384) { (it * 0.01f) + (record.fid * 0.05f) }
-        hnswGraph.insert(record.fid, dummyVector)
+        // Index 9: HNSW Vector Graph — DEFERRED during initial scan.
+        // HNSW insertion is O(N) per file (K-NN search over all nodes = O(N²) total).
+        // We populate HNSW lazily on semantic search query, using the real ONNX model.
+        // During scan we skip it entirely to avoid OOM.
 
         // Recent Files Ring Buffer
         if (!record.isDirectory && !record.isDeleted) {
@@ -895,20 +938,31 @@ class VanEmdeBoasIndex {
 }
 
 /**
- * Index 9: HNSW Proximity Graph representing multi-layer vector relationships.
+ * Index 9: HNSW Proximity Graph — O(N * M) memory where M = max neighbors per node.
+ * Capped at M=16 neighbors per node to prevent O(N²) OOM with large file sets.
  */
 class HNSWProximityGraph {
+    private val M = 16 // Max neighbors per node (standard HNSW param)
     class Node(val fid: Long, val vector: FloatArray, val friends: MutableList<Long> = mutableListOf())
     private val nodes = java.util.concurrent.ConcurrentHashMap<Long, Node>()
 
     fun insert(fid: Long, vector: FloatArray) {
         val node = Node(fid, vector)
         nodes[fid] = node
-        // In HNSW, search for nearest neighbors and establish mutual link edges
-        for (existing in nodes.values) {
-            if (existing.fid != fid) {
-                existing.friends.add(fid)
-                node.friends.add(existing.fid)
+
+        // Only link to M nearest neighbors — not all existing nodes
+        if (nodes.size > 1) {
+            val nearest = nodes.values
+                .filter { it.fid != fid }
+                .sortedByDescending { cosineSimilarity(vector, it.vector) }
+                .take(M)
+
+            for (neighbor in nearest) {
+                node.friends.add(neighbor.fid)
+                // Bidirectional link: prune neighbor's friends if over capacity
+                if (neighbor.friends.size < M) {
+                    neighbor.friends.add(fid)
+                }
             }
         }
     }
@@ -921,10 +975,11 @@ class HNSWProximityGraph {
     }
 
     private fun cosineSimilarity(v1: FloatArray, v2: FloatArray): Float {
+        val len = minOf(v1.size, v2.size)
         var dot = 0f
         var norm1 = 0f
         var norm2 = 0f
-        for (i in v1.indices) {
+        for (i in 0 until len) {
             dot += v1[i] * v2[i]
             norm1 += v1[i] * v1[i]
             norm2 += v2[i] * v2[i]
