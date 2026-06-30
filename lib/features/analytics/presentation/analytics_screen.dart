@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -1133,6 +1134,11 @@ class _StackedFolderTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Parse sizeString into number part and unit part for tabular structure alignment
+    final parts = sizeString.split(' ');
+    final numberPart = parts.isNotEmpty ? parts[0] : '';
+    final unitPart = parts.length > 1 ? parts[1] : '';
+
     return GestureDetector(
       onTap: onTap,
       child: ClipPath(
@@ -1143,58 +1149,89 @@ class _StackedFolderTab extends StatelessWidget {
           color: color,
           child: Stack(
             children: [
-              // Left side circle icon and title: Placed high up in the Tab area (visible region)
+              // Visible header region of the folder tab (exactly 52.0.h height)
               Positioned(
-                top: 6.0.h,
-                left: 20.0.w,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 38.0.r,
-                      height: 38.0.r,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF171717),
-                        shape: BoxShape.circle,
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 52.0.h,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.0.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Left side: icon and title (vertically aligned)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 30.0.r,
+                            height: 30.0.r,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF171717),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Icon(icon, color: color, size: 16.0.r),
+                            ),
+                          ),
+                          SizedBox(width: 12.0.w),
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 15.0.sp,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF171717),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Center(
-                        child: Icon(icon, color: color, size: 20.0.r),
+                      // Right side: tabular numbers and chevron (perfectly structured)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Tabular numbers aligned to the right
+                          SizedBox(
+                            width: 52.0.w,
+                            child: Text(
+                              numberPart,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13.0.sp,
+                                fontWeight: FontWeight.w800,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                                color: const Color(0xFF171717).withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 4.0.w),
+                          // Unit labels left aligned
+                          SizedBox(
+                            width: 26.0.w,
+                            child: Text(
+                              unitPart,
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11.0.sp,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF171717).withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 4.0.w),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: const Color(0xFF171717),
+                            size: 12.0.r,
+                          ),
+                        ],
                       ),
-                    ),
-                    SizedBox(width: 14.0.w),
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 16.0.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF171717),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Right side size text and chevron: Placed high up in the visible region
-              Positioned(
-                top: 18.0.h,
-                right: 20.0.w,
-                child: Row(
-                  children: [
-                    Text(
-                      sizeString,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13.0.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF171717).withValues(alpha: 0.7),
-                      ),
-                    ),
-                    SizedBox(width: 8.0.w),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: const Color(0xFF171717),
-                      size: 13.0.r,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
