@@ -105,8 +105,13 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     final pSystem = getPercentage(system);
 
     String getPctString(int bytes) {
+      if (bytes <= 0) return '0%';
       if (totalStorage <= 0) return '0%';
-      final pct = (bytes / totalStorage * 100).toStringAsFixed(0);
+      final double pctValue = (bytes / totalStorage * 100);
+      if (pctValue < 1.0) {
+        return '< 1%';
+      }
+      final pct = pctValue.toStringAsFixed(0);
       return '$pct%';
     }
 
@@ -375,17 +380,21 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                     games.toDouble(),
                                     system.toDouble(),
                                     others.toDouble(),
+                                    (totalStorage - totalUsed).toDouble(), // Free Space
                                   ],
-                                  colors: const [
-                                    Color(0xFF38BDF8), // Images
-                                    Color(0xFF10B981), // Videos
-                                    Color(0xFFFBBF24), // Docs
-                                    Color(0xFFF97316), // Audio
-                                    Color(0xFFFF4D4D), // Application
-                                    Color(0xFF607D8B), // Bin
-                                    Color(0xFF4CAF50), // Games
-                                    Color(0xFF9C27B0), // System
-                                    Color(0xFF9E9E9E), // Others
+                                  colors: [
+                                    const Color(0xFF38BDF8), // Images
+                                    const Color(0xFF10B981), // Videos
+                                    const Color(0xFFFBBF24), // Docs
+                                    const Color(0xFFF97316), // Audio
+                                    const Color(0xFFFF4D4D), // Application
+                                    const Color(0xFF607D8B), // Bin
+                                    const Color(0xFF4CAF50), // Games
+                                    const Color(0xFF9C27B0), // System
+                                    const Color(0xFF9E9E9E), // Others
+                                    isDark
+                                        ? Colors.white.withValues(alpha: 0.15)
+                                        : Colors.black.withValues(alpha: 0.08), // Free Space
                                   ],
                                 ),
                                 child: Center(
