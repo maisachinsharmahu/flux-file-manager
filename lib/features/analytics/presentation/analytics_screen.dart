@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../navigation/providers/navigation_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../home/providers/storage_status_provider.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({Key? key}) : super(key: key);
@@ -51,6 +52,17 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     }
   }
 
+  String _formatSize(int bytes) {
+    if (bytes <= 0) return '0 B';
+    final double kb = bytes / 1000.0;
+    if (kb < 1.0) return '$bytes B';
+    final double mb = kb / 1000.0;
+    if (mb < 1.0) return '${kb.toStringAsFixed(1)} KB';
+    final double gb = mb / 1000.0;
+    if (gb < 1.0) return '${mb.toStringAsFixed(1)} MB';
+    return '${gb.toStringAsFixed(1)} GB';
+  }
+
   @override
   Widget build(BuildContext context) {
     // Detect visibility changes inside IndexedStack (AnalyticsScreen is at index 1)
@@ -68,6 +80,43 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         }
       });
     }
+
+    final storageAsync = ref.watch(storageStatusProvider);
+    final storageData = storageAsync.maybeWhen(
+      data: (data) => data,
+      orElse: () => <String, dynamic>{},
+    );
+
+    final totalStorage = storageData['totalStorage'] as int? ?? 256 * 1000 * 1000 * 1000;
+    final totalUsed = storageData['totalUsed'] as int? ?? 0;
+    final photos = storageData['Photos'] as int? ?? 0;
+    final videos = storageData['Videos'] as int? ?? 0;
+    final audio = storageData['Audio'] as int? ?? 0;
+    final docs = storageData['Documents'] as int? ?? 0;
+    final apps = storageData['Application'] as int? ?? 0;
+    final bin = storageData['Bin'] as int? ?? 0;
+    final games = storageData['Games'] as int? ?? 0;
+    final system = storageData['System'] as int? ?? 0;
+    final others = storageData['Others'] as int? ?? 0;
+
+    double getPercentage(int bytes) {
+      if (totalStorage <= 0) return 0.0;
+      return bytes / totalStorage;
+    }
+
+    final pPhotos = getPercentage(photos);
+    final pVideos = getPercentage(videos);
+    final pDocs = getPercentage(docs);
+    final pAudio = getPercentage(audio);
+    final pApps = getPercentage(apps);
+
+    String getPctString(int bytes) {
+      if (totalStorage <= 0) return '0%';
+      final pct = (bytes / totalStorage * 100).toStringAsFixed(0);
+      return '$pct%';
+    }
+
+    final usedPctString = totalStorage > 0 ? '${(totalUsed / totalStorage * 100).toStringAsFixed(0)}%' : '0%';
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -93,6 +142,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           icon: Icons.image,
           color: const Color(0xFFFFD020),
           isDark: isDark,
+          sizeString: _formatSize(photos),
           onTap: () {
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Photos';
@@ -108,6 +158,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           icon: Icons.play_arrow,
           color: const Color(0xFFFF9010),
           isDark: isDark,
+          sizeString: _formatSize(videos),
           onTap: () {
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Videos';
@@ -123,6 +174,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           icon: Icons.description_outlined,
           color: const Color(0xFFA020F0),
           isDark: isDark,
+          sizeString: _formatSize(docs),
           onTap: () {
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Documents';
@@ -139,6 +191,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           icon: Icons.music_note,
           color: const Color(0xFFFF40A0),
           isDark: isDark,
+          sizeString: _formatSize(audio),
           onTap: () {
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Audio';
@@ -154,6 +207,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           icon: Icons.apps,
           color: const Color(0xFFFF4D4D),
           isDark: isDark,
+          sizeString: _formatSize(apps),
           onTap: () {
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Application';
@@ -170,6 +224,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           icon: Icons.folder_open,
           color: const Color(0xFF9E9E9E),
           isDark: isDark,
+          sizeString: _formatSize(others),
           onTap: () {
             ref.read(selectedAnalyticsCategoryProvider.notifier).state =
                 'Others';
@@ -267,7 +322,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '48 GB',
+                                _formatSize(totalUsed),
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 24.0.sp,
@@ -277,7 +332,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                               ),
                               SizedBox(height: 4.0.h),
                               Text(
-                                'of 120 GB Used',
+                                'of ${_formatSize(totalStorage)} Used',
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 13.0.sp,
@@ -298,10 +353,11 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                 painter: ConcentricRingsPainter(
                                   isDark: isDark,
                                   animation: _controller,
+                                  percentages: [pPhotos, pVideos, pDocs, pAudio, pApps],
                                 ),
                                 child: Center(
                                   child: Text(
-                                    '86%',
+                                    usedPctString,
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 26.0.sp,
@@ -321,8 +377,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             subtitleColor,
                             borderColor,
                             'Images',
-                            '312 MB',
-                            '28%',
+                            _formatSize(photos),
+                            getPctString(photos),
                             const Color(0xFFFFD020),
                           ),
                           Divider(
@@ -335,8 +391,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             subtitleColor,
                             borderColor,
                             'Videos',
-                            '823 MB',
-                            '15%',
+                            _formatSize(videos),
+                            getPctString(videos),
                             const Color(0xFFFF9010),
                           ),
                           Divider(
@@ -349,8 +405,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             subtitleColor,
                             borderColor,
                             'Docs',
-                            '124 MB',
-                            '32%',
+                            _formatSize(docs),
+                            getPctString(docs),
                             const Color(0xFFA020F0),
                           ),
                           Divider(
@@ -363,8 +419,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             subtitleColor,
                             borderColor,
                             'Audio',
-                            '14 MB',
-                            '5%',
+                            _formatSize(audio),
+                            getPctString(audio),
                             const Color(0xFFFF40A0),
                           ),
                           Divider(
@@ -377,8 +433,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             subtitleColor,
                             borderColor,
                             'Apps',
-                            '1.4 GB',
-                            '12%',
+                            _formatSize(apps),
+                            getPctString(apps),
                             const Color(0xFFFF4D4D),
                           ),
                           Divider(
@@ -391,8 +447,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                             subtitleColor,
                             borderColor,
                             'Others',
-                            '512 MB',
-                            '8%',
+                            _formatSize(others),
+                            getPctString(others),
                             const Color(0xFF9E9E9E),
                           ),
                         ],
@@ -500,10 +556,12 @@ class _TabItemData {
 class ConcentricRingsPainter extends CustomPainter {
   final bool isDark;
   final Animation<double> animation;
+  final List<double> percentages;
 
   ConcentricRingsPainter({
     required this.isDark,
     required this.animation,
+    required this.percentages,
   }) : super(repaint: animation);
 
   @override
@@ -540,11 +598,11 @@ class ConcentricRingsPainter extends CustomPainter {
       math.pi * 1.25,
     ];
     final sweepProgress = [
-      0.72 * animation.value,
-      0.45 * animation.value,
-      0.65 * animation.value,
-      0.30 * animation.value,
-      0.55 * animation.value,
+      percentages[0] * animation.value,
+      percentages[1] * animation.value,
+      percentages[2] * animation.value,
+      percentages[3] * animation.value,
+      percentages[4] * animation.value,
     ];
 
     final trackPaint = Paint()
@@ -585,6 +643,7 @@ class _StackedFolderTab extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool isDark;
+  final String sizeString;
   final VoidCallback onTap;
 
   const _StackedFolderTab({
@@ -593,6 +652,7 @@ class _StackedFolderTab extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.isDark,
+    required this.sizeString,
     required this.onTap,
   }) : super(key: key);
 
@@ -638,24 +698,28 @@ class _StackedFolderTab extends StatelessWidget {
                   ],
                 ),
               ),
-              // Right side outward diagonal arrow: Placed lower in the body area below the tab curve
+              // Right side size text and chevron: Placed high up in the visible region
               Positioned(
-                top: 28.0.h,
+                top: 18.0.h,
                 right: 20.0.w,
-                child: Container(
-                  width: 38.0.r,
-                  height: 38.0.r,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.arrow_outward,
-                      color: const Color(0xFF171717),
-                      size: 20.0.r,
+                child: Row(
+                  children: [
+                    Text(
+                      sizeString,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.0.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF171717).withValues(alpha: 0.7),
+                      ),
                     ),
-                  ),
+                    SizedBox(width: 8.0.w),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: const Color(0xFF171717),
+                      size: 13.0.r,
+                    ),
+                  ],
                 ),
               ),
             ],

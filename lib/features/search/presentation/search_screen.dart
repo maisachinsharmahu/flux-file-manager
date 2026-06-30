@@ -43,7 +43,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
-    
+
     // Auto-focus search field on transition end and start animation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -70,7 +70,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     final history = ref.watch(searchHistoryProvider);
 
     final titleColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final subColor = isDark ? AppColors.textSecondaryLight : AppColors.neutral400;
+    final subColor = isDark
+        ? AppColors.textSecondaryLight
+        : AppColors.neutral400;
 
     // Sync input field value if query is set by selecting from history
     if (query != _searchController.text) {
@@ -99,7 +101,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 children: [
                   // Top Navigation Search Row
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.0.w, vertical: 12.0.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.0.w,
+                      vertical: 12.0.h,
+                    ),
                     child: Row(
                       children: [
                         // Back Circle Icon Button
@@ -124,7 +129,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                             ),
                             child: Icon(
                               Icons.arrow_back_rounded,
-                              color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+                              color: isDark
+                                  ? AppColors.pureWhite
+                                  : AppColors.neutral900,
                               size: 20.0.r,
                             ),
                           ),
@@ -152,7 +159,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                               children: [
                                 Icon(
                                   Icons.search_rounded,
-                                  color: isDark ? Colors.white30 : Colors.black38,
+                                  color: isDark
+                                      ? Colors.white30
+                                      : Colors.black38,
                                   size: 20.0.r,
                                 ),
                                 SizedBox(width: 10.0.w),
@@ -161,24 +170,37 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                                     controller: _searchController,
                                     focusNode: _focusNode,
                                     onChanged: (val) {
-                                      ref.read(searchStateProvider.notifier).state = val;
+                                      ref
+                                              .read(
+                                                searchStateProvider.notifier,
+                                              )
+                                              .state =
+                                          val;
                                     },
                                     onSubmitted: (val) {
                                       if (val.trim().isNotEmpty) {
-                                        ref.read(searchHistoryProvider.notifier).add(val);
+                                        ref
+                                            .read(
+                                              searchHistoryProvider.notifier,
+                                            )
+                                            .add(val);
                                       }
                                     },
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 15.0.sp,
-                                      color: isDark ? AppColors.pureWhite : AppColors.neutral900,
+                                      color: isDark
+                                          ? AppColors.pureWhite
+                                          : AppColors.neutral900,
                                     ),
                                     decoration: InputDecoration(
                                       hintText: 'Search',
                                       hintStyle: TextStyle(
                                         fontFamily: 'Inter',
                                         fontSize: 15.0.sp,
-                                        color: isDark ? Colors.white30 : Colors.black38,
+                                        color: isDark
+                                            ? Colors.white30
+                                            : Colors.black38,
                                       ),
                                       border: InputBorder.none,
                                       isDense: true,
@@ -189,11 +211,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                                   GestureDetector(
                                     onTap: () {
                                       _searchController.clear();
-                                      ref.read(searchStateProvider.notifier).state = '';
+                                      ref
+                                              .read(
+                                                searchStateProvider.notifier,
+                                              )
+                                              .state =
+                                          '';
                                     },
                                     child: Icon(
                                       Icons.close_rounded,
-                                      color: isDark ? Colors.white38 : Colors.black38,
+                                      color: isDark
+                                          ? Colors.white38
+                                          : Colors.black38,
                                       size: 18.0.r,
                                     ),
                                   ),
@@ -218,10 +247,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   Expanded(
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 16.0.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24.0.w,
+                        vertical: 16.0.h,
+                      ),
                       child: query.isEmpty
-                          ? _buildSearchHistoryState(isDark, titleColor, subColor, history)
-                          : _buildResultsState(isDark, titleColor, subColor, filteredFiles, filterState),
+                          ? _buildSearchHistoryState(
+                              isDark,
+                              titleColor,
+                              subColor,
+                              history,
+                            )
+                          : _buildResultsState(
+                              isDark,
+                              titleColor,
+                              subColor,
+                              filteredFiles,
+                              filterState,
+                            ),
                     ),
                   ),
                 ],
@@ -317,7 +360,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        ref.read(searchStateProvider.notifier).state = queryText;
+                        ref.read(searchStateProvider.notifier).state =
+                            queryText;
                       },
                       child: Text(
                         queryText,
@@ -332,7 +376,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   ),
                   GestureDetector(
                     onTap: () {
-                      ref.read(searchHistoryProvider.notifier).remove(queryText);
+                      ref
+                          .read(searchHistoryProvider.notifier)
+                          .remove(queryText);
                     },
                     child: Icon(
                       Icons.close_rounded,
@@ -385,7 +431,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                         Icons.tune_rounded,
                         color: filterState.activeFiltersCount > 0
                             ? AppColors.mintAccent
-                            : (isDark ? AppColors.pureWhite : AppColors.neutral900),
+                            : (isDark
+                                  ? AppColors.pureWhite
+                                  : AppColors.neutral900),
                         size: 20.0.r,
                       ),
                       if (filterState.activeFiltersCount > 0)
@@ -446,7 +494,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                     name: file.name,
                     size: file.sizeString,
                     createdDate: 'June 28, 2026, 12:14 PM',
-                    modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                    modifiedDate:
+                        '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
                     type: file.category,
                     themeColor: file.themeColor,
                     fallbackIcon: file.fallbackIcon,
@@ -460,10 +509,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   child: Row(
                     children: [
                       // Document Icon
-                      FileTypeIcon(
-                        extension: file.fileExtension,
-                        size: 44.0.r,
-                      ),
+                      FileTypeIcon(extension: file.fileExtension, size: 44.0.r),
                       SizedBox(width: 14.0.w),
                       Expanded(
                         child: Column(
@@ -498,7 +544,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                             name: file.name,
                             size: file.sizeString,
                             createdDate: 'June 28, 2026, 12:14 PM',
-                            modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                            modifiedDate:
+                                '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
                             type: file.category,
                             themeColor: file.themeColor,
                             fallbackIcon: file.fallbackIcon,
@@ -511,7 +558,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                           padding: EdgeInsets.all(8.0.r),
                           child: Icon(
                             Icons.more_vert,
-                            color: isDark ? AppColors.textSecondaryLight : AppColors.neutral400,
+                            color: isDark
+                                ? AppColors.textSecondaryLight
+                                : AppColors.neutral400,
                             size: 20.0.r,
                           ),
                         ),

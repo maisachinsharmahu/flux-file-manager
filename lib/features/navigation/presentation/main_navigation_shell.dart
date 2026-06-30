@@ -28,15 +28,22 @@ class MainNavigationShell extends ConsumerWidget {
       TrashScreen(), // Index 5
     ];
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      extendBody: true,
-      drawer: const FluxNavigationDrawer(),
-      body: Stack(
-        children: [
-          IndexedStack(index: activeIndex, children: screens),
-          const CopyProgressOverlay(),
-        ],
+    return PopScope(
+      canPop: activeIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        ref.read(activeIndexProvider.notifier).state = 0;
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
+        extendBody: true,
+        drawer: const FluxNavigationDrawer(),
+        body: Stack(
+          children: [
+            IndexedStack(index: activeIndex, children: screens),
+            const CopyProgressOverlay(),
+          ],
+        ),
       ),
     );
   }
