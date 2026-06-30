@@ -403,6 +403,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                               children: [
                                 FileTypeIcon(
                                   extension: file.fileExtension,
+                                  path: file.path,
                                   size: 44.0.r,
                                 ),
                                 SizedBox(width: 16.0.w),

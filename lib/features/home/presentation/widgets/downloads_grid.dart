@@ -185,6 +185,7 @@ class DownloadsGrid extends ConsumerWidget {
                     children: [
                       FileTypeIcon(
                         extension: file.fileExtension,
+                        path: file.path,
                         size: 36.0.r,
                       ),
                       SizedBox(height: 10.0.h),

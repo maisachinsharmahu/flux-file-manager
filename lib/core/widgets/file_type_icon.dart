@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -149,23 +150,48 @@ String fileTypeIconPath(String extension) {
 }
 
 /// A widget that renders the correct colorful file-type icon
-/// for a given file [extension].
-///
-/// The SVGs have a transparent document body, so we wrap them in a
-/// white rounded container to match the original design reference.
-///
-/// Usage:
-/// ```dart
-/// FileTypeIcon(extension: 'pdf', size: 40)
-/// ```
+/// or a memory-efficient thumbnail image for image formats.
 class FileTypeIcon extends StatelessWidget {
   final String extension;
+  final String? path;
   final double size;
 
-  const FileTypeIcon({super.key, required this.extension, this.size = 40});
+  const FileTypeIcon({
+    super.key,
+    required this.extension,
+    this.path,
+    this.size = 40,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isImage = const ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].contains(extension.toLowerCase().trim());
+
+    if (isImage && path != null && path!.isNotEmpty) {
+      // Listing 4.3 layout pattern: strict RGB_565 decodes with 256x256 cacheWidth bounds
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.file(
+          File(path!),
+          width: size,
+          height: size,
+          cacheWidth: 256,
+          cacheHeight: 256,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.low,
+          errorBuilder: (context, error, stackTrace) {
+            // Instant fallback placeholder
+            return SvgPicture.asset(
+              fileTypeIconPath(extension),
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+            );
+          },
+        ),
+      );
+    }
+
     return SvgPicture.asset(
       fileTypeIconPath(extension),
       width: size,
