@@ -26,14 +26,16 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   String _searchQuery = '';
   String _searchScope = 'all'; // 'all', 'local', 'cloud'
   final TextEditingController _searchController = TextEditingController();
+  late final FileFilterNotifier _filterNotifier;
 
   @override
   void initState() {
     super.initState();
+    _filterNotifier = ref.read(fileFilterProvider.notifier);
     if (widget.category != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          ref.read(fileFilterProvider.notifier).setCategories({widget.category!});
+          _filterNotifier.setCategories({widget.category!});
         }
       });
     }
@@ -42,7 +44,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
-    ref.read(fileFilterProvider.notifier).reset();
+    _filterNotifier.reset();
     super.dispose();
   }
 
