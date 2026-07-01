@@ -42,9 +42,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(fileFilterProvider.notifier).reset();
-    });
+    ref.read(fileFilterProvider.notifier).reset();
     super.dispose();
   }
 
