@@ -10,7 +10,7 @@ class ShareHelper {
         ? AppColors.neutral950.withValues(alpha: 0.85) 
         : Colors.white.withValues(alpha: 0.85);
     final textColor = isDark ? Colors.white : AppColors.neutral900;
-    final subtitleColor = isDark ? Colors.white70 : AppColors.neutral500;
+    final subtitleColor = isDark ? Colors.white70 : AppColors.textSecondaryLight;
     final borderColor = isDark 
         ? Colors.white.withValues(alpha: 0.08) 
         : Colors.black.withValues(alpha: 0.05);
@@ -144,7 +144,7 @@ class ShareHelper {
               fontFamily: 'Inter',
               fontSize: 12.0.sp,
               fontWeight: FontWeight.w600,
-              color: AppColors.neutral500,
+              color: AppColors.textSecondaryLight,
             ),
           ),
         ],

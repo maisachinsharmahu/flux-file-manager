@@ -7,7 +7,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../home/presentation/widgets/file_detail_sheet.dart';
 import '../../../core/providers/file_filter_provider.dart';
 import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
-import '../../../core/widgets/flux_icon.dart';
 import '../../../core/widgets/file_type_icon.dart';
 import '../../../../bridge/flux_bridge.dart';
 import '../../../../core/utils/share_helper.dart';
@@ -848,7 +847,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                         backgroundColor: isDark ? AppColors.neutral900 : Colors.white,
                         displacement: 20.h,
                         onRefresh: _handleRefresh,
-                        child: _isLoading
+                        child: (_isLoading
                             ? const Center(
                                 child: CircularProgressIndicator(
                                   color: AppColors.mintAccent,
@@ -946,7 +945,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                                 ),
                                               ),
                                             );
-                                          } else {
                                           } else {
                                             final file = mapToFluxFile(item);
                                             return Dismissible(
@@ -1055,7 +1053,17 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                                   if (_isSelectionMode) {
                                                     _toggleSelection(file.fid!);
                                                   } else {
-                                                    FileDetailSheet.show(context, file);
+                                                    final detail = FileDetail(
+                                                      name: file.name,
+                                                      size: file.sizeString,
+                                                      createdDate: 'June 28, 2026, 12:14 PM',
+                                                      modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                                      type: file.category,
+                                                      themeColor: file.themeColor,
+                                                      fallbackIcon: file.fallbackIcon,
+                                                      fluxIcon: file.fluxIcon,
+                                                    );
+                                                    FileDetailSheet.show(context, detail);
                                                   }
                                                 },
                                                 onLongPress: () {
@@ -1084,8 +1092,9 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                                             size: 22.0.r,
                                                           ),
                                                         ),
-                                                      FileTypeIconWidget(
-                                                        category: file.category,
+                                                      FileTypeIcon(
+                                                        extension: file.fileExtension,
+                                                        path: file.path,
                                                         size: 44.0.r,
                                                       ),
                                                       SizedBox(width: 16.0.w),
@@ -1120,7 +1129,17 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                                       if (!_isSelectionMode)
                                                         GestureDetector(
                                                           onTap: () {
-                                                            FileDetailSheet.show(context, file);
+                                                            final detail = FileDetail(
+                                                              name: file.name,
+                                                              size: file.sizeString,
+                                                              createdDate: 'June 28, 2026, 12:14 PM',
+                                                              modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                                              type: file.category,
+                                                              themeColor: file.themeColor,
+                                                              fallbackIcon: file.fallbackIcon,
+                                                              fluxIcon: file.fluxIcon,
+                                                            );
+                                                            FileDetailSheet.show(context, detail);
                                                           },
                                                           child: Container(
                                                             padding: EdgeInsets.all(8.0.r),
@@ -1385,9 +1404,11 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                         ),
                                       );
                                     },
-                                  ) )),
-                      ),
-                    ),
+                                  ),
+                                ),
+                              ) as Widget,
+                            ),
+                          ),
                   ],
                 ),
                 // Floating scan/layout icon at the bottom right corner
@@ -1426,6 +1447,8 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
           ),
         ),
       ),
+    ),
+    ),
     );
   }
   Widget _buildScopePill({
