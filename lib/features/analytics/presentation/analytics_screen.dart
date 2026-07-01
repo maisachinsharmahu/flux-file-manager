@@ -361,8 +361,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                       children: [
                         GestureDetector(
                           onTap: () {
-                            ref.read(activeIndexProvider.notifier).state =
-                                0; // Back to Home
+                            context.pop();
                           },
                           child: Container(
                             padding: EdgeInsets.all(8.0.r),
