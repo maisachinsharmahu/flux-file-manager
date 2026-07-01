@@ -1178,6 +1178,7 @@ class FluxIndex(private val context: Context) {
      * Searches for matching files using prefix name matching (Radix Trie) or tokens.
      */
     fun search(query: String, limit: Int): List<Map<String, Any>> {
+        val startTime = System.nanoTime()
         val queryLower = query.lowercase().trim()
         if (queryLower.isEmpty()) return emptyList()
 
@@ -1223,6 +1224,8 @@ class FluxIndex(private val context: Context) {
             results.add(record.toMap())
             if (results.size >= limit) break
         }
+        val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
+        Log.d(TAG, "[PERFORMANCE] search: Autocomplete query \"$query\" -> found ${results.size} matches in ${String.format("%.3f", durationMs)} ms")
         return results
     }
 
