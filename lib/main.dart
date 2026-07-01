@@ -22,8 +22,8 @@ void main() async {
   // Pre-initialize SharedPreferences for synchronous state access in providers
   final sharedPreferences = await SharedPreferences.getInstance();
 
-  // Trigger background initialization of the native indices
-  await FluxBridge.initializeIndex();
+  // Trigger background initialization of the native indices asynchronously
+  FluxBridge.initializeIndex();
 
   runApp(
     ProviderScope(

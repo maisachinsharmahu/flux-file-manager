@@ -7,6 +7,7 @@ import 'platform_monitor_provider.dart';
 import '../../features/home/providers/storage_status_provider.dart';
 
 class FluxFile {
+  final int? fid;
   final String name;
   final String path;
   final String
@@ -20,6 +21,7 @@ class FluxFile {
   final Color themeColor;
 
   FluxFile({
+    this.fid,
     required this.name,
     required this.path,
     required this.category,
@@ -239,24 +241,27 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
       'PENDING',
       'Scanning device storage — building 9 composite indexes...',
     );
-    final ok = await FluxBridge.initializeIndex(force: force);
-    if (ok) {
-      ref.read(platformMonitorProvider.notifier).logAction(
-        'initializeIndex',
-        'SUCCESS',
-        '9 composite indexes fully initialized and WAL parsed.',
-      );
-    } else {
-      ref.read(platformMonitorProvider.notifier).logAction(
-        'initializeIndex',
-        'ERROR',
-        'Failed to initialize native indexing engine.',
-      );
-    }
-    await refreshFiles();
-    // Invalidate storageStatusProvider so storage numbers refresh on home screen
-    ref.invalidate(storageStatusProvider);
-    ref.read(isScanInProgressProvider.notifier).state = false;
+    
+    // Run native initialization asynchronously to let the UI start instantly
+    FluxBridge.initializeIndex(force: force).then((ok) async {
+      if (ok) {
+        ref.read(platformMonitorProvider.notifier).logAction(
+          'initializeIndex',
+          'SUCCESS',
+          '9 composite indexes fully initialized and WAL parsed.',
+        );
+      } else {
+        ref.read(platformMonitorProvider.notifier).logAction(
+          'initializeIndex',
+          'ERROR',
+          'Failed to initialize native indexing engine.',
+        );
+      }
+      await refreshFiles();
+      // Invalidate storageStatusProvider so storage numbers refresh on home screen
+      ref.invalidate(storageStatusProvider);
+      ref.read(isScanInProgressProvider.notifier).state = false;
+    });
   }
 
   Future<void> refreshFiles() async {
@@ -286,7 +291,10 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
       else if (category == 'Application') themeColor = const Color(0xFF9013FE);
       else themeColor = const Color(0xFF9E9E9E);
 
+      final fid = (map['fid'] as num? ?? 0).toInt();
+
       return FluxFile(
+        fid: fid,
         name: map['name'] as String? ?? '',
         path: map['path'] as String? ?? '',
         category: category,
@@ -364,7 +372,10 @@ class FilteredFilesNotifier extends StateNotifier<List<FluxFile>> {
       else if (category == 'Application') themeColor = const Color(0xFF9013FE);
       else themeColor = const Color(0xFF9E9E9E);
 
+      final fid = (map['fid'] as num? ?? 0).toInt();
+
       return FluxFile(
+        fid: fid,
         name: map['name'] as String? ?? '',
         path: map['path'] as String? ?? '',
         category: category,

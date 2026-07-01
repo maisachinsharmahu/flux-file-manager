@@ -9,6 +9,7 @@ import 'widgets/recents_list.dart';
 import 'widgets/downloads_grid.dart';
 import 'widgets/smart_cards_list.dart';
 import 'widgets/all_storage_section.dart';
+import 'widgets/home_trash_section.dart';
 import '../../../../core/providers/model_sync_provider.dart';
 import '../../../../core/providers/platform_monitor_provider.dart';
 import '../../../../core/providers/file_filter_provider.dart';
@@ -61,6 +62,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const RecentsList(),
                 const DownloadsGrid(),
                 const AllStorageSection(),
+                const HomeTrashSection(),
                 const QuickAccessGrid(),
                 const SmartCardsList(),
                 SizedBox(height: 12.0.h),

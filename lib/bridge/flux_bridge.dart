@@ -73,6 +73,29 @@ class FluxBridge {
     }
   }
 
+  static Future<List<dynamic>> getTombstones() async {
+    try {
+      final List<dynamic> result = await _methodChannel.invokeMethod('getTombstones');
+      return result;
+    } on PlatformException catch (e) {
+      print('[FluxBridge] Error: getTombstones() -> $e');
+      return [];
+    }
+  }
+
+  static Future<bool> deletePermanently(List<int> fids) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod(
+        'deletePermanently',
+        {'fids': fids},
+      );
+      return result;
+    } on PlatformException catch (e) {
+      print('[FluxBridge] Error: deletePermanently(fids: $fids) -> $e');
+      return false;
+    }
+  }
+
   static Future<Map<dynamic, dynamic>> getStorageStatistics() async {
     try {
       final Map<dynamic, dynamic> result = await _methodChannel.invokeMethod('getStorageStatistics');
@@ -137,20 +160,36 @@ class FluxBridge {
     });
   }
 
-  static Future<Map<String, dynamic>?> generateTestFiles({int count = 1000000, double targetSizeGb = 25.0}) async {
+  static Future<bool> generateTestFiles({int count = 1000000, double targetSizeGb = 25.0}) async {
     try {
-      print('[FluxBridge] Request: generateTestFiles(count: $count, targetSizeGb: $targetSizeGb)');
-      final startTime = DateTime.now();
-      final res = await _methodChannel.invokeMethod('generateTestFiles', {
+      final bool result = await _methodChannel.invokeMethod('generateTestFiles', {
         'count': count,
         'targetSizeGb': targetSizeGb,
       });
-      final elapsed = DateTime.now().difference(startTime).inSeconds;
-      print('[FluxBridge] Response: generateTestFiles() -> Success, generated ${res["filesCreated"]} files in ${elapsed}s');
-      return Map<String, dynamic>.from(res);
+      return result;
     } catch (e) {
       print('[FluxBridge] Error: generateTestFiles() -> $e');
-      return null;
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>> getFileGenerationStatus() async {
+    try {
+      final Map<dynamic, dynamic> res = await _methodChannel.invokeMethod('getFileGenerationStatus');
+      return Map<String, dynamic>.from(res);
+    } catch (e) {
+      print('[FluxBridge] Error: getFileGenerationStatus() -> $e');
+      return {'isGenerating': false, 'progressPercent': 0, 'filesCreated': 0, 'totalCount': 1000000};
+    }
+  }
+
+  static Future<bool> cancelFileGeneration() async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('cancelFileGeneration');
+      return result;
+    } catch (e) {
+      print('[FluxBridge] Error: cancelFileGeneration() -> $e');
+      return false;
     }
   }
 

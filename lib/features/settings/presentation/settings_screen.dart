@@ -51,62 +51,73 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       _isGenerating = true;
     });
 
-    showDialog(
+    final bool started = await FluxBridge.generateTestFiles(count: 1000000, targetSizeGb: 25.0);
+    
+    if (!started) {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0.r)),
+            title: const Text('Generation Failed', style: TextStyle(color: Colors.white)),
+            content: const Text('Failed to start the background file generation service. Please check storage permissions.', style: TextStyle(color: Colors.white70)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK', style: TextStyle(color: Colors.amber)),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
+    bool wasCanceled = false;
+
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => WillPopScope(
         onWillPop: () async => false,
-        child: AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0.r)),
-          title: Row(
-            children: [
-              SizedBox(
-                width: 24.0.r,
-                height: 24.0.r,
-                child: const CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
-                ),
-              ),
-              SizedBox(width: 16.0.w),
-              Expanded(
-                child: Text(
-                  'Generating Files...',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 16.0.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            'Creating 1,000,000 unique dummy files (~25 GB) in the app sandbox. This will take ~45-60 seconds. Progress logs are streaming in Android Debug Console.',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13.0.sp,
-              color: Colors.white70,
-            ),
-          ),
+        child: _FileGenerationDialog(
+          onCancel: () async {
+            wasCanceled = true;
+            await FluxBridge.cancelFileGeneration();
+          },
         ),
       ),
     );
 
-    final result = await FluxBridge.generateTestFiles(count: 1000000, targetSizeGb: 25.0);
-    
     if (mounted) {
-      Navigator.of(context).pop(); // dismiss loading dialog
       setState(() {
         _isGenerating = false;
       });
 
-      if (result != null) {
-        // Trigger a force reload of all files inside index so we pick them up instantly!
-        ref.read(allFilesProvider.notifier).initAndLoad(force: true);
+      // Trigger a force reload of all files inside index so we pick them up instantly!
+      ref.read(allFilesProvider.notifier).initAndLoad(force: true);
 
+      if (wasCanceled) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0.r)),
+            title: const Text('Generation Stopped', style: TextStyle(color: Colors.white)),
+            content: const Text('File generation was stopped by user request. Partial files remain and can be cleared.', style: TextStyle(color: Colors.white70)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK', style: TextStyle(color: Colors.amber)),
+              ),
+            ],
+          ),
+        );
+      } else {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -128,7 +139,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ],
             ),
             content: Text(
-              'Successfully generated ${result["filesCreated"]} dummy files inside sandbox in ${result["durationSeconds"].toStringAsFixed(1)} seconds.',
+              'Successfully generated 1,000,000 dummy files inside storage directory /sdcard/flux_test_files/.',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 13.0.sp,
@@ -139,22 +150,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('OK', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        );
-      } else {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF1E1E1E),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0.r)),
-            title: const Text('Generation Failed', style: TextStyle(color: Colors.white)),
-            content: const Text('An error occurred during file generation. Please verify device disk space.', style: TextStyle(color: Colors.white70)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK', style: TextStyle(color: Colors.amber)),
               ),
             ],
           ),
@@ -354,6 +349,154 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           letterSpacing: 1.2,
         ),
       ),
+    );
+  }
+}
+
+class _FileGenerationDialog extends StatefulWidget {
+  final VoidCallback onCancel;
+
+  const _FileGenerationDialog({Key? key, required this.onCancel}) : super(key: key);
+
+  @override
+  State<_FileGenerationDialog> createState() => _FileGenerationDialogState();
+}
+
+class _FileGenerationDialogState extends State<_FileGenerationDialog> {
+  int _progressPercent = 0;
+  int _filesCreated = 0;
+  bool _isPolled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _isPolled = false;
+    super.dispose();
+  }
+
+  void _startPolling() async {
+    while (_isPolled && mounted) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!_isPolled || !mounted) break;
+      
+      final status = await FluxBridge.getFileGenerationStatus();
+      final isGenerating = status['isGenerating'] ?? false;
+      
+      if (mounted) {
+        setState(() {
+          _progressPercent = status['progressPercent'] ?? 0;
+          _filesCreated = status['filesCreated'] ?? 0;
+        });
+      }
+      
+      if (!isGenerating) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        break;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0.r)),
+      title: Row(
+        children: [
+          SizedBox(
+            width: 24.0.r,
+            height: 24.0.r,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              value: _progressPercent > 0 ? _progressPercent / 100.0 : null,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+            ),
+          ),
+          SizedBox(width: 16.0.w),
+          Expanded(
+            child: Text(
+              'Generating 1M Files...',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 16.0.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Creating 1,000,000 unique files (~25 GB) in local storage (/sdcard/flux_test_files/). This continues in the background even if you open another app.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13.0.sp,
+              color: Colors.white70,
+            ),
+          ),
+          SizedBox(height: 16.0.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Progress: $_progressPercent%',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12.0.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber,
+                ),
+              ),
+              Text(
+                '$_filesCreated / 1,000,000 files',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12.0.sp,
+                  color: Colors.white60,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.0.h),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4.0.r),
+            child: LinearProgressIndicator(
+              value: _progressPercent / 100.0,
+              backgroundColor: Colors.white10,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+              minHeight: 6.0.h,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            widget.onCancel();
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          },
+          child: const Text(
+            'Cancel & Stop',
+            style: TextStyle(
+              color: Colors.redAccent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

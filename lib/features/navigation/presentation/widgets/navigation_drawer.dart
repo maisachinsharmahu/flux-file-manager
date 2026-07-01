@@ -34,6 +34,7 @@ class FluxNavigationDrawer extends ConsumerWidget {
       {'index': 3, 'title': 'Photos', 'category': 'Photos', 'icon': Icons.image_outlined},
       {'index': 3, 'title': 'Videos', 'category': 'Videos', 'icon': Icons.play_circle_outline},
       {'index': 0, 'title': 'Recent', 'category': null, 'icon': Icons.access_time_rounded},
+      {'index': 4, 'title': 'Trash', 'category': null, 'icon': Icons.delete_outline_rounded},
     ];
 
     return Drawer(
@@ -104,6 +105,8 @@ class FluxNavigationDrawer extends ConsumerWidget {
                                 context.push('/browser');
                               } else if (title == 'Recent') {
                                 context.push('/all_files?title=Recent Uploads');
+                              } else if (title == 'Trash') {
+                                context.push('/trash');
                               }
                             },
                             borderRadius: BorderRadius.circular(12.0.r),

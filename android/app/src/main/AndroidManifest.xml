@@ -40,6 +40,11 @@
             android:name=".ModelDownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <!-- FileGenerationService: foreground service for persistent background 1M test files creation. -->
+        <service
+            android:name=".FileGenerationService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

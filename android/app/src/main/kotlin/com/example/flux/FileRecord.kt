@@ -31,6 +31,26 @@ object StringPool {
         if (len <= 0) return ""
         return String(buffer, startOffset, len.toInt(), StandardCharsets.UTF_8)
     }
+
+    @Synchronized
+    fun writeTo(dos: java.io.DataOutputStream) {
+        dos.writeInt(offset)
+        dos.write(buffer, 0, offset)
+    }
+
+    @Synchronized
+    fun readFrom(dis: java.io.DataInputStream) {
+        offset = dis.readInt()
+        if (offset > buffer.size) {
+            buffer = ByteArray(offset * 2)
+        }
+        dis.readFully(buffer, 0, offset)
+    }
+
+    @Synchronized
+    fun clear() {
+        offset = 0
+    }
 }
 
 /**
@@ -59,6 +79,34 @@ object MimeTable {
     fun getMime(idx: Short): String {
         if (idx < 0 || idx >= mimeList.size) return "application/octet-stream"
         return mimeList[idx.toInt()]
+    }
+
+    @Synchronized
+    fun writeTo(dos: java.io.DataOutputStream) {
+        dos.writeInt(mimeList.size)
+        for (mime in mimeList) {
+            dos.writeUTF(mime)
+        }
+    }
+
+    @Synchronized
+    fun readFrom(dis: java.io.DataInputStream) {
+        mimeList.clear()
+        mimeMap.clear()
+        val size = dis.readInt()
+        for (i in 0 until size) {
+            val mime = dis.readUTF()
+            mimeList.add(mime)
+            mimeMap[mime] = i.toShort()
+        }
+    }
+
+    @Synchronized
+    fun clear() {
+        mimeList.clear()
+        mimeMap.clear()
+        getIndex("directory")
+        getIndex("application/octet-stream")
     }
 }
 
@@ -191,7 +239,10 @@ data class FileRecord(
         return String.format("%.1f %sB", bytes / Math.pow(1000.0, exp.toDouble()), pre)
     }
 
-    private fun getCategoryFromMime(mime: String, filename: String): String {
+    val category: String
+        get() = getCategoryFromMime(mimeType, name)
+
+    fun getCategoryFromMime(mime: String, filename: String): String {
         if (mime == "directory") return "Directory"
         val ext = filename.substringAfterLast('.', "").lowercase()
         return when {

@@ -141,6 +141,15 @@ class MainActivity : FlutterActivity() {
                             val success = fluxIndex.restoreBatch(fids)
                             runOnUiThread { result.success(success) }
                         }
+                        "getTombstones" -> {
+                            val tombstones = fluxIndex.getTombstones()
+                            runOnUiThread { result.success(tombstones) }
+                        }
+                        "deletePermanently" -> {
+                            val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
+                            val success = fluxIndex.deletePermanently(fids)
+                            runOnUiThread { result.success(success) }
+                        }
                         "requestUsageStatsPermission" -> {
                             checkAndRequestUsageStatsPermission()
                             runOnUiThread { result.success(true) }
@@ -189,61 +198,38 @@ class MainActivity : FlutterActivity() {
                         "generateTestFiles" -> {
                              val count = call.argument<Int>("count") ?: 1000000
                              val targetSizeGb = call.argument<Double>("targetSizeGb") ?: 25.0
-                             java.util.concurrent.ForkJoinPool.commonPool().execute {
-                                 try {
-                                     val filesDir = java.io.File(android.os.Environment.getExternalStorageDirectory(), "flux_test_files")
-                                     if (!filesDir.exists()) {
-                                         filesDir.mkdirs()
-                                     }
-                                     Log.d("FLUX_TEST", "=== Generating $count test files (~$targetSizeGb GB) inside public folder /sdcard/flux_test_files/ ===")
-                                     val start = System.currentTimeMillis()
-                                     
-                                     val targetBytes = (targetSizeGb * 1024 * 1024 * 1024).toLong()
-                                     val avgFileBytes = targetBytes / count
-                                     val buffer = ByteArray(avgFileBytes.toInt().coerceAtLeast(16))
-                                     
-                                     val extensions = listOf("jpg", "png", "mp4", "mp3", "pdf", "docx", "txt", "zip", "apk")
-                                     val folders = listOf("Photos", "Videos", "Documents", "Audio", "Downloads", "Others", "Games", "System")
-                                     
-                                     // Pre-create subdirectories
-                                     for (folder in folders) {
-                                         java.io.File(filesDir, folder).mkdirs()
-                                     }
-                                     Log.d("FLUX_TEST", "Directory structure pre-created. Beginning file generation loop...")
-                                     
-                                     var bytesWritten = 0L
-                                     var filesCreated = 0
-                                     
-                                     for (i in 1..count) {
-                                         val folder = folders[i % folders.size]
-                                         val ext = extensions[i % extensions.size]
-                                         val subDir = java.io.File(filesDir, folder)
-                                         val file = java.io.File(subDir, "test_file_${i}.${ext}")
-                                         
-                                         // Put the index 'i' at the start of buffer to ensure unique checksums
-                                         val fileIndexBytes = i.toString().toByteArray()
-                                         java.io.FileOutputStream(file).use { fos ->
-                                             fos.write(fileIndexBytes)
-                                             if (buffer.size > fileIndexBytes.size) {
-                                                 fos.write(buffer, 0, buffer.size - fileIndexBytes.size)
-                                             }
-                                         }
-                                         bytesWritten += buffer.size
-                                         filesCreated++
-                                         
-                                         if (filesCreated % 5000 == 0) {
-                                             val elapsed = (System.currentTimeMillis() - start) / 1000.0
-                                             Log.d("FLUX_TEST", "Progress: Generated $filesCreated files (${bytesWritten / (1024*1024)} MB written) in ${String.format("%.1f", elapsed)}s")
-                                         }
-                                     }
-                                     
-                                     val totalDuration = (System.currentTimeMillis() - start) / 1000.0
-                                     Log.d("FLUX_TEST", "=== Success: Generated $filesCreated files (${bytesWritten / (1024*1024)} MB) in ${String.format("%.1f", totalDuration)}s ===")
-                                     runOnUiThread { result.success(mapOf("filesCreated" to filesCreated, "durationSeconds" to totalDuration)) }
-                                 } catch (e: Exception) {
-                                     Log.e("FLUX_TEST", "Generation failed: ${e.message}")
-                                     runOnUiThread { result.error("ERROR", e.message, null) }
+                             try {
+                                 val intent = Intent(this@MainActivity, FileGenerationService::class.java).apply {
+                                     action = FileGenerationService.ACTION_START
+                                     putExtra("count", count)
+                                     putExtra("targetSizeGb", targetSizeGb)
                                  }
+                                 startForegroundService(intent)
+                                 runOnUiThread { result.success(true) }
+                             } catch (e: Exception) {
+                                 Log.e("FLUX_TEST", "Failed starting generation service: ${e.message}")
+                                 runOnUiThread { result.error("ERROR", e.message, null) }
+                             }
+                         }
+                         "getFileGenerationStatus" -> {
+                             runOnUiThread {
+                                 result.success(mapOf(
+                                     "isGenerating" to FileGenerationService.isGenerating,
+                                     "progressPercent" to FileGenerationService.progressPercent,
+                                     "filesCreated" to FileGenerationService.filesCreated,
+                                     "totalCount" to FileGenerationService.totalCount
+                                 ))
+                             }
+                         }
+                         "cancelFileGeneration" -> {
+                             try {
+                                 val intent = Intent(this@MainActivity, FileGenerationService::class.java).apply {
+                                     action = FileGenerationService.ACTION_CANCEL
+                                 }
+                                 startService(intent)
+                                 runOnUiThread { result.success(true) }
+                             } catch (e: Exception) {
+                                 runOnUiThread { result.error("ERROR", e.message, null) }
                              }
                          }
                         "clearTestFiles" -> {
