@@ -13,10 +13,13 @@ class AllStorageSection extends ConsumerWidget {
 
   String _formatSize(int bytes) {
     if (bytes <= 0) return '0 B';
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+    if (bytes < 1000) return '$bytes B';
+    final double kb = bytes / 1000.0;
+    if (kb < 1000.0) return '${kb.toStringAsFixed(1)} KB';
+    final double mb = kb / 1000.0;
+    if (mb < 1000.0) return '${mb.toStringAsFixed(1)} MB';
+    final double gb = mb / 1000.0;
+    return '${gb.toStringAsFixed(1)} GB';
   }
 
   @override
@@ -42,10 +45,14 @@ class AllStorageSection extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (err, stack) => const SizedBox.shrink(),
       data: (data) {
-        final totalStorage = data['totalStorage'] as int? ?? 128 * 1024 * 1024 * 1024;
+        final totalStorage = data['totalStorage'] as int? ?? 128 * 1000 * 1000 * 1000;
         final totalUsed = data['totalUsed'] as int? ?? 0;
+        final hasSecondary = data['hasSecondary'] as bool? ?? false;
+        final secondaryTotal = data['secondaryTotal'] as int? ?? 0;
+        final secondaryUsed = data['secondaryUsed'] as int? ?? 0;
 
         final internalProgress = totalStorage > 0 ? (totalUsed / totalStorage) : 0.0;
+        final secondaryProgress = secondaryTotal > 0 ? (secondaryUsed / secondaryTotal) : 0.0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,83 +149,85 @@ class AllStorageSection extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  SizedBox(width: 14.0.w),
-                  // Other Storage Card (SD Card placeholder)
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        // Other storage clicked
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20.0.r),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                          child: Container(
-                            padding: EdgeInsets.all(16.0.r),
-                            decoration: BoxDecoration(
-                              color: cardBgColor,
-                              borderRadius: BorderRadius.circular(20.0.r),
-                              border: Border.all(color: borderColor, width: 1.2.r),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    StorageCategoryIconWidget(
-                                      icon: StorageCategoryIcon.sdCard,
-                                      size: 36.0.r,
+                  if (hasSecondary) ...[
+                    SizedBox(width: 14.0.w),
+                    // Removable SD Card Card
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          // SD Card browsable if navigated
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20.0.r),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                            child: Container(
+                              padding: EdgeInsets.all(16.0.r),
+                              decoration: BoxDecoration(
+                                color: cardBgColor,
+                                borderRadius: BorderRadius.circular(20.0.r),
+                                border: Border.all(color: borderColor, width: 1.2.r),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      StorageCategoryIconWidget(
+                                        icon: StorageCategoryIcon.sdCard,
+                                        size: 36.0.r,
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 12.0.r,
+                                        color: subtitleColor,
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 14.0.h),
+                                  Text(
+                                    'SD Card',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 14.0.sp,
+                                      fontWeight: FontWeight.w700,
+                                      color: titleColor,
                                     ),
-                                    Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 12.0.r,
+                                  ),
+                                  SizedBox(height: 4.0.h),
+                                  Text(
+                                    '${_formatSize(secondaryUsed)} / ${_formatSize(secondaryTotal)}',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12.0.sp,
+                                      fontWeight: FontWeight.w500,
                                       color: subtitleColor,
                                     ),
-                                  ],
-                                ),
-                                SizedBox(height: 14.0.h),
-                                Text(
-                                  'Other Storage',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 14.0.sp,
-                                    fontWeight: FontWeight.w700,
-                                    color: titleColor,
                                   ),
-                                ),
-                                SizedBox(height: 4.0.h),
-                                Text(
-                                  '0.0 GB / 64.0 GB',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 12.0.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: subtitleColor,
-                                  ),
-                                ),
-                                SizedBox(height: 12.0.h),
-                                // Mini Progress Bar
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(4.0.r),
-                                  child: LinearProgressIndicator(
-                                    value: 0.0,
-                                    minHeight: 4.0.h,
-                                    backgroundColor: isDark
-                                        ? Colors.white10
-                                        : Colors.black.withValues(alpha: 0.05),
-                                    valueColor: const AlwaysStoppedAnimation<Color>(
-                                      Color(0xFFA020F0),
+                                  SizedBox(height: 12.0.h),
+                                  // Mini Progress Bar
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4.0.r),
+                                    child: LinearProgressIndicator(
+                                      value: secondaryProgress,
+                                      minHeight: 4.0.h,
+                                      backgroundColor: isDark
+                                          ? Colors.white10
+                                          : Colors.black.withValues(alpha: 0.05),
+                                      valueColor: const AlwaysStoppedAnimation<Color>(
+                                        Color(0xFFA020F0),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

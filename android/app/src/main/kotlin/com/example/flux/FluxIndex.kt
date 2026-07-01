@@ -971,6 +971,44 @@ class FluxIndex(private val context: Context) {
             adjustedOthersSize = maxOf(0L, totalUsed - sumExcludingOthers)
         }
 
+        var hasSecondary = false
+        var secondaryTotal = 0L
+        var secondaryUsed = 0L
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            try {
+                val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as? android.os.storage.StorageManager
+                if (storageManager != null) {
+                    for (volume in storageManager.storageVolumes) {
+                        if (volume.isRemovable) {
+                            val state = volume.state
+                            if (state == android.os.Environment.MEDIA_MOUNTED || state == android.os.Environment.MEDIA_MOUNTED_READ_ONLY) {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                    val dir = volume.directory
+                                    if (dir != null && dir.exists()) {
+                                        secondaryTotal = dir.totalSpace
+                                        secondaryUsed = dir.totalSpace - dir.usableSpace
+                                        hasSecondary = true
+                                    }
+                                } else {
+                                    val externalDirs = context.getExternalFilesDirs(null)
+                                    for (d in externalDirs) {
+                                        if (d != null && d.absolutePath.contains(volume.uuid ?: "impossible_uuid_string")) {
+                                            secondaryTotal = d.totalSpace
+                                            secondaryUsed = d.totalSpace - d.usableSpace
+                                            hasSecondary = true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to query secondary storage: ${e.message}")
+            }
+        }
+
         val statsMap = mapOf(
             "totalStorage" to totalStorage,
             "totalUsed" to totalUsed,
@@ -986,7 +1024,10 @@ class FluxIndex(private val context: Context) {
             "Others" to adjustedOthersSize,
             "scanDurationMs" to scanDurationMs,
             "indexDurationMs" to indexDurationMs,
-            "fileCount" to fileCount
+            "fileCount" to fileCount,
+            "hasSecondary" to hasSecondary,
+            "secondaryTotal" to secondaryTotal,
+            "secondaryUsed" to secondaryUsed
         )
         cachedStats = statsMap
         return statsMap
