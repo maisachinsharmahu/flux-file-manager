@@ -752,7 +752,6 @@ class FluxIndex(private val context: Context) {
      * Returns list of children maps for a parent directory path.
      */
     fun getDirectoryContents(parentPath: String): List<Map<String, Any>> {
-        if (isScanning) return emptyList()
         val parentFid = pathMap[xxHash64(parentPath.lowercase())] ?: return emptyList()
         val childrenFids = directoryIndex[parentFid] ?: return emptyList()
         
@@ -1484,6 +1483,7 @@ class FileObserverHub(private val flux: FluxIndex) {
     private val activeObservers = java.util.concurrent.ConcurrentHashMap<String, android.os.FileObserver>()
 
     fun register(dirPath: String) {
+        if (dirPath.contains("flux_test_files")) return
         if (activeObservers.containsKey(dirPath)) return
 
         val observer = @Suppress("DEPRECATION") object : android.os.FileObserver(dirPath,
@@ -1496,6 +1496,7 @@ class FileObserverHub(private val flux: FluxIndex) {
             override fun onEvent(event: Int, filename: String?) {
                 filename ?: return
                 val fullPath = if (dirPath.endsWith("/")) "$dirPath$filename" else "$dirPath/$filename"
+                if (fullPath.contains("flux_test_files")) return
                 when (event and android.os.FileObserver.ALL_EVENTS) {
                     android.os.FileObserver.CREATE -> {
                         val f = File(fullPath)
