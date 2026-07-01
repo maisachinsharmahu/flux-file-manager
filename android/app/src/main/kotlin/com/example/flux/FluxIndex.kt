@@ -50,6 +50,12 @@ class FluxIndex(private val context: Context) {
     // Index 1: Path Map (xxHash64(path) -> FID)
     val pathMap = ConcurrentHashMap<Long, Long>()
 
+    // Index 2: Name Trie (autocomplete)
+    val nameTrie = RadixTrie()
+
+    // Dual-trie setup: tokenTrie (prefix searching on tokens)
+    val tokenTrie = RadixTrie()
+
     // Index 3: Token Index
     val tokenIndex = ConcurrentHashMap<String, BitSet>()
 
@@ -250,6 +256,8 @@ class FluxIndex(private val context: Context) {
                         directoryIndex.clear()
                         typeBuckets.clear()
                         tokenIndex.clear()
+                        nameTrie.clear()
+                        tokenTrie.clear()
                         deletionSet.clear()
                         
                         for (i in 0 until activeLimit) {
@@ -269,10 +277,12 @@ class FluxIndex(private val context: Context) {
                             
                             val isTestFile = record.path.contains("flux_test_files")
                             if (!isTestFile && !record.isDeleted && !record.isDirectory) {
+                                nameTrie.insert(record.name, record.fid)
                                 val tokens = tokenize(record.name)
                                 for (token in tokens) {
                                     val matches = tokenIndex.getOrPut(token) { BitSet(1024) }
                                     matches.set(record.fid.toInt())
+                                    tokenTrie.insert(token, record.fid)
                                 }
                             }
                         }
@@ -552,10 +562,14 @@ class FluxIndex(private val context: Context) {
         val isTestFile = record.path.contains("flux_test_files")
 
         if (!isTestFile) {
-            // Index 3: Token Index
+            // Index 2: Name Trie
+            nameTrie.insert(record.name, record.fid)
+
+            // Index 3: Token Index & Token Trie
             val tokens = tokenize(record.name)
             for (token in tokens) {
                 tokenIndex.getOrPut(token) { BitSet() }.set(record.fid.toInt())
+                tokenTrie.insert(token, record.fid)
             }
         }
 
@@ -1041,15 +1055,13 @@ class FluxIndex(private val context: Context) {
         val hasQuery = queryLower.isNotEmpty()
 
         if (hasQuery) {
-            // 1. Exact/prefix matches from memory search
-            for (i in 0 until masterIndex.size) {
-                val record = masterIndex[i]
-                if (record != FileRecord.EMPTY && !record.isDeleted && !record.path.contains("flux_test_files")) {
-                    if (record.name.startsWith(queryLower, ignoreCase = true)) {
-                        matchingFids.add(record.fid)
-                    }
-                }
-            }
+            // 1. Exact/prefix matches from RadixTrie
+            val nameMatches = nameTrie.searchPrefix(queryLower)
+            matchingFids.addAll(nameMatches)
+
+            // 2. Mid-word/token prefix matches from tokenTrie
+            val tokenTrieMatches = tokenTrie.searchPrefix(queryLower)
+            matchingFids.addAll(tokenTrieMatches)
 
             // 2. Tokenized matches from tokenIndex
             val queryTokens = tokenize(queryLower)
@@ -1171,15 +1183,13 @@ class FluxIndex(private val context: Context) {
 
         val matchingFids = mutableSetOf<Long>()
 
-        // 1. Try exact/prefix matches from memory search
-        for (i in 0 until masterIndex.size) {
-            val record = masterIndex[i]
-            if (record != FileRecord.EMPTY && !record.isDeleted && !record.path.contains("flux_test_files")) {
-                if (record.name.startsWith(queryLower, ignoreCase = true)) {
-                    matchingFids.add(record.fid)
-                }
-            }
-        }
+        // 1. Try exact/prefix matches from RadixTrie
+        val nameMatches = nameTrie.searchPrefix(queryLower)
+        matchingFids.addAll(nameMatches)
+
+        // 2. Try mid-word/token prefix matches from tokenTrie
+        val tokenTrieMatches = tokenTrie.searchPrefix(queryLower)
+        matchingFids.addAll(tokenTrieMatches)
 
         // 2. Try tokenized matches
         val queryTokens = tokenize(queryLower)
@@ -1256,6 +1266,8 @@ class FluxIndex(private val context: Context) {
 
     fun evictWarmStore() {
         checksumMap.clear()
+        nameTrie.clear()
+        tokenTrie.clear()
         sizeIndex.clear()
         timeIndex.clear()
     }
