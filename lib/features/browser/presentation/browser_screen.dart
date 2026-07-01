@@ -10,6 +10,8 @@ import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
 import '../../../core/widgets/flux_icon.dart';
 import '../../../core/widgets/file_type_icon.dart';
 import '../../../../bridge/flux_bridge.dart';
+import '../../../../core/utils/share_helper.dart';
+import '../../../core/providers/trash_provider.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
   const BrowserScreen({Key? key}) : super(key: key);
@@ -34,6 +36,111 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
   List<dynamic> _currentContents = [];
   bool _isLoading = false;
   late final FileFilterNotifier _filterNotifier;
+
+  bool _isSelectionMode = false;
+  final Set<int> _selectedFids = {};
+  double? _dragStartHeight;
+
+  void _toggleSelection(int fid) {
+    setState(() {
+      if (_selectedFids.contains(fid)) {
+        _selectedFids.remove(fid);
+        if (_selectedFids.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedFids.add(fid);
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedFiles(List<dynamic> itemsList, List<FluxFile> currentFileList, bool isFolderList) async {
+    final List<int> fids = [];
+    final List<String> fileNames = [];
+
+    if (isFolderList) {
+      final selectedItems = itemsList.where((item) {
+        final fid = (item['fid'] as num?)?.toInt();
+        return fid != null && _selectedFids.contains(fid);
+      }).toList();
+      for (final item in selectedItems) {
+        fids.add((item['fid'] as num).toInt());
+        fileNames.add(item['name'] as String);
+      }
+    } else {
+      final selectedItems = currentFileList.where((f) => f.fid != null && _selectedFids.contains(f.fid)).toList();
+      for (final f in selectedItems) {
+        fids.add(f.fid!);
+        fileNames.add(f.name);
+      }
+    }
+
+    if (fids.isEmpty) return;
+
+    final success = await FluxBridge.executeBatchDelete(fids);
+    if (success) {
+      ref.read(trashProvider.notifier).refreshTrash();
+      await _loadDirectoryContents();
+
+      setState(() {
+        _isSelectionMode = false;
+        _selectedFids.clear();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            fids.length == 1
+                ? 'Moved "${fileNames.first}" to Trash'
+                : 'Moved ${fids.length} files to Trash',
+            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
+          ),
+          backgroundColor: AppColors.neutral900,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.0.r),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
+          action: SnackBarAction(
+            label: 'UNDO',
+            textColor: AppColors.mintAccent,
+            onPressed: () async {
+              final restored = await FluxBridge.restoreTombstones(fids);
+              if (restored) {
+                ref.read(trashProvider.notifier).refreshTrash();
+                await _loadDirectoryContents();
+              }
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  void _shareSelectedFiles(List<dynamic> itemsList, List<FluxFile> currentFileList, bool isFolderList) {
+    final List<String> selectedNames = [];
+
+    if (isFolderList) {
+      final selectedItems = itemsList.where((item) {
+        final fid = (item['fid'] as num?)?.toInt();
+        return fid != null && _selectedFids.contains(fid);
+      }).toList();
+      for (final item in selectedItems) {
+        selectedNames.add(item['name'] as String);
+      }
+    } else {
+      final selectedItems = currentFileList.where((f) => f.fid != null && _selectedFids.contains(f.fid)).toList();
+      for (final f in selectedItems) {
+        selectedNames.add(f.name);
+      }
+    }
+
+    if (selectedNames.isEmpty) return;
+    
+    ShareHelper.showShareSheet(context, selectedNames);
+    setState(() {
+      _isSelectionMode = false;
+      _selectedFids.clear();
+    });
+  }
 
   @override
   void initState() {
@@ -117,6 +224,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
   }
 
   Future<void> _handleRefresh() async {
+    await FluxBridge.initializeIndex(force: true);
     await _loadDirectoryContents();
     if (mounted) {
       _controller.forward(from: 0.0);
@@ -219,18 +327,34 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
       }
     }
 
-    return PopScope(
-      canPop: activeCategory == null && _pathHistory.isEmpty,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (activeCategory != null) {
-          ref.read(selectedBrowserCategoryProvider.notifier).state = null;
-        } else {
-          _navigateBack();
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragStart: (details) {
+        _dragStartHeight = details.globalPosition.dy;
+      },
+      onVerticalDragEnd: (details) {
+        if (_dragStartHeight != null &&
+            MediaQuery.of(context).size.height - _dragStartHeight! < 120) {
+          if (details.primaryVelocity != null && details.primaryVelocity! < -200) {
+            setState(() {
+              _isSearching = true;
+              _searchScope = 'local';
+            });
+          }
         }
       },
-      child: Scaffold(
-        backgroundColor: bgColor,
+      child: PopScope(
+        canPop: activeCategory == null && _pathHistory.isEmpty,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (activeCategory != null) {
+            ref.read(selectedBrowserCategoryProvider.notifier).state = null;
+          } else {
+            _navigateBack();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: bgColor,
         body: SafeArea(
           child: FadeTransition(
             opacity: _opacityAnimation,
@@ -256,166 +380,286 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                             ),
                           );
                         },
-                        child: _isSearching
+                        child: _isSelectionMode
                             ? Padding(
-                                key: const ValueKey('searchHeader'),
+                                key: const ValueKey('selectionHeader'),
                                 padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
                                 child: Row(
                                   children: [
                                     GestureDetector(
                                       onTap: () {
                                         setState(() {
-                                          _isSearching = false;
-                                          _searchQuery = '';
-                                          _searchController.clear();
+                                          _isSelectionMode = false;
+                                          _selectedFids.clear();
                                         });
                                       },
                                       child: Container(
                                         padding: EdgeInsets.all(8.0.r),
                                         child: Icon(
-                                          Icons.arrow_back_ios_new,
-                                          size: 20.0.r,
+                                          Icons.close_rounded,
+                                          size: 24.0.r,
                                           color: iconColor,
                                         ),
                                       ),
                                     ),
                                     SizedBox(width: 8.0.w),
-                                    Expanded(
-                                      child: Container(
-                                        height: 40.0.h,
-                                        decoration: BoxDecoration(
-                                          color: isDark
-                                              ? Colors.white.withValues(alpha: 0.05)
-                                              : Colors.black.withValues(alpha: 0.03),
-                                          borderRadius: BorderRadius.circular(20.0.r),
+                                    Text(
+                                      '${_selectedFids.length} selected',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 20.0.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    // Select/Deselect All
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          // Gather all selectable FIDs in current view
+                                          final List<int> selectableFids = [];
+                                          if (isFolderList) {
+                                            for (final item in displayedContents) {
+                                              final category = item['category'] as String? ?? 'Others';
+                                              final fid = (item['fid'] as num?)?.toInt();
+                                              if (category != 'Directory' && fid != null) {
+                                                selectableFids.add(fid);
+                                              }
+                                            }
+                                          } else {
+                                            for (final file in currentFileList) {
+                                              if (file.fid != null) {
+                                                selectableFids.add(file.fid!);
+                                              }
+                                            }
+                                          }
+
+                                          if (_selectedFids.length == selectableFids.length) {
+                                            _selectedFids.clear();
+                                            _isSelectionMode = false;
+                                          } else {
+                                            _selectedFids.addAll(selectableFids);
+                                          }
+                                        });
+                                      },
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8.0.w),
+                                        child: Icon(
+                                          // Simple length comparison to toggle Select All icon
+                                          (() {
+                                            final List<int> selectableFids = [];
+                                            if (isFolderList) {
+                                              for (final item in displayedContents) {
+                                                final category = item['category'] as String? ?? 'Others';
+                                                final fid = (item['fid'] as num?)?.toInt();
+                                                if (category != 'Directory' && fid != null) {
+                                                  selectableFids.add(fid);
+                                                }
+                                              }
+                                            } else {
+                                              for (final file in currentFileList) {
+                                                if (file.fid != null) {
+                                                  selectableFids.add(file.fid!);
+                                                }
+                                              }
+                                            }
+                                            return _selectedFids.length == selectableFids.length
+                                                ? Icons.deselect_rounded
+                                                : Icons.select_all_rounded;
+                                          })(),
+                                          size: 24.0.r,
+                                          color: iconColor,
                                         ),
-                                        padding: EdgeInsets.symmetric(horizontal: 16.0.w),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.search,
-                                              size: 18.0.r,
-                                              color: subtitleColor,
-                                            ),
-                                            SizedBox(width: 8.0.w),
-                                            Expanded(
-                                              child: TextField(
-                                                controller: _searchController,
-                                                autofocus: true,
-                                                onChanged: (val) {
-                                                  setState(() {
-                                                    _searchQuery = val;
-                                                  });
-                                                },
-                                                style: TextStyle(
-                                                  fontFamily: 'Inter',
-                                                  fontSize: 14.0.sp,
-                                                  color: textColor,
-                                                ),
-                                                decoration: InputDecoration(
-                                                  hintText: 'Search...',
-                                                  hintStyle: TextStyle(
-                                                    fontFamily: 'Inter',
-                                                    fontSize: 14.0.sp,
-                                                    color: subtitleColor,
-                                                  ),
-                                                  border: InputBorder.none,
-                                                  isDense: true,
-                                                  contentPadding: EdgeInsets.zero,
-                                                ),
-                                              ),
-                                            ),
-                                            if (_searchQuery.isNotEmpty)
-                                              GestureDetector(
-                                                onTap: () {
-                                                  setState(() {
-                                                    _searchQuery = '';
-                                                    _searchController.clear();
-                                                  });
-                                                },
-                                                child: Icon(
-                                                  Icons.close_rounded,
-                                                  size: 18.0.r,
-                                                  color: subtitleColor,
-                                                ),
-                                              ),
-                                          ],
+                                      ),
+                                    ),
+                                    // Share Selected
+                                    GestureDetector(
+                                      onTap: () => _shareSelectedFiles(displayedContents, currentFileList, isFolderList),
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8.0.w),
+                                        child: Icon(
+                                          Icons.share_rounded,
+                                          size: 24.0.r,
+                                          color: iconColor,
+                                        ),
+                                      ),
+                                    ),
+                                    // Delete Selected
+                                    GestureDetector(
+                                      onTap: () => _deleteSelectedFiles(displayedContents, currentFileList, isFolderList),
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8.0.w),
+                                        child: Icon(
+                                          Icons.delete_outline_rounded,
+                                          size: 24.0.r,
+                                          color: Colors.redAccent,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
                               )
-                            : Padding(
-                                key: const ValueKey('normalHeader'),
-                                padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
-                                child: Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        if (activeCategory != null) {
-                                          ref.read(selectedBrowserCategoryProvider.notifier).state = null;
-                                        } else {
-                                          _navigateBack();
-                                        }
-                                      },
-                                    child: Container(
-                                      padding: EdgeInsets.all(8.0.r),
-                                      child: Icon(
-                                        Icons.arrow_back_ios_new,
-                                        size: 20.0.r,
-                                        color: iconColor,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 8.0.w),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
+                            : _isSearching
+                                ? Padding(
+                                    key: const ValueKey('searchHeader'),
+                                    padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          pageTitle,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 24.0.sp,
-                                            fontWeight: FontWeight.w800,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                        if (activeCategory == null)
-                                          Text(
-                                            _currentPath.replaceAll('/storage/emulated/0', 'Internal Storage'),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontSize: 12.0.sp,
-                                              fontWeight: FontWeight.w500,
-                                              color: subtitleColor,
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _isSearching = false;
+                                              _searchQuery = '';
+                                              _searchController.clear();
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: EdgeInsets.all(8.0.r),
+                                            child: Icon(
+                                              Icons.arrow_back_ios_new,
+                                              size: 20.0.r,
+                                              color: iconColor,
                                             ),
                                           ),
+                                        ),
+                                        SizedBox(width: 8.0.w),
+                                        Expanded(
+                                          child: Container(
+                                            height: 40.0.h,
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? Colors.white.withValues(alpha: 0.05)
+                                                  : Colors.black.withValues(alpha: 0.03),
+                                              borderRadius: BorderRadius.circular(20.0.r),
+                                            ),
+                                            padding: EdgeInsets.symmetric(horizontal: 16.0.w),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.search,
+                                                  size: 18.0.r,
+                                                  color: subtitleColor,
+                                                ),
+                                                SizedBox(width: 8.0.w),
+                                                Expanded(
+                                                  child: TextField(
+                                                    controller: _searchController,
+                                                    autofocus: true,
+                                                    onChanged: (val) {
+                                                      setState(() {
+                                                        _searchQuery = val;
+                                                      });
+                                                    },
+                                                    style: TextStyle(
+                                                      fontFamily: 'Inter',
+                                                      fontSize: 14.0.sp,
+                                                      color: textColor,
+                                                    ),
+                                                    decoration: InputDecoration(
+                                                      hintText: 'Search...',
+                                                      hintStyle: TextStyle(
+                                                        fontFamily: 'Inter',
+                                                        fontSize: 14.0.sp,
+                                                        color: subtitleColor,
+                                                      ),
+                                                      border: InputBorder.none,
+                                                      isDense: true,
+                                                      contentPadding: EdgeInsets.zero,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (_searchQuery.isNotEmpty)
+                                                  GestureDetector(
+                                                    onTap: () {
+                                                      setState(() {
+                                                        _searchQuery = '';
+                                                        _searchController.clear();
+                                                      });
+                                                    },
+                                                    child: Icon(
+                                                      Icons.close_rounded,
+                                                      size: 18.0.r,
+                                                      color: subtitleColor,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : Padding(
+                                    key: const ValueKey('normalHeader'),
+                                    padding: EdgeInsets.fromLTRB(16.0.w, 16.0.h, 20.0.w, 8.0.h),
+                                    child: Row(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () {
+                                            if (activeCategory != null) {
+                                              ref.read(selectedBrowserCategoryProvider.notifier).state = null;
+                                            } else {
+                                              _navigateBack();
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: EdgeInsets.all(8.0.r),
+                                            child: Icon(
+                                              Icons.arrow_back_ios_new,
+                                              size: 20.0.r,
+                                              color: iconColor,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8.0.w),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                pageTitle,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontSize: 24.0.sp,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: textColor,
+                                                ),
+                                              ),
+                                              if (activeCategory == null)
+                                                Text(
+                                                  _currentPath.replaceAll('/storage/emulated/0', 'Internal Storage'),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontFamily: 'Inter',
+                                                    fontSize: 12.0.sp,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: subtitleColor,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _isSearching = true;
+                                              _searchScope = 'local';
+                                            });
+                                          },
+                                          child: Icon(
+                                            Icons.search,
+                                            size: 26.0.r,
+                                            color: iconColor,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _isSearching = true;
-                                        _searchScope = 'local';
-                                      });
-                                    },
-                                    child: Icon(
-                                      Icons.search,
-                                      size: 26.0.r,
-                                      color: iconColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                     ),
 
                     // macOS Finder style Search Scope Bar
@@ -703,63 +947,192 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                               ),
                                             );
                                           } else {
+                                          } else {
                                             final file = mapToFluxFile(item);
-                                            return GestureDetector(
-                                              behavior: HitTestBehavior.opaque,
-                                              onTap: () {
-                                                FileDetailSheet.show(context, file);
-                                              },
-                                              child: Padding(
-                                                padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                                            return Dismissible(
+                                              key: Key('file_dismiss_${file.fid}_${file.path}'),
+                                              direction: _isSelectionMode 
+                                                  ? DismissDirection.none 
+                                                  : DismissDirection.horizontal,
+                                              background: Container(
+                                                alignment: Alignment.centerLeft,
+                                                padding: EdgeInsets.only(left: 20.0.w),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green.withValues(alpha: 0.15),
+                                                  borderRadius: BorderRadius.circular(12.0.r),
+                                                ),
                                                 child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.start,
                                                   children: [
-                                                    FileTypeIconWidget(
-                                                      category: file.category,
-                                                      size: 44.0.r,
+                                                    Icon(
+                                                      Icons.share_rounded,
+                                                      color: Colors.green,
+                                                      size: 22.0.r,
                                                     ),
-                                                    SizedBox(width: 16.0.w),
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            file.name,
-                                                            maxLines: 1,
-                                                            overflow: TextOverflow.ellipsis,
-                                                            style: TextStyle(
-                                                              fontFamily: 'Inter',
-                                                              fontSize: 16.0.sp,
-                                                              fontWeight: FontWeight.w600,
-                                                              color: textColor,
-                                                            ),
-                                                          ),
-                                                          SizedBox(height: 4.0.h),
-                                                          Text(
-                                                            file.sizeString,
-                                                            style: TextStyle(
-                                                              fontFamily: 'Inter',
-                                                              fontSize: 13.0.sp,
-                                                              fontWeight: FontWeight.w500,
-                                                              color: subtitleColor,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    GestureDetector(
-                                                      onTap: () {
-                                                        FileDetailSheet.show(context, file);
-                                                      },
-                                                      child: Container(
-                                                        padding: EdgeInsets.all(8.0.r),
-                                                        child: Icon(
-                                                          Icons.more_vert,
-                                                          size: 20.0.r,
-                                                          color: isDark ? Colors.white38 : Colors.black38,
-                                                        ),
+                                                    SizedBox(width: 8.0.w),
+                                                    Text(
+                                                      'Share File',
+                                                      style: TextStyle(
+                                                        fontFamily: 'Inter',
+                                                        fontWeight: FontWeight.w700,
+                                                        color: Colors.green,
+                                                        fontSize: 13.0.sp,
                                                       ),
                                                     ),
                                                   ],
+                                                ),
+                                              ),
+                                              secondaryBackground: Container(
+                                                alignment: Alignment.centerRight,
+                                                padding: EdgeInsets.only(right: 20.0.w),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.redAccent.withValues(alpha: 0.15),
+                                                  borderRadius: BorderRadius.circular(12.0.r),
+                                                ),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.end,
+                                                  children: [
+                                                    Text(
+                                                      'Move to Trash',
+                                                      style: TextStyle(
+                                                        fontFamily: 'Inter',
+                                                        fontWeight: FontWeight.w700,
+                                                        color: Colors.redAccent,
+                                                        fontSize: 13.0.sp,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 8.0.w),
+                                                    Icon(
+                                                      Icons.delete_sweep_outlined,
+                                                      color: Colors.redAccent,
+                                                      size: 22.0.r,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              confirmDismiss: (direction) async {
+                                                if (direction == DismissDirection.startToEnd) {
+                                                  ShareHelper.showShareSheet(context, [file.name]);
+                                                  return false;
+                                                }
+                                                return true;
+                                              },
+                                              onDismissed: (direction) async {
+                                                final fid = file.fid;
+                                                if (fid == null) return;
+                                                final success = await FluxBridge.executeBatchDelete([fid]);
+                                                if (success) {
+                                                  ref.read(trashProvider.notifier).refreshTrash();
+                                                  await _loadDirectoryContents();
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Moved "${file.name}" to Trash',
+                                                        style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
+                                                      ),
+                                                      backgroundColor: AppColors.neutral900,
+                                                      behavior: SnackBarBehavior.floating,
+                                                      margin: EdgeInsets.all(16.0.r),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
+                                                      action: SnackBarAction(
+                                                        label: 'UNDO',
+                                                        textColor: AppColors.mintAccent,
+                                                        onPressed: () async {
+                                                          final restored = await FluxBridge.restoreTombstones([fid]);
+                                                          if (restored) {
+                                                            ref.read(trashProvider.notifier).refreshTrash();
+                                                            await _loadDirectoryContents();
+                                                          }
+                                                        },
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              child: GestureDetector(
+                                                behavior: HitTestBehavior.opaque,
+                                                onTap: () {
+                                                  if (_isSelectionMode) {
+                                                    _toggleSelection(file.fid!);
+                                                  } else {
+                                                    FileDetailSheet.show(context, file);
+                                                  }
+                                                },
+                                                onLongPress: () {
+                                                  if (!_isSelectionMode) {
+                                                    setState(() {
+                                                      _isSelectionMode = true;
+                                                      _selectedFids.add(file.fid!);
+                                                    });
+                                                  }
+                                                },
+                                                child: Padding(
+                                                  padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                                                  child: Row(
+                                                    children: [
+                                                      if (_isSelectionMode)
+                                                        AnimatedContainer(
+                                                          duration: const Duration(milliseconds: 200),
+                                                          margin: EdgeInsets.only(right: 12.0.w),
+                                                          child: Icon(
+                                                            _selectedFids.contains(file.fid)
+                                                                ? Icons.check_circle_rounded
+                                                                : Icons.radio_button_unchecked_rounded,
+                                                            color: _selectedFids.contains(file.fid)
+                                                                ? AppColors.mintAccent
+                                                                : subtitleColor,
+                                                            size: 22.0.r,
+                                                          ),
+                                                        ),
+                                                      FileTypeIconWidget(
+                                                        category: file.category,
+                                                        size: 44.0.r,
+                                                      ),
+                                                      SizedBox(width: 16.0.w),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(
+                                                              file.name,
+                                                              maxLines: 1,
+                                                              overflow: TextOverflow.ellipsis,
+                                                              style: TextStyle(
+                                                                fontFamily: 'Inter',
+                                                                fontSize: 16.0.sp,
+                                                                fontWeight: FontWeight.w600,
+                                                                color: textColor,
+                                                              ),
+                                                            ),
+                                                            SizedBox(height: 4.0.h),
+                                                            Text(
+                                                              file.sizeString,
+                                                              style: TextStyle(
+                                                                fontFamily: 'Inter',
+                                                                fontSize: 13.0.sp,
+                                                                fontWeight: FontWeight.w500,
+                                                                color: subtitleColor,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      if (!_isSelectionMode)
+                                                        GestureDetector(
+                                                          onTap: () {
+                                                            FileDetailSheet.show(context, file);
+                                                          },
+                                                          child: Container(
+                                                            padding: EdgeInsets.all(8.0.r),
+                                                            child: Icon(
+                                                              Icons.more_vert,
+                                                              size: 20.0.r,
+                                                              color: isDark ? Colors.white38 : Colors.black38,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             );
@@ -802,89 +1175,217 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                     itemBuilder: (context, index) {
                                       final file = currentFileList[index];
 
-                                      return GestureDetector(
-                                        onTap: () {
-                                          final detail = FileDetail(
-                                            name: file.name,
-                                            size: file.sizeString,
-                                            createdDate: 'June 28, 2026, 12:14 PM',
-                                            modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                                            type: file.category,
-                                            themeColor: file.themeColor,
-                                            fallbackIcon: file.fallbackIcon,
-                                            fluxIcon: file.fluxIcon,
-                                          );
-                                          FileDetailSheet.show(context, detail);
-                                        },
-                                        behavior: HitTestBehavior.opaque,
-                                        child: Padding(
-                                          padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                                      return Dismissible(
+                                        key: Key('file_dismiss_${file.fid}_${file.path}'),
+                                        direction: _isSelectionMode 
+                                            ? DismissDirection.none 
+                                            : DismissDirection.horizontal,
+                                        background: Container(
+                                          alignment: Alignment.centerLeft,
+                                          padding: EdgeInsets.only(left: 20.0.w),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(12.0.r),
+                                          ),
                                           child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.start,
                                             children: [
-                                              FileTypeIcon(
-                                                extension: file.fileExtension,
-                                                path: file.path,
-                                                size: 44.0.r,
+                                              Icon(
+                                                Icons.share_rounded,
+                                                color: Colors.green,
+                                                size: 22.0.r,
                                               ),
-                                              SizedBox(width: 16.0.w),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      file.name,
-                                                      style: TextStyle(
-                                                        fontFamily: 'Inter',
-                                                        fontSize: 16.0.sp,
-                                                        fontWeight: FontWeight.w600,
-                                                        color: textColor,
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                    ),
-                                                    SizedBox(height: 4.0.h),
-                                                    Text(
-                                                      '${file.sizeString} • ${file.location}',
-                                                      style: TextStyle(
-                                                        fontFamily: 'Inter',
-                                                        fontSize: 13.0.sp,
-                                                        fontWeight: FontWeight.w500,
-                                                        color: subtitleColor,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              GestureDetector(
-                                                onTap: () {
-                                                  final detail = FileDetail(
-                                                    name: file.name,
-                                                    size: file.sizeString,
-                                                    createdDate: 'June 28, 2026, 12:14 PM',
-                                                    modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                                                    type: file.category,
-                                                    themeColor: file.themeColor,
-                                                    fallbackIcon: file.fallbackIcon,
-                                                    fluxIcon: file.fluxIcon,
-                                                  );
-                                                  FileDetailSheet.show(context, detail);
-                                                },
-                                                behavior: HitTestBehavior.opaque,
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(8.0.r),
-                                                  child: Icon(
-                                                    Icons.more_vert,
-                                                    size: 20.0.r,
-                                                    color: isDark ? Colors.white38 : Colors.black38,
-                                                  ),
+                                              SizedBox(width: 8.0.w),
+                                              Text(
+                                                'Share File',
+                                                style: TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.green,
+                                                  fontSize: 13.0.sp,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
+                                        secondaryBackground: Container(
+                                          alignment: Alignment.centerRight,
+                                          padding: EdgeInsets.only(right: 20.0.w),
+                                          decoration: BoxDecoration(
+                                            color: Colors.redAccent.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(12.0.r),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                'Move to Trash',
+                                                style: TextStyle(
+                                                  fontFamily: 'Inter',
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.redAccent,
+                                                  fontSize: 13.0.sp,
+                                                ),
+                                              ),
+                                              SizedBox(width: 8.0.w),
+                                              Icon(
+                                                Icons.delete_sweep_outlined,
+                                                color: Colors.redAccent,
+                                                size: 22.0.r,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        confirmDismiss: (direction) async {
+                                          if (direction == DismissDirection.startToEnd) {
+                                            ShareHelper.showShareSheet(context, [file.name]);
+                                            return false;
+                                          }
+                                          return true;
+                                        },
+                                        onDismissed: (direction) async {
+                                          final fid = file.fid;
+                                          if (fid == null) return;
+                                          final success = await FluxBridge.executeBatchDelete([fid]);
+                                          if (success) {
+                                            ref.read(trashProvider.notifier).refreshTrash();
+                                            await _loadDirectoryContents();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Moved "${file.name}" to Trash',
+                                                  style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
+                                                ),
+                                                backgroundColor: AppColors.neutral900,
+                                                behavior: SnackBarBehavior.floating,
+                                                margin: EdgeInsets.all(16.0.r),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
+                                                action: SnackBarAction(
+                                                  label: 'UNDO',
+                                                  textColor: AppColors.mintAccent,
+                                                  onPressed: () async {
+                                                    final restored = await FluxBridge.restoreTombstones([fid]);
+                                                    if (restored) {
+                                                      ref.read(trashProvider.notifier).refreshTrash();
+                                                      await _loadDirectoryContents();
+                                                    }
+                                                  },
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            if (_isSelectionMode) {
+                                              _toggleSelection(file.fid!);
+                                            } else {
+                                              final detail = FileDetail(
+                                                name: file.name,
+                                                size: file.sizeString,
+                                                createdDate: 'June 28, 2026, 12:14 PM',
+                                                modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                                type: file.category,
+                                                themeColor: file.themeColor,
+                                                fallbackIcon: file.fallbackIcon,
+                                                fluxIcon: file.fluxIcon,
+                                              );
+                                              FileDetailSheet.show(context, detail);
+                                            }
+                                          },
+                                          onLongPress: () {
+                                            if (!_isSelectionMode) {
+                                              setState(() {
+                                                _isSelectionMode = true;
+                                                _selectedFids.add(file.fid!);
+                                              });
+                                            }
+                                          },
+                                          behavior: HitTestBehavior.opaque,
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                                            child: Row(
+                                              children: [
+                                                if (_isSelectionMode)
+                                                  AnimatedContainer(
+                                                    duration: const Duration(milliseconds: 200),
+                                                    margin: EdgeInsets.only(right: 12.0.w),
+                                                    child: Icon(
+                                                      _selectedFids.contains(file.fid)
+                                                          ? Icons.check_circle_rounded
+                                                          : Icons.radio_button_unchecked_rounded,
+                                                      color: _selectedFids.contains(file.fid)
+                                                          ? AppColors.mintAccent
+                                                          : subtitleColor,
+                                                      size: 22.0.r,
+                                                    ),
+                                                  ),
+                                                FileTypeIcon(
+                                                  extension: file.fileExtension,
+                                                  path: file.path,
+                                                  size: 44.0.r,
+                                                ),
+                                                SizedBox(width: 16.0.w),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        file.name,
+                                                        style: TextStyle(
+                                                          fontFamily: 'Inter',
+                                                          fontSize: 16.0.sp,
+                                                          fontWeight: FontWeight.w600,
+                                                          color: textColor,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                      SizedBox(height: 4.0.h),
+                                                      Text(
+                                                        '${file.sizeString} • ${file.location}',
+                                                        style: TextStyle(
+                                                          fontFamily: 'Inter',
+                                                          fontSize: 13.0.sp,
+                                                          fontWeight: FontWeight.w500,
+                                                          color: subtitleColor,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                if (!_isSelectionMode)
+                                                  GestureDetector(
+                                                    onTap: () {
+                                                      final detail = FileDetail(
+                                                        name: file.name,
+                                                        size: file.sizeString,
+                                                        createdDate: 'June 28, 2026, 12:14 PM',
+                                                        modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                                        type: file.category,
+                                                        themeColor: file.themeColor,
+                                                        fallbackIcon: file.fallbackIcon,
+                                                        fluxIcon: file.fluxIcon,
+                                                      );
+                                                      FileDetailSheet.show(context, detail);
+                                                    },
+                                                    behavior: HitTestBehavior.opaque,
+                                                    child: Padding(
+                                                      padding: EdgeInsets.all(8.0.r),
+                                                      child: Icon(
+                                                        Icons.more_vert,
+                                                        size: 20.0.r,
+                                                        color: isDark ? Colors.white38 : Colors.black38,
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                       );
                                     },
-                                  )),
+                                  ) )),
                       ),
                     ),
                   ],
@@ -925,7 +1426,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
           ),
         ),
       ),
-    ),);
+    );
   }
   Widget _buildScopePill({
     required String label,

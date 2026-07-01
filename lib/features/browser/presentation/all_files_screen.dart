@@ -10,6 +10,7 @@ import '../../../core/widgets/flux_icon.dart';
 import '../../../core/widgets/file_type_icon.dart';
 import '../../../core/providers/trash_provider.dart';
 import '../../../../bridge/flux_bridge.dart';
+import '../../../../core/utils/share_helper.dart';
 
 class AllFilesScreen extends ConsumerStatefulWidget {
   final String title;
@@ -27,6 +28,81 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   String _searchScope = 'all'; // 'all', 'local', 'cloud'
   final TextEditingController _searchController = TextEditingController();
   late final FileFilterNotifier _filterNotifier;
+
+  bool _isSelectionMode = false;
+  final Set<int> _selectedFids = {};
+  double? _dragStartHeight;
+
+  void _toggleSelection(int fid) {
+    setState(() {
+      if (_selectedFids.contains(fid)) {
+        _selectedFids.remove(fid);
+        if (_selectedFids.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedFids.add(fid);
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedFiles(List<FluxFile> filesList) async {
+    final selectedFiles = filesList.where((f) => _selectedFids.contains(f.fid)).toList();
+    final fids = selectedFiles.map((f) => f.fid!).toList();
+    if (fids.isEmpty) return;
+
+    final success = await FluxBridge.executeBatchDelete(fids);
+    if (success) {
+      ref.read(trashProvider.notifier).refreshTrash();
+      ref.read(allFilesProvider.notifier).refreshFiles();
+
+      final fileNames = selectedFiles.map((f) => f.name).toList();
+      setState(() {
+        _isSelectionMode = false;
+        _selectedFids.clear();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            fids.length == 1
+                ? 'Moved "${fileNames.first}" to Trash'
+                : 'Moved ${fids.length} files to Trash',
+            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
+          ),
+          backgroundColor: AppColors.neutral900,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.0.r),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
+          action: SnackBarAction(
+            label: 'UNDO',
+            textColor: AppColors.mintAccent,
+            onPressed: () async {
+              final restored = await FluxBridge.restoreTombstones(fids);
+              if (restored) {
+                ref.read(trashProvider.notifier).refreshTrash();
+                ref.read(allFilesProvider.notifier).refreshFiles();
+              }
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  void _shareSelectedFiles(List<FluxFile> filesList) {
+    final selectedNames = filesList
+        .where((f) => _selectedFids.contains(f.fid))
+        .map((f) => f.name)
+        .toList();
+    if (selectedNames.isEmpty) return;
+    
+    ShareHelper.showShareSheet(context, selectedNames);
+    setState(() {
+      _isSelectionMode = false;
+      _selectedFids.clear();
+    });
+  }
 
   @override
   void initState() {
@@ -96,11 +172,27 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
 
     final filterState = ref.watch(fileFilterProvider);
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragStart: (details) {
+        _dragStartHeight = details.globalPosition.dy;
+      },
+      onVerticalDragEnd: (details) {
+        if (_dragStartHeight != null &&
+            MediaQuery.of(context).size.height - _dragStartHeight! < 120) {
+          if (details.primaryVelocity != null && details.primaryVelocity! < -200) {
+            setState(() {
+              _isSearching = true;
+              _searchScope = 'all';
+            });
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header Row with Animated Switcher for Search Mode
             AnimatedSwitcher(
@@ -117,9 +209,9 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                   ),
                 );
               },
-              child: _isSearching
+              child: _isSelectionMode
                   ? Padding(
-                      key: const ValueKey('searchHeader'),
+                      key: const ValueKey('selectionHeader'),
                       padding: EdgeInsets.fromLTRB(
                         16.0.w,
                         16.0.h,
@@ -131,136 +223,226 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                           GestureDetector(
                             onTap: () {
                               setState(() {
-                                _isSearching = false;
-                                _searchQuery = '';
-                                _searchScope = 'all';
-                                _searchController.clear();
+                                _isSelectionMode = false;
+                                _selectedFids.clear();
                               });
                             },
                             child: Container(
                               padding: EdgeInsets.all(8.0.r),
                               child: Icon(
-                                Icons.arrow_back_ios_new,
-                                size: 20.0.r,
-                                color: iconColor,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8.0.w),
-                          Expanded(
-                            child: Container(
-                              height: 40.0.h,
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.05)
-                                    : Colors.black.withValues(alpha: 0.03),
-                                borderRadius: BorderRadius.circular(20.0.r),
-                              ),
-                              padding: EdgeInsets.symmetric(horizontal: 16.0.w),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.search,
-                                    size: 18.0.r,
-                                    color: subtitleColor,
-                                  ),
-                                  SizedBox(width: 8.0.w),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _searchController,
-                                      autofocus: true,
-                                      onChanged: (val) {
-                                        setState(() {
-                                          _searchQuery = val;
-                                        });
-                                      },
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 14.0.sp,
-                                        color: textColor,
-                                      ),
-                                      decoration: InputDecoration(
-                                        hintText: 'Search...',
-                                        hintStyle: TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontSize: 14.0.sp,
-                                          color: subtitleColor,
-                                        ),
-                                        border: InputBorder.none,
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.zero,
-                                      ),
-                                    ),
-                                  ),
-                                  if (_searchQuery.isNotEmpty)
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _searchQuery = '';
-                                          _searchController.clear();
-                                        });
-                                      },
-                                      child: Icon(
-                                        Icons.close_rounded,
-                                        size: 18.0.r,
-                                        color: subtitleColor,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Padding(
-                      key: const ValueKey('normalHeader'),
-                      padding: EdgeInsets.fromLTRB(
-                        16.0.w,
-                        16.0.h,
-                        20.0.w,
-                        8.0.h,
-                      ),
-                      child: Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () => context.pop(),
-                            child: Container(
-                              padding: EdgeInsets.all(8.0.r),
-                              child: Icon(
-                                Icons.arrow_back_ios_new,
-                                size: 20.0.r,
+                                Icons.close_rounded,
+                                size: 24.0.r,
                                 color: iconColor,
                               ),
                             ),
                           ),
                           SizedBox(width: 8.0.w),
                           Text(
-                            widget.title,
+                            '${_selectedFids.length} selected',
                             style: TextStyle(
                               fontFamily: 'Inter',
-                              fontSize: 24.0.sp,
+                              fontSize: 20.0.sp,
                               fontWeight: FontWeight.w800,
                               color: textColor,
                             ),
                           ),
                           const Spacer(),
+                          // Select/Deselect All
                           GestureDetector(
                             onTap: () {
                               setState(() {
-                                _isSearching = true;
-                                _searchScope = 'all';
+                                if (_selectedFids.length == filesList.length) {
+                                  _selectedFids.clear();
+                                  _isSelectionMode = false;
+                                } else {
+                                  _selectedFids.addAll(
+                                    filesList.where((f) => f.fid != null).map((f) => f.fid!),
+                                  );
+                                }
                               });
                             },
-                            child: Icon(
-                              Icons.search,
-                              size: 26.0.r,
-                              color: iconColor,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8.0.w),
+                              child: Icon(
+                                _selectedFids.length == filesList.length
+                                    ? Icons.deselect_rounded
+                                    : Icons.select_all_rounded,
+                                size: 24.0.r,
+                                color: iconColor,
+                              ),
+                            ),
+                          ),
+                          // Share Selected
+                          GestureDetector(
+                            onTap: () => _shareSelectedFiles(filesList),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8.0.w),
+                              child: Icon(
+                                Icons.share_rounded,
+                                size: 24.0.r,
+                                color: iconColor,
+                              ),
+                            ),
+                          ),
+                          // Delete Selected
+                          GestureDetector(
+                            onTap: () => _deleteSelectedFiles(filesList),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8.0.w),
+                              child: Icon(
+                                Icons.delete_outline_rounded,
+                                size: 24.0.r,
+                                color: Colors.redAccent,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
+                    )
+                  : _isSearching
+                      ? Padding(
+                          key: const ValueKey('searchHeader'),
+                          padding: EdgeInsets.fromLTRB(
+                            16.0.w,
+                            16.0.h,
+                            20.0.w,
+                            8.0.h,
+                          ),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _isSearching = false;
+                                    _searchQuery = '';
+                                    _searchScope = 'all';
+                                    _searchController.clear();
+                                  });
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.all(8.0.r),
+                                  child: Icon(
+                                    Icons.arrow_back_ios_new,
+                                    size: 20.0.r,
+                                    color: iconColor,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 8.0.w),
+                              Expanded(
+                                child: Container(
+                                  height: 40.0.h,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.05)
+                                        : Colors.black.withValues(alpha: 0.03),
+                                    borderRadius: BorderRadius.circular(20.0.r),
+                                  ),
+                                  padding: EdgeInsets.symmetric(horizontal: 16.0.w),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.search,
+                                        size: 18.0.r,
+                                        color: subtitleColor,
+                                      ),
+                                      SizedBox(width: 8.0.w),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _searchController,
+                                          autofocus: true,
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _searchQuery = val;
+                                            });
+                                          },
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 14.0.sp,
+                                            color: textColor,
+                                          ),
+                                          decoration: InputDecoration(
+                                            hintText: 'Search...',
+                                            hintStyle: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 14.0.sp,
+                                              color: subtitleColor,
+                                            ),
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                          ),
+                                        ),
+                                      ),
+                                      if (_searchQuery.isNotEmpty)
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _searchQuery = '';
+                                              _searchController.clear();
+                                            });
+                                          },
+                                          child: Icon(
+                                            Icons.close_rounded,
+                                            size: 18.0.r,
+                                            color: subtitleColor,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Padding(
+                          key: const ValueKey('normalHeader'),
+                          padding: EdgeInsets.fromLTRB(
+                            16.0.w,
+                            16.0.h,
+                            20.0.w,
+                            8.0.h,
+                          ),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => context.pop(),
+                                child: Container(
+                                  padding: EdgeInsets.all(8.0.r),
+                                  child: Icon(
+                                    Icons.arrow_back_ios_new,
+                                    size: 20.0.r,
+                                    color: iconColor,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 8.0.w),
+                              Text(
+                                widget.title,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 24.0.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: textColor,
+                                ),
+                              ),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _isSearching = true;
+                                    _searchScope = 'all';
+                                  });
+                                },
+                                child: Icon(
+                                  Icons.search,
+                                  size: 26.0.r,
+                                  color: iconColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
             ),
 
             // macOS Finder style Scope Bar inside All Files Screen
@@ -449,170 +631,250 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
 
             // Files List View
             Expanded(
-              child: filesList.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No files found',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 15.0.sp,
-                          color: subtitleColor,
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24.0.w,
-                        vertical: 12.0.h,
-                      ),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: filesList.length,
-                      separatorBuilder: (context, index) => Divider(
-                        color: dividerColor,
-                        height: 1.0.h,
-                        thickness: 1.0.r,
-                      ),
-                      itemBuilder: (context, index) {
-                        final file = filesList[index];
-                        return Dismissible(
-                          key: Key('file_dismiss_${file.fid}_${file.path}'),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            alignment: Alignment.centerRight,
-                            padding: EdgeInsets.only(right: 20.0.w),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12.0.r),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'Move to Trash',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.redAccent,
-                                    fontSize: 13.0.sp,
-                                  ),
+              child: RefreshIndicator(
+                color: AppColors.mintAccent,
+                backgroundColor: isDark ? AppColors.neutral900 : Colors.white,
+                onRefresh: () async {
+                  await FluxBridge.initializeIndex(force: true);
+                  ref.read(allFilesProvider.notifier).refreshFiles();
+                },
+                child: filesList.isEmpty
+                    ? ListView(
+                        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(top: 80.0.h),
+                            child: Center(
+                              child: Text(
+                                'No files found',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 15.0.sp,
+                                  color: subtitleColor,
                                 ),
-                                SizedBox(width: 8.0.w),
-                                Icon(
-                                  Icons.delete_sweep_outlined,
-                                  color: Colors.redAccent,
-                                  size: 22.0.r,
-                                ),
-                              ],
+                              ),
                             ),
                           ),
-                          onDismissed: (direction) async {
-                            final fid = file.fid;
-                            if (fid == null) return;
-                            
-                            final success = await FluxBridge.executeBatchDelete([fid]);
-                            if (success) {
-                              ref.read(trashProvider.notifier).refreshTrash();
-                              ref.read(allFilesProvider.notifier).refreshFiles();
-                              
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Moved "${file.name}" to Trash',
-                                    style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
-                                  ),
-                                  backgroundColor: AppColors.neutral900,
-                                  behavior: SnackBarBehavior.floating,
-                                  margin: EdgeInsets.all(16.0.r),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
-                                  action: SnackBarAction(
-                                    label: 'UNDO',
-                                    textColor: AppColors.mintAccent,
-                                    onPressed: () async {
-                                      final restored = await FluxBridge.restoreTombstones([fid]);
-                                      if (restored) {
-                                        ref.read(trashProvider.notifier).refreshTrash();
-                                        ref.read(allFilesProvider.notifier).refreshFiles();
-                                      }
-                                    },
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          child: GestureDetector(
-                            onTap: () {
-                              final detail = FileDetail(
-                                name: file.name,
-                                size: file.sizeString,
-                                createdDate: 'June 28, 2026, 12:14 PM',
-                                modifiedDate:
-                                    '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                                type: file.category,
-                                themeColor: file.themeColor,
-                                fallbackIcon: file.fallbackIcon,
-                                fluxIcon: file.fluxIcon,
-                              );
-                              FileDetailSheet.show(context, detail);
-                            },
-                            behavior: HitTestBehavior.opaque,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                        ],
+                      )
+                    : ListView.separated(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24.0.w,
+                          vertical: 12.0.h,
+                        ),
+                        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                        itemCount: filesList.length,
+                        separatorBuilder: (context, index) => Divider(
+                          color: dividerColor,
+                          height: 1.0.h,
+                          thickness: 1.0.r,
+                        ),
+                        itemBuilder: (context, index) {
+                          final file = filesList[index];
+                          return Dismissible(
+                            key: Key('file_dismiss_${file.fid}_${file.path}'),
+                            direction: _isSelectionMode 
+                                ? DismissDirection.none 
+                                : DismissDirection.horizontal,
+                            background: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: EdgeInsets.only(left: 20.0.w),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12.0.r),
+                              ),
                               child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
-                                  FileTypeIcon(
-                                    extension: file.fileExtension,
-                                    path: file.path,
-                                    size: 44.0.r,
-                                  ),
-                                  SizedBox(width: 16.0.w),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          file.name,
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 16.0.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: textColor,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        SizedBox(height: 4.0.h),
-                                        Text(
-                                          '${file.sizeString} • ${file.location}',
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 13.0.sp,
-                                            fontWeight: FontWeight.w500,
-                                            color: subtitleColor,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                   Icon(
-                                    Icons.more_vert,
-                                    size: 20.0.r,
-                                    color: isDark
-                                        ? Colors.white38
-                                        : Colors.black38,
+                                    Icons.share_rounded,
+                                    color: Colors.green,
+                                    size: 22.0.r,
+                                  ),
+                                  SizedBox(width: 8.0.w),
+                                  Text(
+                                    'Share File',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.green,
+                                      fontSize: 13.0.sp,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                            secondaryBackground: Container(
+                              alignment: Alignment.centerRight,
+                              padding: EdgeInsets.only(right: 20.0.w),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12.0.r),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Move to Trash',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.redAccent,
+                                      fontSize: 13.0.sp,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.0.w),
+                                  Icon(
+                                    Icons.delete_sweep_outlined,
+                                    color: Colors.redAccent,
+                                    size: 22.0.r,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            confirmDismiss: (direction) async {
+                              if (direction == DismissDirection.startToEnd) {
+                                ShareHelper.showShareSheet(context, [file.name]);
+                                return false; // Do not dismiss the tile
+                              }
+                              return true; // Dismiss (delete)
+                            },
+                            onDismissed: (direction) async {
+                              final fid = file.fid;
+                              if (fid == null) return;
+                              
+                              final success = await FluxBridge.executeBatchDelete([fid]);
+                              if (success) {
+                                ref.read(trashProvider.notifier).refreshTrash();
+                                ref.read(allFilesProvider.notifier).refreshFiles();
+                                
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Moved "${file.name}" to Trash',
+                                      style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
+                                    ),
+                                    backgroundColor: AppColors.neutral900,
+                                    behavior: SnackBarBehavior.floating,
+                                    margin: EdgeInsets.all(16.0.r),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
+                                    action: SnackBarAction(
+                                      label: 'UNDO',
+                                      textColor: AppColors.mintAccent,
+                                      onPressed: () async {
+                                        final restored = await FluxBridge.restoreTombstones([fid]);
+                                        if (restored) {
+                                          ref.read(trashProvider.notifier).refreshTrash();
+                                          ref.read(allFilesProvider.notifier).refreshFiles();
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            child: GestureDetector(
+                              onTap: () {
+                                if (_isSelectionMode) {
+                                  _toggleSelection(file.fid!);
+                                } else {
+                                  final detail = FileDetail(
+                                    name: file.name,
+                                    size: file.sizeString,
+                                    createdDate: 'June 28, 2026, 12:14 PM',
+                                    modifiedDate:
+                                        '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                    type: file.category,
+                                    themeColor: file.themeColor,
+                                    fallbackIcon: file.fallbackIcon,
+                                    fluxIcon: file.fluxIcon,
+                                  );
+                                  FileDetailSheet.show(context, detail);
+                                }
+                              },
+                              onLongPress: () {
+                                if (!_isSelectionMode) {
+                                  setState(() {
+                                    _isSelectionMode = true;
+                                    _selectedFids.add(file.fid!);
+                                  });
+                                }
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                                child: Row(
+                                  children: [
+                                    if (_isSelectionMode)
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        margin: EdgeInsets.only(right: 12.0.w),
+                                        child: Icon(
+                                          _selectedFids.contains(file.fid)
+                                              ? Icons.check_circle_rounded
+                                              : Icons.radio_button_unchecked_rounded,
+                                          color: _selectedFids.contains(file.fid)
+                                              ? AppColors.mintAccent
+                                              : subtitleColor,
+                                          size: 22.0.r,
+                                        ),
+                                      ),
+                                    FileTypeIcon(
+                                      extension: file.fileExtension,
+                                      path: file.path,
+                                      size: 44.0.r,
+                                    ),
+                                    SizedBox(width: 16.0.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            file.name,
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 16.0.sp,
+                                              fontWeight: FontWeight.w600,
+                                              color: textColor,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          SizedBox(height: 4.0.h),
+                                          Text(
+                                            '${file.sizeString} • ${file.location}',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 13.0.sp,
+                                              fontWeight: FontWeight.w500,
+                                              color: subtitleColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (!_isSelectionMode)
+                                      Icon(
+                                        Icons.more_vert,
+                                        size: 20.0.r,
+                                        color: isDark
+                                            ? Colors.white38
+                                            : Colors.black38,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
             ),
           ],
         ),
       ),
-    );
+    ),);
   }
 
   Widget _buildScopePill({
