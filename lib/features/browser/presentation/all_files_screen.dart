@@ -44,7 +44,9 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
-    _filterNotifier.reset();
+    Future.microtask(() {
+      _filterNotifier.reset();
+    });
     super.dispose();
   }
 
