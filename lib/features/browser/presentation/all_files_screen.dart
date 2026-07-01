@@ -11,6 +11,7 @@ import '../../../core/widgets/file_type_icon.dart';
 import '../../../core/providers/trash_provider.dart';
 import '../../../../bridge/flux_bridge.dart';
 import '../../../../core/utils/share_helper.dart';
+import '../../../../core/utils/date_formatter.dart';
 
 class AllFilesScreen extends ConsumerStatefulWidget {
   final String title;
@@ -781,7 +782,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                                   final detail = FileDetail(
                                     name: file.name,
                                     size: file.sizeString,
-                                    createdDate: 'June 28, 2026, 12:14 PM',
+                                    createdDate: DateFormatter.formatFriendly(file.modifiedDate),
                                     modifiedDate:
                                         '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
                                     type: file.category,

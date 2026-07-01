@@ -7,6 +7,7 @@ import '../../../../core/widgets/file_type_icon.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/file_filter_provider.dart';
 import 'file_detail_sheet.dart';
+import '../../../../core/utils/date_formatter.dart';
 
 class DownloadsGrid extends ConsumerWidget {
   const DownloadsGrid({Key? key}) : super(key: key);
@@ -169,7 +170,7 @@ class DownloadsGrid extends ConsumerWidget {
                   final detail = FileDetail(
                     name: file.name,
                     size: file.sizeString,
-                    createdDate: 'June 28, 2026, 12:14 PM',
+                    createdDate: DateFormatter.formatFriendly(file.modifiedDate),
                     modifiedDate:
                         '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
                     type: file.category,

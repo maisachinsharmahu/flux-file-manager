@@ -9,6 +9,7 @@ import 'widgets/quick_sort_filter_sheet.dart';
 import '../../home/presentation/widgets/file_detail_sheet.dart';
 import '../../../core/widgets/flux_icon.dart';
 import '../../../core/widgets/file_type_icon.dart';
+import '../../../../core/utils/date_formatter.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({Key? key}) : super(key: key);
@@ -493,7 +494,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   final detail = FileDetail(
                     name: file.name,
                     size: file.sizeString,
-                    createdDate: 'June 28, 2026, 12:14 PM',
+                    createdDate: DateFormatter.formatFriendly(file.modifiedDate),
                     modifiedDate:
                         '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
                     type: file.category,
@@ -543,7 +544,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                           final detail = FileDetail(
                             name: file.name,
                             size: file.sizeString,
-                            createdDate: 'June 28, 2026, 12:14 PM',
+                            createdDate: DateFormatter.formatFriendly(file.modifiedDate),
                             modifiedDate:
                                 '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
                             type: file.category,

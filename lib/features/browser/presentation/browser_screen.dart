@@ -326,6 +326,585 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
       }
     }
 
+
+    String formatFriendlyDate(DateTime dt) {
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final month = months[dt.month - 1];
+      final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return '$month ${dt.day}, ${dt.year}, $hour:$minute $ampm';
+    }
+
+    Widget buildListContent() {
+      if (_isLoading) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.mintAccent,
+          ),
+        );
+      }
+
+      if (isFolderList) {
+        if (displayedContents.isEmpty) {
+          return ListView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: 80.0.h),
+                child: Center(
+                  child: Text(
+                    'This folder is empty.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14.0.sp,
+                      color: subtitleColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        } else {
+          return ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: 24.0.w),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            itemCount: displayedContents.length,
+            separatorBuilder: (context, index) => Divider(
+              color: dividerColor,
+              height: 1.0.h,
+              thickness: 1.0.r,
+            ),
+            itemBuilder: (context, index) {
+              final item = displayedContents[index];
+              final name = item['name'] as String? ?? '';
+              final path = item['path'] as String? ?? '';
+              final category = item['category'] as String? ?? 'Others';
+              final isDir = category == 'Directory';
+
+              if (isDir) {
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _navigateToFolder(path),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.folder,
+                          size: 44.0.r,
+                          color: const Color(0xFFFFB020),
+                        ),
+                        SizedBox(width: 16.0.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 16.0.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
+                              ),
+                              SizedBox(height: 4.0.h),
+                              Text(
+                                'Folder',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13.0.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: subtitleColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14.0.r,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              } else {
+                final file = mapToFluxFile(item);
+                return Dismissible(
+                  key: Key('file_dismiss_${file.fid}_${file.path}'),
+                  direction: _isSelectionMode 
+                      ? DismissDirection.none 
+                      : DismissDirection.horizontal,
+                  background: Container(
+                    alignment: Alignment.centerLeft,
+                    padding: EdgeInsets.only(left: 20.0.w),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12.0.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.share_rounded,
+                          color: Colors.green,
+                          size: 22.0.r,
+                        ),
+                        SizedBox(width: 8.0.w),
+                        Text(
+                          'Share File',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                            color: Colors.green,
+                            fontSize: 13.0.sp,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  secondaryBackground: Container(
+                    alignment: Alignment.centerRight,
+                    padding: EdgeInsets.only(right: 20.0.w),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12.0.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Move to Trash',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                            color: Colors.redAccent,
+                            fontSize: 13.0.sp,
+                          ),
+                        ),
+                        SizedBox(width: 8.0.w),
+                        Icon(
+                          Icons.delete_sweep_outlined,
+                          color: Colors.redAccent,
+                          size: 22.0.r,
+                        ),
+                      ],
+                    ),
+                  ),
+                  confirmDismiss: (direction) async {
+                    if (direction == DismissDirection.startToEnd) {
+                      ShareHelper.showShareSheet(context, [file.name]);
+                      return false;
+                    }
+                    return true;
+                  },
+                  onDismissed: (direction) async {
+                    final fid = file.fid;
+                    if (fid == null) return;
+                    final success = await FluxBridge.executeBatchDelete([fid]);
+                    if (success) {
+                      ref.read(trashProvider.notifier).refreshTrash();
+                      await _loadDirectoryContents();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Moved "${file.name}" to Trash',
+                            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
+                          ),
+                          backgroundColor: AppColors.neutral900,
+                          behavior: SnackBarBehavior.floating,
+                          margin: EdgeInsets.all(16.0.r),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
+                          action: SnackBarAction(
+                            label: 'UNDO',
+                            textColor: AppColors.mintAccent,
+                            onPressed: () async {
+                              final restored = await FluxBridge.restoreTombstones([fid]);
+                              if (restored) {
+                                ref.read(trashProvider.notifier).refreshTrash();
+                                await _loadDirectoryContents();
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (_isSelectionMode) {
+                        _toggleSelection(file.fid!);
+                      } else {
+                        final detail = FileDetail(
+                          name: file.name,
+                          size: file.sizeString,
+                          createdDate: formatFriendlyDate(file.modifiedDate),
+                          modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                          type: file.category,
+                          themeColor: file.themeColor,
+                          fallbackIcon: file.fallbackIcon,
+                          fluxIcon: file.fluxIcon,
+                        );
+                        FileDetailSheet.show(context, detail);
+                      }
+                    },
+                    onLongPress: () {
+                      if (!_isSelectionMode) {
+                        setState(() {
+                          _isSelectionMode = true;
+                          _selectedFids.add(file.fid!);
+                        });
+                      }
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                      child: Row(
+                        children: [
+                          if (_isSelectionMode)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: EdgeInsets.only(right: 12.0.w),
+                              child: Icon(
+                                _selectedFids.contains(file.fid)
+                                    ? Icons.check_circle_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                                color: _selectedFids.contains(file.fid)
+                                    ? AppColors.mintAccent
+                                    : subtitleColor,
+                                size: 22.0.r,
+                              ),
+                            ),
+                          FileTypeIcon(
+                            extension: file.fileExtension,
+                            path: file.path,
+                            size: 44.0.r,
+                          ),
+                          SizedBox(width: 16.0.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  file.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 16.0.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor,
+                                  ),
+                                ),
+                                SizedBox(height: 4.0.h),
+                                Text(
+                                  file.sizeString,
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 13.0.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: subtitleColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!_isSelectionMode)
+                            GestureDetector(
+                              onTap: () {
+                                final detail = FileDetail(
+                                  name: file.name,
+                                  size: file.sizeString,
+                                  createdDate: formatFriendlyDate(file.modifiedDate),
+                                  modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                  type: file.category,
+                                  themeColor: file.themeColor,
+                                  fallbackIcon: file.fallbackIcon,
+                                  fluxIcon: file.fluxIcon,
+                                );
+                                FileDetailSheet.show(context, detail);
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(8.0.r),
+                                child: Icon(
+                                  Icons.more_vert,
+                                  size: 20.0.r,
+                                  color: isDark ? Colors.white38 : Colors.black38,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+            },
+          );
+        }
+      } else {
+        if (currentFileList.isEmpty) {
+          return ListView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: 80.0.h),
+                child: Center(
+                  child: Text(
+                    'No matching files found.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14.0.sp,
+                      color: subtitleColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        } else {
+          return ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: 24.0.w),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            itemCount: currentFileList.length,
+            separatorBuilder: (context, index) => Divider(
+              color: dividerColor,
+              height: 1.0.h,
+              thickness: 1.0.r,
+            ),
+            itemBuilder: (context, index) {
+              final file = currentFileList[index];
+
+              return Dismissible(
+                key: Key('file_dismiss_${file.fid}_${file.path}'),
+                direction: _isSelectionMode 
+                    ? DismissDirection.none 
+                    : DismissDirection.horizontal,
+                background: Container(
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.only(left: 20.0.w),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12.0.r),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.share_rounded,
+                        color: Colors.green,
+                        size: 22.0.r,
+                      ),
+                      SizedBox(width: 8.0.w),
+                      Text(
+                        'Share File',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          color: Colors.green,
+                          fontSize: 13.0.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                secondaryBackground: Container(
+                  alignment: Alignment.centerRight,
+                  padding: EdgeInsets.only(right: 20.0.w),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12.0.r),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Move to Trash',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          color: Colors.redAccent,
+                          fontSize: 13.0.sp,
+                        ),
+                      ),
+                      SizedBox(width: 8.0.w),
+                      Icon(
+                        Icons.delete_sweep_outlined,
+                        color: Colors.redAccent,
+                        size: 22.0.r,
+                      ),
+                    ],
+                  ),
+                ),
+                confirmDismiss: (direction) async {
+                  if (direction == DismissDirection.startToEnd) {
+                    ShareHelper.showShareSheet(context, [file.name]);
+                    return false;
+                  }
+                  return true;
+                },
+                onDismissed: (direction) async {
+                  final fid = file.fid;
+                  if (fid == null) return;
+                  final success = await FluxBridge.executeBatchDelete([fid]);
+                  if (success) {
+                    ref.read(trashProvider.notifier).refreshTrash();
+                    await _loadDirectoryContents();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Moved "${file.name}" to Trash',
+                          style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
+                        ),
+                        backgroundColor: AppColors.neutral900,
+                        behavior: SnackBarBehavior.floating,
+                        margin: EdgeInsets.all(16.0.r),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
+                        action: SnackBarAction(
+                          label: 'UNDO',
+                          textColor: AppColors.mintAccent,
+                          onPressed: () async {
+                            final restored = await FluxBridge.restoreTombstones([fid]);
+                            if (restored) {
+                              ref.read(trashProvider.notifier).refreshTrash();
+                              await _loadDirectoryContents();
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: GestureDetector(
+                  onTap: () {
+                    if (_isSelectionMode) {
+                      _toggleSelection(file.fid!);
+                    } else {
+                      final detail = FileDetail(
+                        name: file.name,
+                        size: file.sizeString,
+                        createdDate: formatFriendlyDate(file.modifiedDate),
+                        modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                        type: file.category,
+                        themeColor: file.themeColor,
+                        fallbackIcon: file.fallbackIcon,
+                        fluxIcon: file.fluxIcon,
+                      );
+                      FileDetailSheet.show(context, detail);
+                    }
+                  },
+                  onLongPress: () {
+                    if (!_isSelectionMode) {
+                      setState(() {
+                        _isSelectionMode = true;
+                        _selectedFids.add(file.fid!);
+                      });
+                    }
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.0.h),
+                    child: Row(
+                      children: [
+                        if (_isSelectionMode)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: EdgeInsets.only(right: 12.0.w),
+                            child: Icon(
+                              _selectedFids.contains(file.fid)
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_unchecked_rounded,
+                              color: _selectedFids.contains(file.fid)
+                                  ? AppColors.mintAccent
+                                  : subtitleColor,
+                              size: 22.0.r,
+                            ),
+                          ),
+                        FileTypeIcon(
+                          extension: file.fileExtension,
+                          path: file.path,
+                          size: 44.0.r,
+                        ),
+                        SizedBox(width: 16.0.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                file.name,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 16.0.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 4.0.h),
+                              Text(
+                                '${file.sizeString} • ${file.location}',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13.0.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: subtitleColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!_isSelectionMode)
+                          GestureDetector(
+                            onTap: () {
+                              final detail = FileDetail(
+                                name: file.name,
+                                size: file.sizeString,
+                                createdDate: formatFriendlyDate(file.modifiedDate),
+                                modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                type: file.category,
+                                themeColor: file.themeColor,
+                                fallbackIcon: file.fallbackIcon,
+                                fluxIcon: file.fluxIcon,
+                              );
+                              FileDetailSheet.show(context, detail);
+                            },
+                            behavior: HitTestBehavior.opaque,
+                            child: Padding(
+                              padding: EdgeInsets.all(8.0.r),
+                              child: Icon(
+                                Icons.more_vert,
+                                size: 20.0.r,
+                                color: isDark ? Colors.white38 : Colors.black38,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }
+      }
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onVerticalDragStart: (details) {
@@ -847,566 +1426,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                         backgroundColor: isDark ? AppColors.neutral900 : Colors.white,
                         displacement: 20.h,
                         onRefresh: _handleRefresh,
-                        child: (_isLoading
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.mintAccent,
-                                ),
-                              )
-                            : isFolderList
-                                ? (displayedContents.isEmpty
-                                    ? ListView(
-                                        physics: const BouncingScrollPhysics(
-                                          parent: AlwaysScrollableScrollPhysics(),
-                                        ),
-                                        children: [
-                                          Padding(
-                                            padding: EdgeInsets.only(top: 80.0.h),
-                                            child: Center(
-                                              child: Text(
-                                                'This folder is empty.',
-                                                style: TextStyle(
-                                                  fontFamily: 'Inter',
-                                                  fontSize: 14.0.sp,
-                                                  color: subtitleColor,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : ListView.separated(
-                                        padding: EdgeInsets.symmetric(horizontal: 24.0.w),
-                                        physics: const BouncingScrollPhysics(
-                                          parent: AlwaysScrollableScrollPhysics(),
-                                        ),
-                                        itemCount: displayedContents.length,
-                                        separatorBuilder: (context, index) => Divider(
-                                          color: dividerColor,
-                                          height: 1.0.h,
-                                          thickness: 1.0.r,
-                                        ),
-                                        itemBuilder: (context, index) {
-                                          final item = displayedContents[index];
-                                          final name = item['name'] as String? ?? '';
-                                          final path = item['path'] as String? ?? '';
-                                          final category = item['category'] as String? ?? 'Others';
-                                          final isDir = category == 'Directory';
-
-                                          if (isDir) {
-                                            return GestureDetector(
-                                              behavior: HitTestBehavior.opaque,
-                                              onTap: () => _navigateToFolder(path),
-                                              child: Padding(
-                                                padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.folder,
-                                                      size: 44.0.r,
-                                                      color: const Color(0xFFFFB020),
-                                                    ),
-                                                    SizedBox(width: 16.0.w),
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            name,
-                                                            maxLines: 1,
-                                                            overflow: TextOverflow.ellipsis,
-                                                            style: TextStyle(
-                                                              fontFamily: 'Inter',
-                                                              fontSize: 16.0.sp,
-                                                              fontWeight: FontWeight.w600,
-                                                              color: textColor,
-                                                            ),
-                                                          ),
-                                                          SizedBox(height: 4.0.h),
-                                                          Text(
-                                                            'Folder',
-                                                            style: TextStyle(
-                                                              fontFamily: 'Inter',
-                                                              fontSize: 13.0.sp,
-                                                              fontWeight: FontWeight.w500,
-                                                              color: subtitleColor,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Icon(
-                                                      Icons.arrow_forward_ios,
-                                                      size: 14.0.r,
-                                                      color: isDark ? Colors.white38 : Colors.black38,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          } else {
-                                            final file = mapToFluxFile(item);
-                                            return Dismissible(
-                                              key: Key('file_dismiss_${file.fid}_${file.path}'),
-                                              direction: _isSelectionMode 
-                                                  ? DismissDirection.none 
-                                                  : DismissDirection.horizontal,
-                                              background: Container(
-                                                alignment: Alignment.centerLeft,
-                                                padding: EdgeInsets.only(left: 20.0.w),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.green.withValues(alpha: 0.15),
-                                                  borderRadius: BorderRadius.circular(12.0.r),
-                                                ),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.start,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.share_rounded,
-                                                      color: Colors.green,
-                                                      size: 22.0.r,
-                                                    ),
-                                                    SizedBox(width: 8.0.w),
-                                                    Text(
-                                                      'Share File',
-                                                      style: TextStyle(
-                                                        fontFamily: 'Inter',
-                                                        fontWeight: FontWeight.w700,
-                                                        color: Colors.green,
-                                                        fontSize: 13.0.sp,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              secondaryBackground: Container(
-                                                alignment: Alignment.centerRight,
-                                                padding: EdgeInsets.only(right: 20.0.w),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.redAccent.withValues(alpha: 0.15),
-                                                  borderRadius: BorderRadius.circular(12.0.r),
-                                                ),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.end,
-                                                  children: [
-                                                    Text(
-                                                      'Move to Trash',
-                                                      style: TextStyle(
-                                                        fontFamily: 'Inter',
-                                                        fontWeight: FontWeight.w700,
-                                                        color: Colors.redAccent,
-                                                        fontSize: 13.0.sp,
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 8.0.w),
-                                                    Icon(
-                                                      Icons.delete_sweep_outlined,
-                                                      color: Colors.redAccent,
-                                                      size: 22.0.r,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              confirmDismiss: (direction) async {
-                                                if (direction == DismissDirection.startToEnd) {
-                                                  ShareHelper.showShareSheet(context, [file.name]);
-                                                  return false;
-                                                }
-                                                return true;
-                                              },
-                                              onDismissed: (direction) async {
-                                                final fid = file.fid;
-                                                if (fid == null) return;
-                                                final success = await FluxBridge.executeBatchDelete([fid]);
-                                                if (success) {
-                                                  ref.read(trashProvider.notifier).refreshTrash();
-                                                  await _loadDirectoryContents();
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        'Moved "${file.name}" to Trash',
-                                                        style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
-                                                      ),
-                                                      backgroundColor: AppColors.neutral900,
-                                                      behavior: SnackBarBehavior.floating,
-                                                      margin: EdgeInsets.all(16.0.r),
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
-                                                      action: SnackBarAction(
-                                                        label: 'UNDO',
-                                                        textColor: AppColors.mintAccent,
-                                                        onPressed: () async {
-                                                          final restored = await FluxBridge.restoreTombstones([fid]);
-                                                          if (restored) {
-                                                            ref.read(trashProvider.notifier).refreshTrash();
-                                                            await _loadDirectoryContents();
-                                                          }
-                                                        },
-                                                      ),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                              child: GestureDetector(
-                                                behavior: HitTestBehavior.opaque,
-                                                onTap: () {
-                                                  if (_isSelectionMode) {
-                                                    _toggleSelection(file.fid!);
-                                                  } else {
-                                                    final detail = FileDetail(
-                                                      name: file.name,
-                                                      size: file.sizeString,
-                                                      createdDate: 'June 28, 2026, 12:14 PM',
-                                                      modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                                                      type: file.category,
-                                                      themeColor: file.themeColor,
-                                                      fallbackIcon: file.fallbackIcon,
-                                                      fluxIcon: file.fluxIcon,
-                                                    );
-                                                    FileDetailSheet.show(context, detail);
-                                                  }
-                                                },
-                                                onLongPress: () {
-                                                  if (!_isSelectionMode) {
-                                                    setState(() {
-                                                      _isSelectionMode = true;
-                                                      _selectedFids.add(file.fid!);
-                                                    });
-                                                  }
-                                                },
-                                                child: Padding(
-                                                  padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                                                  child: Row(
-                                                    children: [
-                                                      if (_isSelectionMode)
-                                                        AnimatedContainer(
-                                                          duration: const Duration(milliseconds: 200),
-                                                          margin: EdgeInsets.only(right: 12.0.w),
-                                                          child: Icon(
-                                                            _selectedFids.contains(file.fid)
-                                                                ? Icons.check_circle_rounded
-                                                                : Icons.radio_button_unchecked_rounded,
-                                                            color: _selectedFids.contains(file.fid)
-                                                                ? AppColors.mintAccent
-                                                                : subtitleColor,
-                                                            size: 22.0.r,
-                                                          ),
-                                                        ),
-                                                      FileTypeIcon(
-                                                        extension: file.fileExtension,
-                                                        path: file.path,
-                                                        size: 44.0.r,
-                                                      ),
-                                                      SizedBox(width: 16.0.w),
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Text(
-                                                              file.name,
-                                                              maxLines: 1,
-                                                              overflow: TextOverflow.ellipsis,
-                                                              style: TextStyle(
-                                                                fontFamily: 'Inter',
-                                                                fontSize: 16.0.sp,
-                                                                fontWeight: FontWeight.w600,
-                                                                color: textColor,
-                                                              ),
-                                                            ),
-                                                            SizedBox(height: 4.0.h),
-                                                            Text(
-                                                              file.sizeString,
-                                                              style: TextStyle(
-                                                                fontFamily: 'Inter',
-                                                                fontSize: 13.0.sp,
-                                                                fontWeight: FontWeight.w500,
-                                                                color: subtitleColor,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      if (!_isSelectionMode)
-                                                        GestureDetector(
-                                                          onTap: () {
-                                                            final detail = FileDetail(
-                                                              name: file.name,
-                                                              size: file.sizeString,
-                                                              createdDate: 'June 28, 2026, 12:14 PM',
-                                                              modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                                                              type: file.category,
-                                                              themeColor: file.themeColor,
-                                                              fallbackIcon: file.fallbackIcon,
-                                                              fluxIcon: file.fluxIcon,
-                                                            );
-                                                            FileDetailSheet.show(context, detail);
-                                                          },
-                                                          child: Container(
-                                                            padding: EdgeInsets.all(8.0.r),
-                                                            child: Icon(
-                                                              Icons.more_vert,
-                                                              size: 20.0.r,
-                                                              color: isDark ? Colors.white38 : Colors.black38,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                      ))
-                            : (currentFileList.isEmpty
-                                ? ListView(
-                                    physics: const BouncingScrollPhysics(
-                                      parent: AlwaysScrollableScrollPhysics(),
-                                    ),
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.only(top: 80.0.h),
-                                        child: Center(
-                                          child: Text(
-                                            'No matching files found.',
-                                            style: TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontSize: 14.0.sp,
-                                              color: subtitleColor,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : ListView.separated(
-                                    padding: EdgeInsets.symmetric(horizontal: 24.0.w),
-                                    physics: const BouncingScrollPhysics(
-                                      parent: AlwaysScrollableScrollPhysics(),
-                                    ),
-                                    itemCount: currentFileList.length,
-                                    separatorBuilder: (context, index) => Divider(
-                                      color: dividerColor,
-                                      height: 1.0.h,
-                                      thickness: 1.0.r,
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      final file = currentFileList[index];
-
-                                      return Dismissible(
-                                        key: Key('file_dismiss_${file.fid}_${file.path}'),
-                                        direction: _isSelectionMode 
-                                            ? DismissDirection.none 
-                                            : DismissDirection.horizontal,
-                                        background: Container(
-                                          alignment: Alignment.centerLeft,
-                                          padding: EdgeInsets.only(left: 20.0.w),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(12.0.r),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.start,
-                                            children: [
-                                              Icon(
-                                                Icons.share_rounded,
-                                                color: Colors.green,
-                                                size: 22.0.r,
-                                              ),
-                                              SizedBox(width: 8.0.w),
-                                              Text(
-                                                'Share File',
-                                                style: TextStyle(
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.green,
-                                                  fontSize: 13.0.sp,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        secondaryBackground: Container(
-                                          alignment: Alignment.centerRight,
-                                          padding: EdgeInsets.only(right: 20.0.w),
-                                          decoration: BoxDecoration(
-                                            color: Colors.redAccent.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(12.0.r),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                'Move to Trash',
-                                                style: TextStyle(
-                                                  fontFamily: 'Inter',
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.redAccent,
-                                                  fontSize: 13.0.sp,
-                                                ),
-                                              ),
-                                              SizedBox(width: 8.0.w),
-                                              Icon(
-                                                Icons.delete_sweep_outlined,
-                                                color: Colors.redAccent,
-                                                size: 22.0.r,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        confirmDismiss: (direction) async {
-                                          if (direction == DismissDirection.startToEnd) {
-                                            ShareHelper.showShareSheet(context, [file.name]);
-                                            return false;
-                                          }
-                                          return true;
-                                        },
-                                        onDismissed: (direction) async {
-                                          final fid = file.fid;
-                                          if (fid == null) return;
-                                          final success = await FluxBridge.executeBatchDelete([fid]);
-                                          if (success) {
-                                            ref.read(trashProvider.notifier).refreshTrash();
-                                            await _loadDirectoryContents();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Moved "${file.name}" to Trash',
-                                                  style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
-                                                ),
-                                                backgroundColor: AppColors.neutral900,
-                                                behavior: SnackBarBehavior.floating,
-                                                margin: EdgeInsets.all(16.0.r),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
-                                                action: SnackBarAction(
-                                                  label: 'UNDO',
-                                                  textColor: AppColors.mintAccent,
-                                                  onPressed: () async {
-                                                    final restored = await FluxBridge.restoreTombstones([fid]);
-                                                    if (restored) {
-                                                      ref.read(trashProvider.notifier).refreshTrash();
-                                                      await _loadDirectoryContents();
-                                                    }
-                                                  },
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            if (_isSelectionMode) {
-                                              _toggleSelection(file.fid!);
-                                            } else {
-                                              final detail = FileDetail(
-                                                name: file.name,
-                                                size: file.sizeString,
-                                                createdDate: 'June 28, 2026, 12:14 PM',
-                                                modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                                                type: file.category,
-                                                themeColor: file.themeColor,
-                                                fallbackIcon: file.fallbackIcon,
-                                                fluxIcon: file.fluxIcon,
-                                              );
-                                              FileDetailSheet.show(context, detail);
-                                            }
-                                          },
-                                          onLongPress: () {
-                                            if (!_isSelectionMode) {
-                                              setState(() {
-                                                _isSelectionMode = true;
-                                                _selectedFids.add(file.fid!);
-                                              });
-                                            }
-                                          },
-                                          behavior: HitTestBehavior.opaque,
-                                          child: Padding(
-                                            padding: EdgeInsets.symmetric(vertical: 12.0.h),
-                                            child: Row(
-                                              children: [
-                                                if (_isSelectionMode)
-                                                  AnimatedContainer(
-                                                    duration: const Duration(milliseconds: 200),
-                                                    margin: EdgeInsets.only(right: 12.0.w),
-                                                    child: Icon(
-                                                      _selectedFids.contains(file.fid)
-                                                          ? Icons.check_circle_rounded
-                                                          : Icons.radio_button_unchecked_rounded,
-                                                      color: _selectedFids.contains(file.fid)
-                                                          ? AppColors.mintAccent
-                                                          : subtitleColor,
-                                                      size: 22.0.r,
-                                                    ),
-                                                  ),
-                                                FileTypeIcon(
-                                                  extension: file.fileExtension,
-                                                  path: file.path,
-                                                  size: 44.0.r,
-                                                ),
-                                                SizedBox(width: 16.0.w),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(
-                                                        file.name,
-                                                        style: TextStyle(
-                                                          fontFamily: 'Inter',
-                                                          fontSize: 16.0.sp,
-                                                          fontWeight: FontWeight.w600,
-                                                          color: textColor,
-                                                        ),
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
-                                                      ),
-                                                      SizedBox(height: 4.0.h),
-                                                      Text(
-                                                        '${file.sizeString} • ${file.location}',
-                                                        style: TextStyle(
-                                                          fontFamily: 'Inter',
-                                                          fontSize: 13.0.sp,
-                                                          fontWeight: FontWeight.w500,
-                                                          color: subtitleColor,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                if (!_isSelectionMode)
-                                                  GestureDetector(
-                                                    onTap: () {
-                                                      final detail = FileDetail(
-                                                        name: file.name,
-                                                        size: file.sizeString,
-                                                        createdDate: 'June 28, 2026, 12:14 PM',
-                                                        modifiedDate: '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                                                        type: file.category,
-                                                        themeColor: file.themeColor,
-                                                        fallbackIcon: file.fallbackIcon,
-                                                        fluxIcon: file.fluxIcon,
-                                                      );
-                                                      FileDetailSheet.show(context, detail);
-                                                    },
-                                                    behavior: HitTestBehavior.opaque,
-                                                    child: Padding(
-                                                      padding: EdgeInsets.all(8.0.r),
-                                                      child: Icon(
-                                                        Icons.more_vert,
-                                                        size: 20.0.r,
-                                                        color: isDark ? Colors.white38 : Colors.black38,
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ) as Widget,
+                        child: buildListContent(),
                             ),
                           ),
                   ],
