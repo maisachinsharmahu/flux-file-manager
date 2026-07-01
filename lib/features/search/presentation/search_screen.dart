@@ -466,6 +466,51 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             ),
           ],
         ),
+        if (files.isNotEmpty) ...[
+          SizedBox(height: 12.0.h),
+          SizedBox(
+            height: 38.0.h,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: files.length > 5 ? 5 : files.length,
+              itemBuilder: (context, index) {
+                final fName = files[index].name;
+                return Padding(
+                  padding: EdgeInsets.only(right: 8.0.w),
+                  child: ActionChip(
+                    label: Text(
+                      fName,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12.0.sp,
+                        color: isDark ? AppColors.mintAccent : AppColors.neutral900,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    backgroundColor: isDark
+                        ? AppColors.mintAccent.withValues(alpha: 0.08)
+                        : AppColors.neutral100,
+                    side: BorderSide(
+                      color: isDark
+                          ? AppColors.mintAccent.withValues(alpha: 0.15)
+                          : AppColors.neutral200,
+                      width: 1.0.r,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.0.r),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 4.0.w),
+                    onPressed: () {
+                      _searchController.text = fName;
+                      ref.read(searchStateProvider.notifier).state = fName;
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
         SizedBox(height: 16.0.h),
         if (files.isEmpty)
           Center(
