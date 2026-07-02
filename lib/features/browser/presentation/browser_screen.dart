@@ -9,7 +9,6 @@ import '../../../core/providers/file_filter_provider.dart';
 import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
 import '../../../core/widgets/file_type_icon.dart';
 import '../../../../bridge/flux_bridge.dart';
-import '../../../../core/utils/share_helper.dart';
 import '../../../core/providers/trash_provider.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
@@ -115,7 +114,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
   }
 
   void _shareSelectedFiles(List<dynamic> itemsList, List<FluxFile> currentFileList, bool isFolderList) {
-    final List<String> selectedNames = [];
+    final List<String> selectedPaths = [];
 
     if (isFolderList) {
       final selectedItems = itemsList.where((item) {
@@ -123,18 +122,22 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
         return fid != null && _selectedFids.contains(fid);
       }).toList();
       for (final item in selectedItems) {
-        selectedNames.add(item['name'] as String);
+        if (item['category'] != 'Directory') {
+          selectedPaths.add(item['path'] as String);
+        }
       }
     } else {
       final selectedItems = currentFileList.where((f) => f.fid != null && _selectedFids.contains(f.fid)).toList();
       for (final f in selectedItems) {
-        selectedNames.add(f.name);
+        if (f.category != 'Directory') {
+          selectedPaths.add(f.path);
+        }
       }
     }
 
-    if (selectedNames.isEmpty) return;
+    if (selectedPaths.isEmpty) return;
     
-    ShareHelper.showShareSheet(context, selectedNames);
+    FluxBridge.shareFiles(selectedPaths);
     setState(() {
       _isSelectionMode = false;
       _selectedFids.clear();
@@ -497,7 +500,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                   ),
                   confirmDismiss: (direction) async {
                     if (direction == DismissDirection.startToEnd) {
-                      ShareHelper.showShareSheet(context, [file.name]);
+                      FluxBridge.shareFiles([file.path]);
                       return false;
                     }
                     return true;
@@ -747,7 +750,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                 ),
                 confirmDismiss: (direction) async {
                   if (direction == DismissDirection.startToEnd) {
-                    ShareHelper.showShareSheet(context, [file.name]);
+                    FluxBridge.shareFiles([file.path]);
                     return false;
                   }
                   return true;

@@ -10,7 +10,6 @@ import '../../../core/widgets/flux_icon.dart';
 import '../../../core/widgets/file_type_icon.dart';
 import '../../../core/providers/trash_provider.dart';
 import '../../../../bridge/flux_bridge.dart';
-import '../../../../core/utils/share_helper.dart';
 import '../../../../core/utils/date_formatter.dart';
 
 class AllFilesScreen extends ConsumerStatefulWidget {
@@ -92,13 +91,13 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   }
 
   void _shareSelectedFiles(List<FluxFile> filesList) {
-    final selectedNames = filesList
-        .where((f) => _selectedFids.contains(f.fid))
-        .map((f) => f.name)
+    final selectedPaths = filesList
+        .where((f) => _selectedFids.contains(f.fid) && f.category != 'Directory')
+        .map((f) => f.path)
         .toList();
-    if (selectedNames.isEmpty) return;
+    if (selectedPaths.isEmpty) return;
     
-    ShareHelper.showShareSheet(context, selectedNames);
+    FluxBridge.shareFiles(selectedPaths);
     setState(() {
       _isSelectionMode = false;
       _selectedFids.clear();
@@ -734,7 +733,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                             ),
                             confirmDismiss: (direction) async {
                               if (direction == DismissDirection.startToEnd) {
-                                ShareHelper.showShareSheet(context, [file.name]);
+                                FluxBridge.shareFiles([file.path]);
                                 return false; // Do not dismiss the tile
                               }
                               return true; // Dismiss (delete)

@@ -278,6 +278,13 @@ class MainActivity : FlutterActivity() {
                             startService(intent)
                             runOnUiThread { result.success(true) }
                         }
+                        "shareFiles" -> {
+                            val paths = call.argument<List<String>>("paths") ?: listOf()
+                            if (paths.isNotEmpty()) {
+                                shareFilesNative(paths)
+                            }
+                            runOnUiThread { result.success(true) }
+                        }
                         "getModelFilePath" -> {
                             // FIXED: Do NOT instantiate Service directly (no Context available)
                             // Use applicationContext.filesDir directly instead
@@ -311,6 +318,49 @@ class MainActivity : FlutterActivity() {
                 override fun onCancel(arguments: Any?) {}
             }
         )
+    }
+
+    private fun shareFilesNative(paths: List<String>) {
+        try {
+            val uris = ArrayList<android.net.Uri>()
+            for (path in paths) {
+                val file = java.io.File(path)
+                if (file.exists()) {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        applicationContext,
+                        "${packageName}.fileprovider",
+                        file
+                    )
+                    uris.add(uri)
+                }
+            }
+
+            if (uris.isEmpty()) return
+
+            val intent = if (uris.size == 1) {
+                Intent(Intent.ACTION_SEND).apply {
+                    putExtra(Intent.EXTRA_STREAM, uris[0])
+                    type = getMimeTypeFromPath(paths[0])
+                }
+            } else {
+                Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                    putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                    type = "*/*"
+                }
+            }
+
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val chooser = Intent.createChooser(intent, "Share Files")
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(chooser)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to share files: ${e.message}", e)
+        }
+    }
+
+    private fun getMimeTypeFromPath(path: String): String {
+        val extension = path.substringAfterLast('.', "").lowercase()
+        return android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
     }
 
     override fun onTrimMemory(level: Int) {

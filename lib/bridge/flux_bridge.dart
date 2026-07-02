@@ -59,7 +59,18 @@ class FluxBridge {
       return false;
     }
   }
-
+  static Future<bool> shareFiles(List<String> paths) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod(
+        'shareFiles',
+        {'paths': paths},
+      );
+      return result;
+    } on PlatformException catch (e) {
+      print('[FluxBridge] Error: shareFiles(paths: $paths) -> $e');
+      return false;
+    }
+  }
   static Future<bool> restoreTombstones(List<int> fids) async {
     try {
       final bool result = await _methodChannel.invokeMethod(
