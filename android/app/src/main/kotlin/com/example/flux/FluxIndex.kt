@@ -47,6 +47,13 @@ class FluxIndex(private val context: Context) {
         return h
     }
 
+    fun normalizePath(path: String): String {
+        if (path.length > 1 && path.endsWith("/")) {
+            return path.substring(0, path.length - 1)
+        }
+        return path
+    }
+
     // Index 1: Path Map (xxHash64(path) -> FID)
     val pathMap = ConcurrentHashMap<Long, Long>()
 
@@ -268,9 +275,13 @@ class FluxIndex(private val context: Context) {
                             }
                             
                             pathMap[xxHash64(record.path)] = record.fid
+                            pathMap[xxHash64(record.path.lowercase())] = record.fid
                             
                             if (record.parentDirFid != 0L) {
-                                directoryIndex.getOrPut(record.parentDirFid) { mutableListOf() }.add(record.fid)
+                                val list = directoryIndex.getOrPut(record.parentDirFid) { java.util.Collections.synchronizedList(mutableListOf()) }
+                                synchronized(list) {
+                                    list.add(record.fid)
+                                }
                             }
                             
                             typeBuckets.getOrPut(record.mimeType) { BitSet() }.set(record.fid.toInt())
@@ -410,6 +421,8 @@ class FluxIndex(private val context: Context) {
                     flags = FileRecord.FLAG_INDEXED
                 )
                 masterIndex[rootFid.toInt()] = rootRecord
+                pathMap[xxHash64(rootRecord.path)] = rootRecord.fid
+                pathMap[xxHash64(rootRecord.path.lowercase())] = rootRecord.fid
 
                 val allFiles = rootStorage.listFiles() ?: emptyArray()
                 
@@ -574,7 +587,10 @@ class FluxIndex(private val context: Context) {
         }
 
         // Index 4: Directory Index
-        directoryIndex.getOrPut(record.parentDirFid) { mutableListOf() }.add(record.fid)
+        val list = directoryIndex.getOrPut(record.parentDirFid) { java.util.Collections.synchronizedList(mutableListOf()) }
+        synchronized(list) {
+            list.add(record.fid)
+        }
 
         // Index 5: Type Buckets
         typeBuckets.getOrPut(record.mimeType) { BitSet() }.set(record.fid.toInt())
@@ -748,15 +764,16 @@ class FluxIndex(private val context: Context) {
         }
     }
 
-    /**
-     * Returns list of children maps for a parent directory path.
-     */
     fun getDirectoryContents(parentPath: String): List<Map<String, Any>> {
-        val parentFid = pathMap[xxHash64(parentPath.lowercase())] ?: return emptyList()
+        val normalized = normalizePath(parentPath)
+        val parentFid = pathMap[xxHash64(normalized.lowercase())] ?: return emptyList()
         val childrenFids = directoryIndex[parentFid] ?: return emptyList()
         
         val results = mutableListOf<Map<String, Any>>()
-        for (fid in childrenFids) {
+        val localCopy = synchronized(childrenFids) {
+            childrenFids.toList()
+        }
+        for (fid in localCopy) {
             if (deletionSet.get(fid.toInt())) continue
             val record = getRecord(fid) ?: continue
             results.add(record.toMap())
@@ -1339,7 +1356,8 @@ class FluxIndex(private val context: Context) {
     }
 
     fun logicalDelete(path: String) {
-        val fid = pathMap[xxHash64(path.lowercase())] ?: return
+        val normalized = normalizePath(path)
+        val fid = pathMap[xxHash64(normalized.lowercase())] ?: return
         deletionSet.set(fid.toInt())
         val record = getRecord(fid)
         if (record != null) {
@@ -1348,7 +1366,8 @@ class FluxIndex(private val context: Context) {
     }
 
     fun invalidateChecksumAndThumb(path: String) {
-        val fid = pathMap[xxHash64(path.lowercase())] ?: return
+        val normalized = normalizePath(path)
+        val fid = pathMap[xxHash64(normalized.lowercase())] ?: return
         val record = getRecord(fid) ?: return
         record.flags = record.flags and FileRecord.FLAG_DUPLICATE.inv()
     }

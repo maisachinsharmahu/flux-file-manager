@@ -28,8 +28,11 @@ object StringPool {
 
     @Synchronized
     fun get(startOffset: Int, len: Short): String {
-        if (len <= 0) return ""
-        return String(buffer, startOffset, len.toInt(), StandardCharsets.UTF_8)
+        val length = len.toInt()
+        if (length <= 0 || startOffset < 0 || startOffset >= offset || startOffset + length > offset) {
+            return ""
+        }
+        return String(buffer, startOffset, length, StandardCharsets.UTF_8)
     }
 
     @Synchronized

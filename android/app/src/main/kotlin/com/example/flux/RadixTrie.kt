@@ -4,7 +4,7 @@ package com.example.flux
  * RadixTrie (compressed prefix tree) implementation for O(k) prefix searches
  * as described in Chapter 3.6 of the FLUX technical white paper.
  * Highly optimized primitive representation with zero-allocation lists/sets
- * to prevent OutOfMemoryError during 1M+ file updates.
+ * and dynamic doubling array capacity to prevent OutOfMemoryError during 1M+ file updates.
  */
 class RadixTrie {
     private val root = Node("", false)
@@ -12,28 +12,37 @@ class RadixTrie {
     class Node(var prefix: String, var isEnd: Boolean) {
         var children: Array<Node>? = null
         var fids: LongArray? = null
+        var fidsCount: Int = 0
 
         fun addChild(node: Node) {
             val curr = children
             if (curr == null) {
                 children = arrayOf(node)
             } else {
-                val newArr = curr.copyOf(curr.size + 1)
-                newArr[curr.size] = node
+                val newArr = Array(curr.size + 1) { index ->
+                    if (index < curr.size) curr[index] else node
+                }
                 children = newArr
             }
         }
 
         fun addFid(fid: Long) {
-            val curr = fids
+            var curr = fids
             if (curr == null) {
-                fids = longArrayOf(fid)
+                curr = LongArray(2)
+                curr[0] = fid
+                fids = curr
+                fidsCount = 1
             } else {
-                if (!curr.contains(fid)) {
-                    val newArr = curr.copyOf(curr.size + 1)
-                    newArr[curr.size] = fid
-                    fids = newArr
+                // Check for duplicates in active slots only to avoid HashMap overhead
+                for (i in 0 until fidsCount) {
+                    if (curr[i] == fid) return
                 }
+                if (fidsCount >= curr.size) {
+                    curr = curr.copyOf(curr.size * 2)
+                    fids = curr
+                }
+                curr[fidsCount++] = fid
             }
         }
     }
@@ -65,11 +74,13 @@ class RadixTrie {
             val splitNode = Node(nodeSuffix, curr.isEnd)
             splitNode.children = curr.children
             splitNode.fids = curr.fids
+            splitNode.fidsCount = curr.fidsCount
 
             curr.prefix = common
             curr.isEnd = false
             curr.children = null
             curr.fids = null
+            curr.fidsCount = 0
             curr.addChild(splitNode)
 
             if (wordSuffix.isEmpty()) {
@@ -151,8 +162,8 @@ class RadixTrie {
         if (node.isEnd) {
             val nodeFids = node.fids
             if (nodeFids != null) {
-                for (fid in nodeFids) {
-                    results.add(fid)
+                for (i in 0 until node.fidsCount) {
+                    results.add(nodeFids[i])
                 }
             }
         }
@@ -167,6 +178,7 @@ class RadixTrie {
     fun clear() {
         root.children = null
         root.fids = null
+        root.fidsCount = 0
         root.prefix = ""
         root.isEnd = false
     }

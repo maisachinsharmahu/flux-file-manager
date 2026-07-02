@@ -45,14 +45,19 @@ class AllStorageSection extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (err, stack) => const SizedBox.shrink(),
       data: (data) {
-        final totalStorage = data['totalStorage'] as int? ?? 128 * 1000 * 1000 * 1000;
+        final totalStorage =
+            data['totalStorage'] as int? ?? 128 * 1000 * 1000 * 1000;
         final totalUsed = data['totalUsed'] as int? ?? 0;
         final hasSecondary = data['hasSecondary'] as bool? ?? false;
         final secondaryTotal = data['secondaryTotal'] as int? ?? 0;
         final secondaryUsed = data['secondaryUsed'] as int? ?? 0;
 
-        final internalProgress = totalStorage > 0 ? (totalUsed / totalStorage) : 0.0;
-        final secondaryProgress = secondaryTotal > 0 ? (secondaryUsed / secondaryTotal) : 0.0;
+        final internalProgress = totalStorage > 0
+            ? (totalUsed / totalStorage)
+            : 0.0;
+        final secondaryProgress = secondaryTotal > 0
+            ? (secondaryUsed / secondaryTotal)
+            : 0.0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,13 +93,17 @@ class AllStorageSection extends ConsumerWidget {
                             decoration: BoxDecoration(
                               color: cardBgColor,
                               borderRadius: BorderRadius.circular(20.0.r),
-                              border: Border.all(color: borderColor, width: 1.2.r),
+                              border: Border.all(
+                                color: borderColor,
+                                width: 1.2.r,
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     StorageCategoryIconWidget(
                                       icon: StorageCategoryIcon.internalStorage,
@@ -137,9 +146,10 @@ class AllStorageSection extends ConsumerWidget {
                                     backgroundColor: isDark
                                         ? Colors.white10
                                         : Colors.black.withValues(alpha: 0.05),
-                                    valueColor: const AlwaysStoppedAnimation<Color>(
-                                      AppColors.mintAccent,
-                                    ),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          AppColors.mintAccent,
+                                        ),
                                   ),
                                 ),
                               ],
@@ -160,19 +170,26 @@ class AllStorageSection extends ConsumerWidget {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20.0.r),
                           child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                            filter: ImageFilter.blur(
+                              sigmaX: 10.0,
+                              sigmaY: 10.0,
+                            ),
                             child: Container(
                               padding: EdgeInsets.all(16.0.r),
                               decoration: BoxDecoration(
                                 color: cardBgColor,
                                 borderRadius: BorderRadius.circular(20.0.r),
-                                border: Border.all(color: borderColor, width: 1.2.r),
+                                border: Border.all(
+                                  color: borderColor,
+                                  width: 1.2.r,
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       StorageCategoryIconWidget(
                                         icon: StorageCategoryIcon.sdCard,
@@ -214,10 +231,13 @@ class AllStorageSection extends ConsumerWidget {
                                       minHeight: 4.0.h,
                                       backgroundColor: isDark
                                           ? Colors.white10
-                                          : Colors.black.withValues(alpha: 0.05),
-                                      valueColor: const AlwaysStoppedAnimation<Color>(
-                                        Color(0xFFA020F0),
-                                      ),
+                                          : Colors.black.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                      valueColor:
+                                          const AlwaysStoppedAnimation<Color>(
+                                            Color(0xFFA020F0),
+                                          ),
                                     ),
                                   ),
                                 ],
