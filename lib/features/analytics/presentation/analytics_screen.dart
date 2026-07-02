@@ -57,8 +57,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
   }
 
   Future<void> _handleRefresh() async {
-    // Perform a real file index scan/refresh in the background
-    await ref.read(allFilesProvider.notifier).initAndLoad(force: true);
+    // Reload index without forcing a full disk walk
+    await ref.read(allFilesProvider.notifier).initAndLoad(force: false);
   }
 
   String _formatSize(int bytes) {

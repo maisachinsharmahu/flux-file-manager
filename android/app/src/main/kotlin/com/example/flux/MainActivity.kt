@@ -288,9 +288,9 @@ class MainActivity : FlutterActivity() {
                             runOnUiThread { result.notImplemented() }
                         }
                     }
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     android.util.Log.e("MainActivity", "KOTLIN_BRIDGE_ERROR inside method execution", e)
-                    runOnUiThread { result.error("KOTLIN_BRIDGE_ERROR", e.message, null) }
+                    runOnUiThread { result.error("KOTLIN_BRIDGE_ERROR", e.toString(), null) }
                 }
             }
         }

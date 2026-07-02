@@ -636,7 +636,6 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                 color: AppColors.mintAccent,
                 backgroundColor: isDark ? AppColors.neutral900 : Colors.white,
                 onRefresh: () async {
-                  await FluxBridge.initializeIndex(force: true);
                   ref.read(allFilesProvider.notifier).refreshFiles();
                 },
                 child: filesList.isEmpty

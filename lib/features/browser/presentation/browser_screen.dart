@@ -223,7 +223,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
   }
 
   Future<void> _handleRefresh() async {
-    await FluxBridge.initializeIndex(force: true);
     await _loadDirectoryContents();
     if (mounted) {
       _controller.forward(from: 0.0);

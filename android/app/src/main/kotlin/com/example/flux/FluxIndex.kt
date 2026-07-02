@@ -8,6 +8,9 @@ import java.util.BitSet
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.ConcurrentHashMap
 
+private val TOKENIZE_SPLIT_REGEX = Regex("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[^a-zA-Z0-9]")
+private val WHITESPACE_REGEX = Regex("\\s+")
+
 /**
  * FluxIndex is the central coordinator for the 9 composite indexes and deletion bitset
  * as defined in Chapter 3 of the FLUX technical white paper.
@@ -205,6 +208,9 @@ class FluxIndex(private val context: Context) {
                 indexDurationMs = System.currentTimeMillis() - startTime
                 Log.d(TAG, "[PERFORMANCE] initializeIndex: Scan completed. Indexed $fileCount files in $scanDurationMs ms (Total setup: $indexDurationMs ms)")
                 showScanningNotification("FLUX Indexer", "Scanned $fileCount files successfully ($scanDurationMs ms)")
+            } catch (t: Throwable) {
+                Log.e(TAG, "CRITICAL ERROR inside initializeIndex: ${t.message}", t)
+                showScanningNotification("FLUX Indexer", "Scan failed: ${t.message}")
             } finally {
                 isScanning = false
             }
@@ -363,38 +369,42 @@ class FluxIndex(private val context: Context) {
     }
 
     private fun showScanningNotification(title: String, text: String, showProgress: Boolean = false) {
-        val channelId = "flux_scanner_channel"
-        val notificationId = 9999
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager ?: return
+        try {
+            val channelId = "flux_scanner_channel"
+            val notificationId = 9999
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager ?: return
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val channel = android.app.NotificationChannel(
-                channelId,
-                "FLUX Storage Indexer",
-                android.app.NotificationManager.IMPORTANCE_LOW
-            )
-            nm.createNotificationChannel(channel)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val channel = android.app.NotificationChannel(
+                    channelId,
+                    "FLUX Storage Indexer",
+                    android.app.NotificationManager.IMPORTANCE_LOW
+                )
+                nm.createNotificationChannel(channel)
+            }
+
+            val builder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                android.app.Notification.Builder(context, channelId)
+            } else {
+                @Suppress("DEPRECATION")
+                android.app.Notification.Builder(context)
+            }
+
+            builder.setContentTitle(title)
+                .setContentText(text)
+                .setSmallIcon(android.R.drawable.stat_notify_sync)
+                .setAutoCancel(true)
+
+            if (showProgress) {
+                builder.setProgress(100, 0, true)
+            } else {
+                builder.setProgress(0, 0, false)
+            }
+
+            nm.notify(notificationId, builder.build())
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show notification: ${e.message}")
         }
-
-        val builder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            android.app.Notification.Builder(context, channelId)
-        } else {
-            @Suppress("DEPRECATION")
-            android.app.Notification.Builder(context)
-        }
-
-        builder.setContentTitle(title)
-            .setContentText(text)
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setAutoCancel(true)
-
-        if (showProgress) {
-            builder.setProgress(100, 0, true)
-        } else {
-            builder.setProgress(0, 0, false)
-        }
-
-        nm.notify(notificationId, builder.build())
     }
 
     /**
@@ -1298,8 +1308,8 @@ class FluxIndex(private val context: Context) {
 
     private fun tokenize(text: String): List<String> {
         // Splitting on underscores, hyphens, dots, spaces, CamelCase boundaries
-        val cleaned = text.replace(Regex("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[^a-zA-Z0-9]"), " ")
-        return cleaned.lowercase().split(Regex("\\s+")).filter { it.length >= 2 }
+        val cleaned = text.replace(TOKENIZE_SPLIT_REGEX, " ")
+        return cleaned.lowercase().split(WHITESPACE_REGEX).filter { it.length >= 2 }
     }
 
     private fun getMimeType(file: File): String {
