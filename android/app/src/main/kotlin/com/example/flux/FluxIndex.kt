@@ -226,7 +226,7 @@ class FluxIndex(private val context: Context) {
                 java.io.BufferedInputStream(fis).use { bis ->
                     java.io.DataInputStream(bis).use { dis ->
                         val magic = dis.readInt()
-                        if (magic != 20260701) return false
+                        if (magic != 20260702) return false
                         
                         fileCount = dis.readInt()
                         val nextFidVal = dis.readLong()
@@ -327,7 +327,7 @@ class FluxIndex(private val context: Context) {
             java.io.FileOutputStream(cacheFile).use { fos ->
                 java.io.BufferedOutputStream(fos).use { bos ->
                     java.io.DataOutputStream(bos).use { dos ->
-                        dos.writeInt(20260701) // Magic version
+                        dos.writeInt(20260702) // Magic version
                         dos.writeInt(fileCount)
                         dos.writeLong(nextFid.get())
                         
@@ -443,42 +443,70 @@ class FluxIndex(private val context: Context) {
                 // Tier 3 Android Folder
                 val tier3Dirs = allFiles.filter { it.isDirectory && it.name == "Android" }
                 
-                // Tier 2 Rest of the folders/files
+                // Tier 2 Rest of the folders/files (including hidden ones)
                 val tier2Entries = allFiles.filter { 
-                    !tier1Names.contains(it.name) && it.name != "Android" && !it.name.startsWith(".")
+                    !tier1Names.contains(it.name) && it.name != "Android"
                 }
 
                 // Scan Tier 1 first
                 for (dir in tier1Dirs) {
-                    scanDirRecursive(dir, rootFid)
+                    val dirFid = nextFid.getAndIncrement()
+                    val record = FileRecord.create(
+                        fid = dirFid,
+                        parentDirFid = rootFid,
+                        name = dir.name,
+                        path = dir.absolutePath,
+                        size = 0L,
+                        mtime = dir.lastModified() / 1000L,
+                        atime = System.currentTimeMillis() / 1000L,
+                        ctime = dir.lastModified() / 1000L,
+                        mimeType = "directory",
+                        flags = FileRecord.FLAG_INDEXED
+                    )
+                    insertRecordToIndexes(record)
+                    scanDirRecursive(dir, dirFid)
                 }
 
                 // Scan Tier 2 next
                 for (entry in tier2Entries) {
-                    if (entry.isDirectory) {
-                        scanDirRecursive(entry, rootFid)
-                    } else {
-                        // Root files
-                        val fid = nextFid.getAndIncrement()
-                        val record = FileRecord.create(
-                            fid = fid,
-                            parentDirFid = rootFid,
-                            name = entry.name,
-                            path = entry.absolutePath,
-                            size = entry.length(),
-                            mtime = entry.lastModified() / 1000L,
-                            atime = System.currentTimeMillis() / 1000L,
-                            ctime = entry.lastModified() / 1000L,
-                            mimeType = getMimeType(entry),
-                            flags = FileRecord.FLAG_INDEXED
-                        )
-                        insertRecordToIndexes(record)
+                    val entryFid = nextFid.getAndIncrement()
+                    val isDir = entry.isDirectory
+                    val mimeType = if (isDir) "directory" else getMimeType(entry)
+                    val record = FileRecord.create(
+                        fid = entryFid,
+                        parentDirFid = rootFid,
+                        name = entry.name,
+                        path = entry.absolutePath,
+                        size = if (isDir) 0L else entry.length(),
+                        mtime = entry.lastModified() / 1000L,
+                        atime = System.currentTimeMillis() / 1000L,
+                        ctime = entry.lastModified() / 1000L,
+                        mimeType = mimeType,
+                        flags = FileRecord.FLAG_INDEXED
+                    )
+                    insertRecordToIndexes(record)
+                    if (isDir) {
+                        scanDirRecursive(entry, entryFid)
                     }
                 }
 
                 // Scan Tier 3 (Android app/media data) last
                 for (dir in tier3Dirs) {
-                    scanDirRecursive(dir, rootFid)
+                    val dirFid = nextFid.getAndIncrement()
+                    val record = FileRecord.create(
+                        fid = dirFid,
+                        parentDirFid = rootFid,
+                        name = dir.name,
+                        path = dir.absolutePath,
+                        size = 0L,
+                        mtime = dir.lastModified() / 1000L,
+                        atime = System.currentTimeMillis() / 1000L,
+                        ctime = dir.lastModified() / 1000L,
+                        mimeType = "directory",
+                        flags = FileRecord.FLAG_INDEXED
+                    )
+                    insertRecordToIndexes(record)
+                    scanDirRecursive(dir, dirFid)
                 }
             }
         } catch (e: Exception) {
@@ -512,8 +540,7 @@ class FluxIndex(private val context: Context) {
             val files = currentDir.listFiles() ?: continue
 
             for (f in files) {
-                // Skip hidden dotfiles
-                if (f.name.startsWith(".")) continue
+
 
                 val path = f.absolutePath
                 val isDir = f.isDirectory
