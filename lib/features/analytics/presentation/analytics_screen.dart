@@ -21,7 +21,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
   late AnimationController _controller;
   late Animation<double> _opacityAnimation;
   late Animation<double> _scaleAnimation;
-  
+
   // Stacking deck tracking variables
   int _activeIndex = 5; // Start with the top tab (Others) active.
   final Map<String, double> _dragOffsets = {};
@@ -74,14 +74,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
 
   @override
   Widget build(BuildContext context) {
-
     final storageAsync = ref.watch(storageStatusProvider);
     final storageData = storageAsync.maybeWhen(
       data: (data) => data,
       orElse: () => <String, dynamic>{},
     );
 
-    final totalStorage = storageData['totalStorage'] as int? ?? 256 * 1000 * 1000 * 1000;
+    final totalStorage =
+        storageData['totalStorage'] as int? ?? 256 * 1000 * 1000 * 1000;
     final totalUsed = storageData['totalUsed'] as int? ?? 0;
     final photos = storageData['Photos'] as int? ?? 0;
     final videos = storageData['Videos'] as int? ?? 0;
@@ -118,7 +118,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
       return '$pct%';
     }
 
-    final usedPctString = totalStorage > 0 ? '${(totalUsed / totalStorage * 100).toStringAsFixed(0)}%' : '0%';
+    final usedPctString = totalStorage > 0
+        ? '${(totalUsed / totalStorage * 100).toStringAsFixed(0)}%'
+        : '0%';
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -167,16 +169,16 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     // Compute segment angles for tap collision checking and CustomPainter layout consistency
     final double minAngle = 0.14; // in radians (~8 degrees)
     final double gapAngle = 0.035; // in radians (~2 degrees) between segments
-    
+
     int activeCount = 0;
     for (var val in values) {
       if (val > 0) activeCount++;
     }
-    
+
     final double totalGaps = activeCount * gapAngle;
     final double availableAngle = 2 * math.pi - totalGaps;
     final double minAnglesSum = activeCount * minAngle;
-    
+
     List<double> segmentAngles = List.filled(values.length, 0.0);
     if (activeCount > 0) {
       if (minAnglesSum >= availableAngle) {
@@ -192,7 +194,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         }
         for (int i = 0; i < values.length; i++) {
           if (values[i] > 0) {
-            final double proportionalShare = (values[i] / remainingValuesSum) * remainingAngle;
+            final double proportionalShare =
+                (values[i] / remainingValuesSum) * remainingAngle;
             segmentAngles[i] = minAngle + proportionalShare;
           }
         }
@@ -299,19 +302,27 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
     // Compute overlapping positioned tabs only when Stack View is active to save resources
     final List<Widget> positionedWidgets = [];
     if (!_isGridView) {
-      final List<double> topOffsets = List.generate(categoryCardsData.length, (i) => i * 52.0.h);
+      final List<double> topOffsets = List.generate(
+        categoryCardsData.length,
+        (i) => i * 52.0.h,
+      );
       for (int i = 0; i < categoryCardsData.length; i++) {
         final data = categoryCardsData[i];
-        
+
         // Convert outlined icons to standard filled icons for folder tabs styling
         IconData stackedIcon = data['icon'] as IconData;
         if (stackedIcon == Icons.image_outlined) stackedIcon = Icons.image;
-        if (stackedIcon == Icons.play_circle_outline) stackedIcon = Icons.play_arrow;
-        if (stackedIcon == Icons.description_outlined) stackedIcon = Icons.description;
-        if (stackedIcon == Icons.music_note_outlined) stackedIcon = Icons.music_note;
+        if (stackedIcon == Icons.play_circle_outline)
+          stackedIcon = Icons.play_arrow;
+        if (stackedIcon == Icons.description_outlined)
+          stackedIcon = Icons.description;
+        if (stackedIcon == Icons.music_note_outlined)
+          stackedIcon = Icons.music_note;
         if (stackedIcon == Icons.apps_outlined) stackedIcon = Icons.apps;
-        if (stackedIcon == Icons.delete_outline_rounded) stackedIcon = Icons.delete_outline;
-        if (stackedIcon == Icons.folder_open_outlined) stackedIcon = Icons.folder_open;
+        if (stackedIcon == Icons.delete_outline_rounded)
+          stackedIcon = Icons.delete_outline;
+        if (stackedIcon == Icons.folder_open_outlined)
+          stackedIcon = Icons.folder_open;
 
         positionedWidgets.add(
           Positioned(
@@ -425,8 +436,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                           ),
                           SizedBox(height: 24.0.h),
 
-                            // Custom Donut Progress Chart
-                           Center(
+                          // Custom Donut Progress Chart
+                          Center(
                             child: SizedBox(
                               width: 180.0.r,
                               height: 180.0.r,
@@ -438,36 +449,43 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                   final touchPosition = details.localPosition;
                                   final dx = touchPosition.dx - center.dx;
                                   final dy = touchPosition.dy - center.dy;
-                                  
+
                                   // Distance from center
                                   final distance = math.sqrt(dx * dx + dy * dy);
-                                  
+
                                   // Donut base radius
                                   final baseRadius = width / 2 - 10.0.r;
                                   final innerRadius = baseRadius - 16.0.r;
                                   final outerRadius = baseRadius + 16.0.r;
-                                  
-                                  if (distance >= innerRadius && distance <= outerRadius) {
+
+                                  if (distance >= innerRadius &&
+                                      distance <= outerRadius) {
                                     // Touch is on the donut ring
                                     double angle = math.atan2(dy, dx);
-                                    double normalizedAngle = angle + math.pi / 2;
+                                    double normalizedAngle =
+                                        angle + math.pi / 2;
                                     if (normalizedAngle < 0) {
                                       normalizedAngle += 2 * math.pi;
                                     }
-                                    
+
                                     // Match against segmentAngles
                                     double currentSum = 0.0;
                                     int tappedIndex = -1;
-                                    for (int i = 0; i < segmentAngles.length; i++) {
+                                    for (
+                                      int i = 0;
+                                      i < segmentAngles.length;
+                                      i++
+                                    ) {
                                       final start = currentSum;
                                       final end = currentSum + segmentAngles[i];
-                                      if (normalizedAngle >= start && normalizedAngle <= end) {
+                                      if (normalizedAngle >= start &&
+                                          normalizedAngle <= end) {
                                         tappedIndex = i;
                                         break;
                                       }
                                       currentSum += segmentAngles[i];
                                     }
-                                    
+
                                     if (tappedIndex != -1) {
                                       setState(() {
                                         if (_selectedIndex == tappedIndex) {
@@ -495,19 +513,26 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                   ),
                                   child: Center(
                                     child: AnimatedSwitcher(
-                                      duration: const Duration(milliseconds: 250),
+                                      duration: const Duration(
+                                        milliseconds: 250,
+                                      ),
                                       transitionBuilder: (child, animation) {
                                         return FadeTransition(
                                           opacity: animation,
                                           child: ScaleTransition(
-                                            scale: Tween<double>(begin: 0.9, end: 1.0).animate(animation),
+                                            scale: Tween<double>(
+                                              begin: 0.9,
+                                              end: 1.0,
+                                            ).animate(animation),
                                             child: child,
                                           ),
                                         );
                                       },
                                       child: _selectedIndex != -1
                                           ? Column(
-                                              key: ValueKey<int>(_selectedIndex),
+                                              key: ValueKey<int>(
+                                                _selectedIndex,
+                                              ),
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Text(
@@ -517,12 +542,16 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                                     fontFamily: 'Inter',
                                                     fontSize: 12.0.sp,
                                                     fontWeight: FontWeight.w700,
-                                                    color: colors[_selectedIndex],
+                                                    color:
+                                                        colors[_selectedIndex],
                                                   ),
                                                 ),
                                                 SizedBox(height: 2.0.h),
                                                 Text(
-                                                  _formatSize(values[_selectedIndex].toInt()),
+                                                  _formatSize(
+                                                    values[_selectedIndex]
+                                                        .toInt(),
+                                                  ),
                                                   style: TextStyle(
                                                     fontFamily: 'Inter',
                                                     fontSize: 18.0.sp,
@@ -534,7 +563,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                                 Text(
                                                   _selectedIndex == 9
                                                       ? '${((totalStorage - totalUsed) / totalStorage * 100).toStringAsFixed(0)}%'
-                                                      : getPctString(values[_selectedIndex].toInt()),
+                                                      : getPctString(
+                                                          values[_selectedIndex]
+                                                              .toInt(),
+                                                        ),
                                                   style: TextStyle(
                                                     fontFamily: 'Inter',
                                                     fontSize: 11.0.sp,
@@ -573,7 +605,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                 ),
                               ),
                             ),
-                           ),
+                          ),
                           SizedBox(height: 28.0.h),
 
                           // Legend category details grid (featuring all 9 storage types)
@@ -583,15 +615,60 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                               Expanded(
                                 child: Column(
                                   children: [
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Images', _formatSize(photos), getPctString(photos), const Color(0xFF38BDF8), 0),
+                                    _buildLegendRow(
+                                      textColor,
+                                      subtitleColor,
+                                      borderColor,
+                                      'Images',
+                                      _formatSize(photos),
+                                      getPctString(photos),
+                                      const Color(0xFF38BDF8),
+                                      0,
+                                    ),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Docs', _formatSize(docs), getPctString(docs), const Color(0xFFFBBF24), 2),
+                                    _buildLegendRow(
+                                      textColor,
+                                      subtitleColor,
+                                      borderColor,
+                                      'Docs',
+                                      _formatSize(docs),
+                                      getPctString(docs),
+                                      const Color(0xFFFBBF24),
+                                      2,
+                                    ),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Apps', _formatSize(apps), getPctString(apps), const Color(0xFFFF4D4D), 4),
+                                    _buildLegendRow(
+                                      textColor,
+                                      subtitleColor,
+                                      borderColor,
+                                      'Apps',
+                                      _formatSize(apps),
+                                      getPctString(apps),
+                                      const Color(0xFFFF4D4D),
+                                      4,
+                                    ),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Games', _formatSize(games), getPctString(games), const Color(0xFF4CAF50), 6),
+                                    _buildLegendRow(
+                                      textColor,
+                                      subtitleColor,
+                                      borderColor,
+                                      'Games',
+                                      _formatSize(games),
+                                      getPctString(games),
+                                      const Color(0xFF4CAF50),
+                                      6,
+                                    ),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Others', _formatSize(others), getPctString(others), const Color(0xFF9E9E9E), 8),
+                                    _buildLegendRow(
+                                      textColor,
+                                      subtitleColor,
+                                      borderColor,
+                                      'Others',
+                                      _formatSize(others),
+                                      getPctString(others),
+                                      const Color(0xFF9E9E9E),
+                                      8,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -599,13 +676,49 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                               Expanded(
                                 child: Column(
                                   children: [
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Videos', _formatSize(videos), getPctString(videos), const Color(0xFF10B981), 1),
+                                    _buildLegendRow(
+                                      textColor,
+                                      subtitleColor,
+                                      borderColor,
+                                      'Videos',
+                                      _formatSize(videos),
+                                      getPctString(videos),
+                                      const Color(0xFF10B981),
+                                      1,
+                                    ),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Audio', _formatSize(audio), getPctString(audio), const Color(0xFFF97316), 3),
+                                    _buildLegendRow(
+                                      textColor,
+                                      subtitleColor,
+                                      borderColor,
+                                      'Audio',
+                                      _formatSize(audio),
+                                      getPctString(audio),
+                                      const Color(0xFFF97316),
+                                      3,
+                                    ),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'Bin', _formatSize(bin), getPctString(bin), const Color(0xFF607D8B), 5),
+                                    _buildLegendRow(
+                                      textColor,
+                                      subtitleColor,
+                                      borderColor,
+                                      'Bin',
+                                      _formatSize(bin),
+                                      getPctString(bin),
+                                      const Color(0xFF607D8B),
+                                      5,
+                                    ),
                                     SizedBox(height: 16.0.h),
-                                    _buildLegendRow(textColor, subtitleColor, borderColor, 'System', _formatSize(system), getPctString(system), const Color(0xFF9C27B0), 7),
+                                    _buildLegendRow(
+                                      textColor,
+                                      subtitleColor,
+                                      borderColor,
+                                      'System',
+                                      _formatSize(system),
+                                      getPctString(system),
+                                      const Color(0xFF9C27B0),
+                                      7,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -633,10 +746,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                         Container(
                           padding: EdgeInsets.all(2.0.r),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.black.withValues(alpha: 0.03),
                             borderRadius: BorderRadius.circular(10.0.r),
                             border: Border.all(
-                              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.05)
+                                  : Colors.black.withValues(alpha: 0.03),
                               width: 1.0.r,
                             ),
                           ),
@@ -650,28 +767,39 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                   });
                                 },
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.0.w,
+                                    vertical: 6.0.h,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: _isGridView 
-                                        ? (isDark ? AppColors.neutral800 : Colors.white) 
+                                    color: _isGridView
+                                        ? (isDark
+                                              ? AppColors.neutral800
+                                              : Colors.white)
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(8.0.r),
-                                    boxShadow: _isGridView ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.08),
-                                        blurRadius: 4.r,
-                                        offset: const Offset(0, 2),
-                                      )
-                                    ] : null,
+                                    boxShadow: _isGridView
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                              blurRadius: 4.r,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(
                                         Icons.grid_view_rounded,
                                         size: 14.0.r,
-                                        color: _isGridView 
-                                            ? AppColors.mintAccent 
-                                            : subtitleColor.withValues(alpha: 0.6),
+                                        color: _isGridView
+                                            ? AppColors.mintAccent
+                                            : subtitleColor.withValues(
+                                                alpha: 0.6,
+                                              ),
                                       ),
                                       if (_isGridView) ...[
                                         SizedBox(width: 4.0.w),
@@ -696,28 +824,39 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                                   });
                                 },
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 10.0.w, vertical: 6.0.h),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.0.w,
+                                    vertical: 6.0.h,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: !_isGridView 
-                                        ? (isDark ? AppColors.neutral800 : Colors.white) 
+                                    color: !_isGridView
+                                        ? (isDark
+                                              ? AppColors.neutral800
+                                              : Colors.white)
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(8.0.r),
-                                    boxShadow: !_isGridView ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.08),
-                                        blurRadius: 4.r,
-                                        offset: const Offset(0, 2),
-                                      )
-                                    ] : null,
+                                    boxShadow: !_isGridView
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                              blurRadius: 4.r,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(
                                         Icons.layers_outlined,
                                         size: 14.0.r,
-                                        color: !_isGridView 
-                                            ? AppColors.mintAccent 
-                                            : subtitleColor.withValues(alpha: 0.6),
+                                        color: !_isGridView
+                                            ? AppColors.mintAccent
+                                            : subtitleColor.withValues(
+                                                alpha: 0.6,
+                                              ),
                                       ),
                                       if (!_isGridView) ...[
                                         SizedBox(width: 4.0.w),
@@ -746,22 +885,20 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
                       transitionBuilder: (child, animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        );
+                        return FadeTransition(opacity: animation, child: child);
                       },
                       child: _isGridView
                           ? GridView.builder(
                               key: const ValueKey<String>('grid_categories'),
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 14.0.h,
-                                crossAxisSpacing: 14.0.w,
-                                childAspectRatio: 1.15.r,
-                              ),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 14.0.h,
+                                    crossAxisSpacing: 14.0.w,
+                                    childAspectRatio: 1.15.r,
+                                  ),
                               itemCount: categoryCardsData.length,
                               itemBuilder: (context, idx) {
                                 final data = categoryCardsData[idx];
@@ -822,9 +959,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(horizontal: 8.0.w, vertical: 6.0.h),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? color.withOpacity(0.08) 
-              : Colors.transparent,
+          color: isSelected ? color.withOpacity(0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(10.0.r),
           border: Border.all(
             color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
@@ -851,7 +986,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14.0.sp,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
                       color: textColor,
                     ),
                   ),
@@ -929,11 +1066,15 @@ class StorageDonutPainter extends CustomPainter {
 
       final sweepAngle = segmentAngles[i] * animation.value;
       final isSelected = selectedIndex == i;
-      
+
       // If something is selected, make other segments semi-transparent to highlight selection
-      final double opacityMultiplier = (selectedIndex != -1 && !isSelected) ? 0.35 : 1.0;
-      final Color segmentColor = colors[i].withOpacity(colors[i].opacity * opacityMultiplier);
-      
+      final double opacityMultiplier = (selectedIndex != -1 && !isSelected)
+          ? 0.35
+          : 1.0;
+      final Color segmentColor = colors[i].withOpacity(
+        colors[i].opacity * opacityMultiplier,
+      );
+
       final fillPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = isSelected ? 18.0.r : 14.0.r
@@ -995,7 +1136,9 @@ class CategoryCard extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.06)
         : Colors.black.withValues(alpha: 0.04);
     final textColor = isDark ? AppColors.pureWhite : AppColors.neutral900;
-    final subColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final subColor = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
 
     return GestureDetector(
       onTap: onTap,
@@ -1027,11 +1170,7 @@ class CategoryCard extends StatelessWidget {
                     color: color.withOpacity(0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 18.0.r,
-                  ),
+                  child: Icon(icon, color: color, size: 18.0.r),
                 ),
                 Icon(
                   Icons.arrow_forward_ios_rounded,
@@ -1099,7 +1238,9 @@ class CategoryCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: ratio.clamp(0.0, 1.0),
                     minHeight: 4.0.h,
-                    backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                    backgroundColor: isDark
+                        ? Colors.white10
+                        : Colors.black.withOpacity(0.05),
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                   ),
                 ),

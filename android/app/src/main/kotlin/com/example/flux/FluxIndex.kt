@@ -774,6 +774,37 @@ class FluxIndex(private val context: Context) {
         }
     }
 
+    /**
+     * Recursively sums the sizes of all non-deleted, non-directory children.
+     * BFS-limited to 5000 nodes to prevent UI jank on very deep trees.
+     */
+    private fun computeDirectorySize(parentFid: Long): Long {
+        var total = 0L
+        val visited = mutableSetOf<Long>()
+        val queue = ArrayDeque<Long>()
+        queue.addLast(parentFid)
+        var budget = 5000
+
+        while (queue.isNotEmpty() && budget > 0) {
+            val fid = queue.removeFirst()
+            if (!visited.add(fid)) continue
+            budget--
+
+            val childList = directoryIndex[fid] ?: continue
+            val snapshot = synchronized(childList) { childList.toList() }
+            for (childFid in snapshot) {
+                if (deletionSet.get(childFid.toInt())) continue
+                val childRecord = getRecord(childFid) ?: continue
+                if (childRecord.isDirectory) {
+                    queue.addLast(childFid)
+                } else {
+                    total += childRecord.size
+                }
+            }
+        }
+        return total
+    }
+
     fun getDirectoryContents(parentPath: String): List<Map<String, Any>> {
         val normalized = normalizePath(parentPath)
         val parentFid = pathMap[xxHash64(normalized.lowercase())] ?: return emptyList()
@@ -786,12 +817,27 @@ class FluxIndex(private val context: Context) {
         for (fid in localCopy) {
             if (deletionSet.get(fid.toInt())) continue
             val record = getRecord(fid) ?: continue
-            results.add(record.toMap())
+            val map = record.toMap().toMutableMap()
+            // For directories: compute and inject real folder size
+            if (record.isDirectory) {
+                val folderSize = computeDirectorySize(fid)
+                map["size"] = folderSize
+                map["sizeString"] = formatSizeKt(folderSize)
+                map["sizeInMb"] = folderSize.toDouble() / (1024.0 * 1024.0)
+            }
+            results.add(map)
             if (results.size >= 1000) {
                 break
             }
         }
         return results
+    }
+
+    private fun formatSizeKt(bytes: Long): String {
+        if (bytes < 1000) return "$bytes B"
+        val exp = (Math.log(bytes.toDouble()) / Math.log(1000.0)).toInt().coerceIn(1, 6)
+        val pre = "KMGTPE"[exp - 1]
+        return String.format("%.1f %sB", bytes / Math.pow(1000.0, exp.toDouble()), pre)
     }
 
     /**

@@ -296,11 +296,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
 
         // Sort dynamically based on filterState
         displayedContents.sort((a, b) {
-          final aIsDir = a['category'] == 'Directory';
-          final bIsDir = b['category'] == 'Directory';
-          if (aIsDir && !bIsDir) return -1;
-          if (!aIsDir && bIsDir) return 1;
-
           if (filterState.nameSort != 'Off') {
             final isDesc = filterState.nameSort == 'Descending';
             final comp = (a['name'] as String).toLowerCase().compareTo((b['name'] as String).toLowerCase());
@@ -417,7 +412,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                               ),
                               SizedBox(height: 4.0.h),
                               Text(
-                                'Folder',
+                                'Folder • ${item['sizeString'] ?? '0 B'}',
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 13.0.sp,
