@@ -11,9 +11,11 @@ class MainActivity : FlutterActivity() {
     private val METHOD_CHANNEL = "com.flux.channel/methods"
     private val EVENT_CHANNEL = "com.flux.channel/search_stream"
     private val DOWNLOAD_EVENT_CHANNEL = "com.flux.channel/download_progress"
+    private val COPY_PROGRESS_CHANNEL = "com.flux.channel/copy_progress"
 
     private lateinit var fluxIndex: FluxIndex
     private var downloadProgressSink: EventChannel.EventSink? = null
+    private var copyProgressChannel: MethodChannel? = null
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -112,6 +114,10 @@ class MainActivity : FlutterActivity() {
                     downloadProgressSink = null
                 }
             })
+
+        // MethodChannel for copy progress — Kotlin pushes Double (0.0→1.0) via invokeMethod.
+        copyProgressChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, COPY_PROGRESS_CHANNEL)
+
         // Set up MethodChannel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
             java.util.concurrent.ForkJoinPool.commonPool().execute {
@@ -161,6 +167,30 @@ class MainActivity : FlutterActivity() {
                             val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
                             fluxIndex.schedulePhysicalDelete(applicationContext, fids)
                             runOnUiThread { result.success(true) } // returns immediately
+                        }
+                        "moveFiles" -> {
+                            val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
+                            val destinationPath = call.argument<String>("destinationPath") ?: ""
+                            // Move is O(1) per file (rename syscall), safe to run on background thread.
+                            Thread {
+                                val success = fluxIndex.moveFiles(fids, destinationPath)
+                                runOnUiThread { result.success(success) }
+                            }.apply { isDaemon = true }.start()
+                        }
+                        "copyFilesWithProgress" -> {
+                            val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
+                            val destinationPath = call.argument<String>("destinationPath") ?: ""
+                            // Copy runs on IO thread; progress is reported via a side-channel EventChannel
+                            // but for simplicity we stream chunk-level progress through the result channel.
+                            // Dart receives a final true/false; progress is polled via getLastCopyProgress.
+                            Thread {
+                                val success = fluxIndex.copyFilesWithProgress(fids, destinationPath) { progress ->
+                                    runOnUiThread {
+                                        copyProgressChannel?.invokeMethod("onProgress", progress)
+                                    }
+                                }
+                                runOnUiThread { result.success(success) }
+                            }.apply { isDaemon = true }.start()
                         }
                         "createDirectory" -> {
                             val parentPath = call.argument<String>("parentPath") ?: ""

@@ -1152,6 +1152,258 @@ class FluxIndex(private val context: Context) {
         return true
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Copy / Move  (Section Master Performance Table: Rename/move O(1), <0.5ms)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Resolves a conflict-free destination path.
+     * If [base] already exists, appends " (1)", " (2)", … until free.
+     */
+    private fun resolveDestPath(base: String): String {
+        var candidate = base
+        var counter = 1
+        while (File(candidate).exists() || pathMap.containsKey(xxHash64(candidate.lowercase()))) {
+            val dot = base.lastIndexOf('.')
+            candidate = if (dot > base.lastIndexOf('/')) {
+                "${base.substring(0, dot)} ($counter)${base.substring(dot)}"
+            } else {
+                "$base ($counter)"
+            }
+            counter++
+        }
+        return candidate
+    }
+
+    /**
+     * Moves [fids] into [destinationPath].
+     *
+     * Per docs Master Performance Table: O(1), <0.5ms — Path Map only.
+     * Uses File.renameTo() which is a single atomic rename() syscall on the same
+     * partition — no data copying, no FUSE overhead beyond one syscall.
+     *
+     * @return list of (sourcePath, destPath) for each moved file (for WAL / undo).
+     */
+    fun moveFiles(fids: List<Long>, destinationPath: String): Boolean {
+        val startMs = System.nanoTime()
+        val destDir = File(destinationPath)
+        if (!destDir.exists() && !destDir.mkdirs()) return false
+
+        // Look up destination directory FID (O(1) path map).
+        val destDirFid = pathMap[xxHash64(destinationPath.lowercase())] ?: return false
+
+        try {
+            walLock.withLock {
+                java.io.BufferedOutputStream(
+                    java.io.FileOutputStream(walFile, true), 65536
+                ).use { out ->
+                    val nowMs = System.currentTimeMillis()
+
+                    for (fid in fids) {
+                        val record = getRecord(fid) ?: continue
+                        val newPath = resolveDestPath("$destinationPath/${record.name}")
+                        val src = File(record.path)
+                        val dst = File(newPath)
+
+                        // ── Disk: atomic rename syscall (zero data copy on same partition) ──
+                        if (!src.renameTo(dst)) {
+                            Log.w(TAG, "moveFiles: renameTo failed ${record.path} → $newPath")
+                            continue
+                        }
+
+                        // ── Index: O(1) path map swap ──────────────────────────────────────
+                        pathMap.remove(xxHash64(record.path))
+                        pathMap.remove(xxHash64(record.path.lowercase()))
+
+                        // Build updated record with new path + new parent
+                        val movedRecord = FileRecord.create(
+                            fid = record.fid,
+                            parentDirFid = destDirFid,
+                            name = newPath.substringAfterLast('/'),
+                            path = newPath,
+                            size = record.size,
+                            mtime = nowMs / 1000L,
+                            atime = record.atime.toLong(),
+                            ctime = record.ctime.toLong(),
+                            mimeType = record.mimeType,
+                            flags = record.flags,
+                            vectorSlot = record.vectorSlot,
+                            accessCount = record.accessCount,
+                            checksum = record.checksum
+                        )
+                        masterIndex[fid.toInt()] = movedRecord
+
+                        pathMap[xxHash64(newPath)] = fid
+                        pathMap[xxHash64(newPath.lowercase())] = fid
+
+                        // Re-parent in directory index
+                        directoryIndex[record.parentDirFid]?.let { oldParentList ->
+                            synchronized(oldParentList) { oldParentList.remove(fid) }
+                        }
+                        val newParentList = directoryIndex.getOrPut(destDirFid) {
+                            java.util.Collections.synchronizedList(mutableListOf())
+                        }
+                        synchronized(newParentList) { newParentList.add(fid) }
+
+                        // WAL entry (opCode 6 = MOVE)
+                        val entry = WalEntry(
+                            sequence = nextFid.getAndIncrement(),
+                            timestamp = nowMs,
+                            opCode = 6,
+                            fid = fid.toInt()
+                        )
+                        out.write(entry.toBytes())
+                    }
+                }
+            }
+            val ms = (System.nanoTime() - startMs) / 1_000_000.0
+            Log.d(TAG, "[PERFORMANCE] moveFiles: ${fids.size} items in ${String.format("%.2f", ms)} ms")
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "moveFiles failed: ${e.message}")
+            return false
+        }
+    }
+
+    /**
+     * Copies [fids] into [destinationPath] with progress streaming.
+     *
+     * Strategy:
+     *  1. Expand folders recursively to get flat list with relative sub-paths.
+     *  2. Create destination directory tree first.
+     *  3. Copy leaf files in parallel (4-thread IO pool — same as physical delete).
+     *  4. Insert each copied file into all 9 indexes and write WAL entry.
+     *  5. Invoke [onChunkProgress] with (copiedSoFar / total) after each chunk.
+     *
+     * @param onChunkProgress called on main thread with 0.0→1.0 progress.
+     */
+    fun copyFilesWithProgress(
+        fids: List<Long>,
+        destinationPath: String,
+        onChunkProgress: (Double) -> Unit
+    ): Boolean {
+        val startMs = System.nanoTime()
+        val destDir = File(destinationPath)
+        if (!destDir.exists() && !destDir.mkdirs()) return false
+
+        val destDirFid = pathMap[xxHash64(destinationPath.lowercase())]
+            ?: return false
+
+        try {
+            // ── Expand to (record, relativePath) pairs ────────────────────────
+            data class CopyItem(val record: FileRecord, val relPath: String)
+
+            fun expand(fid: Long, relBase: String, into: MutableList<CopyItem>) {
+                val rec = getRecord(fid) ?: return
+                val rel = if (relBase.isEmpty()) rec.name else "$relBase/${rec.name}"
+                into.add(CopyItem(rec, rel))
+                if (rec.isDirectory) {
+                    getChildrenRecursive(fid, mutableListOf<Long>().also { kids ->
+                        directoryIndex[fid]?.let { kids.addAll(synchronized(it) { it.toList() }) }
+                    })
+                    directoryIndex[fid]?.let { children ->
+                        synchronized(children) { children.toList() }
+                            .forEach { childFid -> expand(childFid, rel, into) }
+                    }
+                }
+            }
+
+            val items = mutableListOf<CopyItem>()
+            for (fid in fids) expand(fid, "", items)
+            val total = items.size
+            if (total == 0) return true
+
+            // ── Create directory structure first ───────────────────────────────
+            items.filter { it.record.isDirectory }
+                .sortedBy { it.relPath.length }    // shallowest first
+                .forEach { item ->
+                    File("$destinationPath/${item.relPath}").mkdirs()
+                }
+
+            // ── Copy leaf files in parallel (4 IO threads) ────────────────────
+            val fileItems = items.filter { !it.record.isDirectory }
+            val ioThreads = minOf(4, Runtime.getRuntime().availableProcessors())
+            val executor = Executors.newFixedThreadPool(ioThreads)
+            val copied = java.util.concurrent.atomic.AtomicInteger(0)
+
+            try {
+                val chunkSize = 50
+                for (chunkStart in fileItems.indices step chunkSize) {
+                    val chunkEnd = minOf(chunkStart + chunkSize, fileItems.size)
+                    val chunk = fileItems.subList(chunkStart, chunkEnd)
+
+                    val futures = chunk.map { item ->
+                        executor.submit<Pair<String, String>?> {
+                            try {
+                                val destPath = resolveDestPath("$destinationPath/${item.relPath}")
+                                val srcFile = File(item.record.path)
+                                val dstFile = File(destPath)
+                                dstFile.parentFile?.mkdirs()
+                                java.nio.file.Files.copy(
+                                    srcFile.toPath(), dstFile.toPath(),
+                                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                                    java.nio.file.StandardCopyOption.COPY_ATTRIBUTES
+                                )
+                                item.record.path to destPath
+                            } catch (e: Exception) {
+                                Log.w(TAG, "copyFiles: failed ${item.record.path}: ${e.message}")
+                                null
+                            }
+                        }
+                    }
+
+                    // Insert copied files into all 9 indexes after each chunk
+                    walLock.withLock {
+                        java.io.BufferedOutputStream(
+                            java.io.FileOutputStream(walFile, true), 65536
+                        ).use { out ->
+                            val nowMs = System.currentTimeMillis()
+                            for (future in futures) {
+                                val result = future.get(30, TimeUnit.SECONDS) ?: continue
+                                val (_, destPath) = result
+                                val dstFile = File(destPath)
+                                val newFid = nextFid.getAndIncrement()
+                                val mimeType = if (dstFile.isDirectory) "directory" else getMimeType(dstFile)
+                                val newRecord = FileRecord.create(
+                                    fid = newFid,
+                                    parentDirFid = destDirFid,
+                                    name = destPath.substringAfterLast('/'),
+                                    path = destPath,
+                                    size = dstFile.length(),
+                                    mtime = nowMs / 1000L,
+                                    atime = nowMs / 1000L,
+                                    ctime = nowMs / 1000L,
+                                    mimeType = mimeType,
+                                    flags = FileRecord.FLAG_INDEXED
+                                )
+                                insertRecordToIndexes(newRecord)
+                                val entry = WalEntry(
+                                    sequence = nextFid.getAndIncrement(),
+                                    timestamp = nowMs,
+                                    opCode = 1, // INSERT
+                                    fid = newFid.toInt()
+                                )
+                                out.write(entry.toBytes())
+                            }
+                        }
+                    }
+                    val done = copied.addAndGet(chunk.size)
+                    onChunkProgress(done.toDouble() / total)
+                }
+            } finally {
+                executor.shutdown()
+                executor.awaitTermination(120, TimeUnit.SECONDS)
+            }
+
+            val ms = (System.nanoTime() - startMs) / 1_000_000.0
+            Log.d(TAG, "[PERFORMANCE] copyFilesWithProgress: $total files in ${String.format("%.0f", ms)} ms")
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "copyFilesWithProgress failed: ${e.message}")
+            return false
+        }
+    }
+
     /**
      * Complexity: O(N) [masterIndex junk scan]
      * Section 8.2: Junk Cleaner Engine scanning logic obeying Hard Safety Rules 1 & 2

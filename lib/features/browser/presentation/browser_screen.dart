@@ -11,6 +11,8 @@ import '../../../core/widgets/file_type_icon.dart';
 import '../../../../bridge/flux_bridge.dart';
 import '../../../core/providers/trash_provider.dart';
 import '../../home/providers/copy_task_provider.dart';
+import '../../../core/providers/clipboard_provider.dart';
+import '../../../../core/widgets/folder_picker_sheet.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
   const BrowserScreen({Key? key}) : super(key: key);
@@ -328,6 +330,234 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
       _isSelectionMode = false;
       _selectedFids.clear();
     });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Selection → Clipboard
+  // ───────────────────────────────────────────────────────────────────────────
+
+  void _copySelectedFiles(List<dynamic> itemsList, List<FluxFile> currentFileList, bool isFolderList) {
+    int fileCount = 0, folderCount = 0;
+    for (final fid in _selectedFids) {
+      // Check in folder list first
+      if (isFolderList) {
+        final item = itemsList.firstWhere(
+          (i) => (i['fid'] as num?)?.toInt() == fid,
+          orElse: () => null,
+        );
+        if (item != null) {
+          if (item['category'] == 'Directory') folderCount++; else fileCount++;
+          continue;
+        }
+      }
+      final file = currentFileList.firstWhere((f) => f.fid == fid, orElse: () => currentFileList.first);
+      if (file.fid == fid) {
+        if (file.category == 'Directory') folderCount++; else fileCount++;
+      }
+    }
+    ref.read(clipboardProvider.notifier).copyFiles(
+      fids: Set.from(_selectedFids),
+      sourcePath: _currentPath,
+      fileCount: fileCount,
+      folderCount: folderCount,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${_selectedFids.length} item${_selectedFids.length == 1 ? '' : 's'} copied'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppColors.mintAccent,
+      ),
+    );
+    setState(() {
+      _isSelectionMode = false;
+      _selectedFids.clear();
+    });
+  }
+
+  void _cutSelectedFiles(List<dynamic> itemsList, List<FluxFile> currentFileList, bool isFolderList) {
+    int fileCount = 0, folderCount = 0;
+    for (final fid in _selectedFids) {
+      if (isFolderList) {
+        final item = itemsList.firstWhere(
+          (i) => (i['fid'] as num?)?.toInt() == fid,
+          orElse: () => null,
+        );
+        if (item != null) {
+          if (item['category'] == 'Directory') folderCount++; else fileCount++;
+          continue;
+        }
+      }
+      final file = currentFileList.firstWhere((f) => f.fid == fid, orElse: () => currentFileList.first);
+      if (file.fid == fid) {
+        if (file.category == 'Directory') folderCount++; else fileCount++;
+      }
+    }
+    ref.read(clipboardProvider.notifier).cutFiles(
+      fids: Set.from(_selectedFids),
+      sourcePath: _currentPath,
+      fileCount: fileCount,
+      folderCount: folderCount,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${_selectedFids.length} item${_selectedFids.length == 1 ? '' : 's'} cut — paste to move'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppColors.mintAccent,
+      ),
+    );
+    setState(() {
+      _isSelectionMode = false;
+      _selectedFids.clear();
+    });
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    final clipboard = ref.read(clipboardProvider);
+    if (clipboard.isEmpty) return;
+
+    final destPath = await FolderPickerSheet.show(
+      context,
+      title: clipboard.mode == ClipboardMode.copy ? 'Copy to…' : 'Move to…',
+      sourceFids: clipboard.fids,
+    );
+    if (destPath == null || !mounted) return;
+
+    final fids = clipboard.fids.toList();
+    final isCut = clipboard.mode == ClipboardMode.cut;
+
+    // Clear clipboard immediately so paste FAB disappears
+    ref.read(clipboardProvider.notifier).clear();
+
+    if (isCut) {
+      // ── Move: O(1) rename per file, instant ──
+      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.move);
+      final success = await FluxBridge.moveFiles(fids, destPath);
+      if (success) {
+        ref.read(copyTaskProvider.notifier).completeTask(taskId);
+        // Permanently delete originals from source (cut = destructive)
+        await FluxBridge.deletePermanentlyWithProgress(fids, (_) {});
+      } else {
+        ref.read(copyTaskProvider.notifier).failTask(taskId);
+      }
+    } else {
+      // ── Copy: parallel IO with live progress overlay ──
+      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.copy);
+      final success = await FluxBridge.copyFilesWithProgress(
+        fids,
+        destPath,
+        (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
+      );
+      if (success) {
+        ref.read(copyTaskProvider.notifier).completeTask(taskId);
+      } else {
+        ref.read(copyTaskProvider.notifier).failTask(taskId);
+      }
+    }
+    if (mounted) await _loadDirectoryContents();
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Back-press deselect dialog
+  // ───────────────────────────────────────────────────────────────────────────
+
+  void _showDeselectDialog({required VoidCallback onConfirmed}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: isDark ? AppColors.neutral950 : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+          side: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(20.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Clear selection?',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                '${_selectedFids.length} item${_selectedFids.length == 1 ? '' : 's'} selected. Clear selection and go back?',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14.sp,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                  height: 1.5,
+                ),
+              ),
+              SizedBox(height: 20.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: isDark ? Colors.white24 : Colors.black26),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.sp,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        setState(() {
+                          _isSelectionMode = false;
+                          _selectedFids.clear();
+                        });
+                        onConfirmed();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mintAccent,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Clear & Go Back',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -1284,9 +1514,21 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
         }
       },
       child: PopScope(
-        canPop: activeCategory == null && _pathHistory.isEmpty,
+        // Block system back when selection is active OR when deep in a folder / category.
+        canPop: !_isSelectionMode && activeCategory == null && _pathHistory.isEmpty,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
+          if (_isSelectionMode) {
+            // Back while items are selected → ask to deselect first.
+            _showDeselectDialog(onConfirmed: () {
+              if (activeCategory != null) {
+                ref.read(selectedBrowserCategoryProvider.notifier).state = null;
+              } else {
+                _navigateBack();
+              }
+            });
+            return;
+          }
           if (activeCategory != null) {
             ref.read(selectedBrowserCategoryProvider.notifier).state = null;
           } else {
@@ -1419,6 +1661,30 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                                 : Icons.select_all_rounded;
                                           })(),
                                           size: 24.0.r,
+                                          color: iconColor,
+                                        ),
+                                      ),
+                                    ),
+                                    // Copy Selected
+                                    GestureDetector(
+                                      onTap: () => _copySelectedFiles(displayedContents, currentFileList, isFolderList),
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8.0.w),
+                                        child: Icon(
+                                          Icons.copy_rounded,
+                                          size: 22.0.r,
+                                          color: iconColor,
+                                        ),
+                                      ),
+                                    ),
+                                    // Cut (Move) Selected
+                                    GestureDetector(
+                                      onTap: () => _cutSelectedFiles(displayedContents, currentFileList, isFolderList),
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8.0.w),
+                                        child: Icon(
+                                          Icons.content_cut_rounded,
+                                          size: 22.0.r,
                                           color: iconColor,
                                         ),
                                       ),
@@ -1802,6 +2068,64 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                             ),
                           ),
                   ],
+                ),
+                // ── Paste FAB (visible in ALL views when clipboard has items) ──
+                Consumer(
+                  builder: (context, ref, _) {
+                    final clipboard = ref.watch(clipboardProvider);
+                    if (clipboard.isEmpty) return const SizedBox.shrink();
+                    return Positioned(
+                      right: 24.0.w,
+                      bottom: 88.0.h, // above the create-folder FAB
+                      child: GestureDetector(
+                        onTap: _pasteFromClipboard,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutCubic,
+                          height: 44.0.h,
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          decoration: BoxDecoration(
+                            color: clipboard.mode == ClipboardMode.cut
+                                ? Colors.orangeAccent
+                                : AppColors.mintAccent,
+                            borderRadius: BorderRadius.circular(22.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (clipboard.mode == ClipboardMode.cut
+                                        ? Colors.orangeAccent
+                                        : AppColors.mintAccent)
+                                    .withValues(alpha: 0.40),
+                                blurRadius: 14.r,
+                                offset: Offset(0, 4.h),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                clipboard.mode == ClipboardMode.cut
+                                    ? Icons.content_cut_rounded
+                                    : Icons.content_paste_rounded,
+                                size: 18.r,
+                                color: Colors.black,
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                '${clipboard.mode == ClipboardMode.cut ? 'Move' : 'Paste'} ${clipboard.totalCount} item${clipboard.totalCount == 1 ? '' : 's'}',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 // Floating Add Folder FAB at the bottom right corner
                 Positioned(

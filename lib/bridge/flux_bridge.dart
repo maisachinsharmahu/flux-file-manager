@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 class FluxBridge {
   static const MethodChannel _methodChannel = MethodChannel('com.flux.channel/methods');
   static const EventChannel _searchChannel = EventChannel('com.flux.channel/search_stream');
+  // Kotlin pushes copy progress (0.0→1.0) via invokeMethod('onProgress', value).
+  static const MethodChannel _copyProgressChannel = MethodChannel('com.flux.channel/copy_progress');
 
   static Future<bool> initializeIndex({bool force = false}) async {
     try {
@@ -213,6 +215,60 @@ class FluxBridge {
       await _methodChannel.invokeMethod('schedulePhysicalDelete', {'fids': fids});
     } on PlatformException catch (e) {
       debugPrint('[FluxBridge] Error: schedulePhysicalDelete() -> $e');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Copy / Move
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Moves [fids] into [destinationPath]. O(1) per file (rename syscall).
+  /// Returns true immediately once the Kotlin rename + index swap completes.
+  static Future<bool> moveFiles(List<int> fids, String destinationPath) async {
+    if (fids.isEmpty) return true;
+    try {
+      final bool result = await _methodChannel.invokeMethod(
+        'moveFiles',
+        {'fids': fids, 'destinationPath': destinationPath},
+      );
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: moveFiles() -> $e');
+      return false;
+    }
+  }
+
+  /// Copies [fids] into [destinationPath], streaming progress to [onProgress].
+  /// Registers a MethodChannel handler on the copy_progress channel so Kotlin
+  /// can push 0.0→1.0 values from its IO thread, then awaits the final result.
+  static Future<bool> copyFilesWithProgress(
+    List<int> fids,
+    String destinationPath,
+    void Function(double progress) onProgress,
+  ) async {
+    if (fids.isEmpty) return true;
+
+    // Register progress listener before starting the operation.
+    _copyProgressChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onProgress') {
+        final progress = (call.arguments as num?)?.toDouble() ?? 0.0;
+        onProgress(progress.clamp(0.0, 1.0));
+      }
+    });
+
+    try {
+      final bool result = await _methodChannel.invokeMethod(
+        'copyFilesWithProgress',
+        {'fids': fids, 'destinationPath': destinationPath},
+      );
+      // Ensure 100% is reported even if last chunk was partial.
+      onProgress(1.0);
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: copyFilesWithProgress() -> $e');
+      return false;
+    } finally {
+      _copyProgressChannel.setMethodCallHandler(null);
     }
   }
 
