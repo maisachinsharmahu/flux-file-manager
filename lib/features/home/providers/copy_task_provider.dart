@@ -83,6 +83,40 @@ class CopyTaskNotifier extends StateNotifier<CopyTaskState> {
     });
   }
 
+  void startRealTask(GlobalTaskType type) {
+    _timer?.cancel();
+    state = CopyTaskState(
+      isActive: true,
+      progress: 0.0,
+      isCompleted: false,
+      displayMode: CopyTaskDisplayMode.compact,
+      taskType: type,
+    );
+  }
+
+  void updateProgress(double progress) {
+    if (!state.isActive || state.isCompleted) return;
+    state = state.copyWith(
+      progress: progress.clamp(0.0, 1.0),
+    );
+  }
+
+  void completeTask() {
+    if (!state.isActive) return;
+    final type = state.taskType;
+    state = state.copyWith(
+      progress: 1.0,
+      isCompleted: true,
+      displayMode: CopyTaskDisplayMode.completedExpanded,
+    );
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (state.isCompleted && state.isActive && state.taskType == type) {
+        state = state.copyWith(isActive: false);
+      }
+    });
+  }
+
   void toggleExpansion() {
     if (!state.isActive) return;
 
