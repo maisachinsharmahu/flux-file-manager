@@ -165,7 +165,14 @@ class FileTypeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isImage = const ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].contains(extension.toLowerCase().trim());
+    final isImage = const [
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'webp',
+      'bmp',
+    ].contains(extension.toLowerCase().trim());
 
     if (isImage && path != null && path!.isNotEmpty) {
       final file = File(path!);
@@ -177,7 +184,10 @@ class FileTypeIcon extends StatelessWidget {
           raf.closeSync();
           if (bytes.length >= 4) {
             // Ensure first 4 bytes are not all zero (which indicates zero-filled mock files)
-            if (bytes[0] != 0 || bytes[1] != 0 || bytes[2] != 0 || bytes[3] != 0) {
+            if (bytes[0] != 0 ||
+                bytes[1] != 0 ||
+                bytes[2] != 0 ||
+                bytes[3] != 0) {
               isValidRealImage = true;
             }
           }
