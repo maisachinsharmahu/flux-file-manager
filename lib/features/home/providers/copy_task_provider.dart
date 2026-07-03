@@ -8,7 +8,7 @@ enum CopyTaskDisplayMode {
   completedExpanded,
 }
 
-enum GlobalTaskType { copy, delete, move, archive, unarchive, createFolder }
+enum GlobalTaskType { copy, delete, move, archive, unarchive, createFolder, restore }
 
 class CopyTaskState {
   final bool isActive;

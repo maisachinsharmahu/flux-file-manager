@@ -146,8 +146,8 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
                   contentPadding: EdgeInsets.zero,
                   onTap: () async {
                     Navigator.of(context).pop();
-                    final success = await ref.read(trashProvider.notifier).restoreFiles([file.fid]);
-                    _showSnackbar(success ? 'Successfully restored ${file.name}' : 'Failed to restore file');
+                    ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.restore);
+                    await ref.read(trashProvider.notifier).restoreFiles([file.fid]);
                   },
                 ),
                 SizedBox(height: 8.0.h),
@@ -223,12 +223,12 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              final success = await ref.read(trashProvider.notifier).deletePermanently(fids);
+              ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+              await ref.read(trashProvider.notifier).deletePermanently(fids);
               setState(() {
                 _isSelectionMode = false;
                 _selectedFids.clear();
               });
-              _showSnackbar(success ? 'Permanently deleted files' : 'Failed to delete files');
             },
             child: const Text(
               'Delete',
@@ -284,8 +284,8 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
             onPressed: () async {
               Navigator.of(context).pop();
               final fids = files.map((f) => f.fid).toList();
-              final success = await ref.read(trashProvider.notifier).deletePermanently(fids);
-              _showSnackbar(success ? 'Trash emptied successfully' : 'Failed to empty Trash');
+              ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+              await ref.read(trashProvider.notifier).deletePermanently(fids);
             },
             child: const Text(
               'Empty All',
@@ -623,16 +623,14 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
                                   GestureDetector(
                                     onTap: () async {
                                       final selectedList = _selectedFids.toList();
-                                      final success = await ref
+                                      ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.restore);
+                                      await ref
                                           .read(trashProvider.notifier)
                                           .restoreFiles(selectedList);
                                       setState(() {
                                         _isSelectionMode = false;
                                         _selectedFids.clear();
                                       });
-                                      _showSnackbar(success
-                                          ? 'Restored $selectedList.length files'
-                                          : 'Failed to restore files');
                                     },
                                     child: Container(
                                       padding: EdgeInsets.symmetric(horizontal: 14.0.w, vertical: 8.0.h),
