@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app.dart';
 import 'bridge/flux_bridge.dart';
 
@@ -18,6 +19,9 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Disable dynamic font fetching at runtime to avoid SocketExceptions on offline devices/emulators
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   // Pre-initialize SharedPreferences for synchronous state access in providers
   final sharedPreferences = await SharedPreferences.getInstance();

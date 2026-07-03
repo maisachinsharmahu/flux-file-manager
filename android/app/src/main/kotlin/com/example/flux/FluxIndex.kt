@@ -1226,34 +1226,67 @@ class FluxIndex(private val context: Context) {
         val destDirFid = pathMap[xxHash64(destinationPath.lowercase())] ?: return false
 
         try {
+            val successfulTopLevelFids = mutableSetOf<Long>()
+            
+            // First pass: perform disk renames for top-level items
+            for (fid in fids) {
+                val record = getRecord(fid) ?: continue
+                val newPath = resolveDestPath("$destinationPath/${record.name}")
+                val src = File(record.path)
+                val dst = File(newPath)
+                if (src.renameTo(dst)) {
+                    successfulTopLevelFids.add(fid)
+                } else {
+                    Log.w(TAG, "moveFiles: renameTo failed ${record.path} → $newPath")
+                }
+            }
+
+            // Second pass: expand all descendants for successfully moved items
+            data class MoveItem(val record: FileRecord, val oldPath: String, val newPath: String, val newParentFid: Long)
+            val moveItems = mutableListOf<MoveItem>()
+
+            fun expandMove(fid: Long, oldParentPath: String, newParentPath: String, newParentFid: Long) {
+                val rec = getRecord(fid) ?: return
+                val currentNewPath = if (oldParentPath.isEmpty()) {
+                    resolveDestPath("$destinationPath/${rec.name}")
+                } else {
+                    rec.path.replaceFirst(oldParentPath, newParentPath)
+                }
+                
+                moveItems.add(MoveItem(rec, rec.path, currentNewPath, newParentFid))
+                
+                if (rec.isDirectory) {
+                    directoryIndex[fid]?.let { children ->
+                        synchronized(children) { children.toList() }
+                            .forEach { childFid -> 
+                                expandMove(childFid, rec.path, currentNewPath, fid) 
+                            }
+                    }
+                }
+            }
+
+            for (fid in successfulTopLevelFids) {
+                expandMove(fid, "", "", destDirFid)
+            }
+
             walLock.withLock {
                 java.io.BufferedOutputStream(
                     java.io.FileOutputStream(walFile, true), 65536
                 ).use { out ->
                     val nowMs = System.currentTimeMillis()
-
-                    for (fid in fids) {
-                        val record = getRecord(fid) ?: continue
-                        val newPath = resolveDestPath("$destinationPath/${record.name}")
-                        val src = File(record.path)
-                        val dst = File(newPath)
-
-                        // ── Disk: atomic rename syscall (zero data copy on same partition) ──
-                        if (!src.renameTo(dst)) {
-                            Log.w(TAG, "moveFiles: renameTo failed ${record.path} → $newPath")
-                            continue
-                        }
-
-                        // ── Index: O(1) path map swap ──────────────────────────────────────
-                        pathMap.remove(xxHash64(record.path))
-                        pathMap.remove(xxHash64(record.path.lowercase()))
-
-                        // Build updated record with new path + new parent
+                    for (item in moveItems) {
+                        val record = item.record
+                        
+                        // Remove old paths from lookup maps
+                        pathMap.remove(xxHash64(item.oldPath))
+                        pathMap.remove(xxHash64(item.oldPath.lowercase()))
+                        
+                        // Update masterIndex with new path and parent
                         val movedRecord = FileRecord.create(
                             fid = record.fid,
-                            parentDirFid = destDirFid,
-                            name = newPath.substringAfterLast('/'),
-                            path = newPath,
+                            parentDirFid = item.newParentFid,
+                            name = item.newPath.substringAfterLast('/'),
+                            path = item.newPath,
                             size = record.size,
                             mtime = nowMs / 1000L,
                             atime = record.atime.toLong(),
@@ -1264,33 +1297,35 @@ class FluxIndex(private val context: Context) {
                             accessCount = record.accessCount,
                             checksum = record.checksum
                         )
-                        masterIndex[fid.toInt()] = movedRecord
-
-                        pathMap[xxHash64(newPath)] = fid
-                        pathMap[xxHash64(newPath.lowercase())] = fid
-
-                        // Re-parent in directory index
+                        masterIndex[record.fid.toInt()] = movedRecord
+                        
+                        // Add new paths to lookup maps
+                        pathMap[xxHash64(item.newPath)] = record.fid
+                        pathMap[xxHash64(item.newPath.lowercase())] = record.fid
+                        
+                        // Re-parent in directoryIndex
                         directoryIndex[record.parentDirFid]?.let { oldParentList ->
-                            synchronized(oldParentList) { oldParentList.remove(fid) }
+                            synchronized(oldParentList) { oldParentList.remove(record.fid) }
                         }
-                        val newParentList = directoryIndex.getOrPut(destDirFid) {
+                        val newParentList = directoryIndex.getOrPut(item.newParentFid) {
                             java.util.Collections.synchronizedList(mutableListOf())
                         }
-                        synchronized(newParentList) { newParentList.add(fid) }
-
-                        // WAL entry (opCode 6 = MOVE)
+                        synchronized(newParentList) { newParentList.add(record.fid) }
+                        
+                        // Write WAL entry for MOVE (opCode 6)
                         val entry = WalEntry(
                             sequence = nextFid.getAndIncrement(),
                             timestamp = nowMs,
                             opCode = 6,
-                            fid = fid.toInt()
+                            fid = record.fid.toInt()
                         )
                         out.write(entry.toBytes())
                     }
                 }
             }
+
             val ms = (System.nanoTime() - startMs) / 1_000_000.0
-            Log.d(TAG, "[PERFORMANCE] moveFiles: ${fids.size} items in ${String.format("%.2f", ms)} ms")
+            Log.d(TAG, "[PERFORMANCE] moveFiles: ${moveItems.size} items in ${String.format("%.2f", ms)} ms")
             return true
         } catch (e: Exception) {
             Log.e(TAG, "moveFiles failed: ${e.message}")
@@ -1300,15 +1335,6 @@ class FluxIndex(private val context: Context) {
 
     /**
      * Copies [fids] into [destinationPath] with progress streaming.
-     *
-     * Strategy:
-     *  1. Expand folders recursively to get flat list with relative sub-paths.
-     *  2. Create destination directory tree first.
-     *  3. Copy leaf files in parallel (4-thread IO pool — same as physical delete).
-     *  4. Insert each copied file into all 9 indexes and write WAL entry.
-     *  5. Invoke [onChunkProgress] with (copiedSoFar / total) after each chunk.
-     *
-     * @param onChunkProgress called on main thread with 0.0→1.0 progress.
      */
     fun copyFilesWithProgress(
         fids: List<Long>,
@@ -1331,9 +1357,6 @@ class FluxIndex(private val context: Context) {
                 val rel = if (relBase.isEmpty()) rec.name else "$relBase/${rec.name}"
                 into.add(CopyItem(rec, rel))
                 if (rec.isDirectory) {
-                    getChildrenRecursive(fid, mutableListOf<Long>().also { kids ->
-                        directoryIndex[fid]?.let { kids.addAll(synchronized(it) { it.toList() }) }
-                    })
                     directoryIndex[fid]?.let { children ->
                         synchronized(children) { children.toList() }
                             .forEach { childFid -> expand(childFid, rel, into) }
@@ -1353,6 +1376,50 @@ class FluxIndex(private val context: Context) {
                     File("$destinationPath/${item.relPath}").mkdirs()
                 }
 
+            // Map to track newly created FIDs for directories to support correct nesting / reparenting
+            val createdFidMap = java.util.concurrent.ConcurrentHashMap<String, Long>()
+            createdFidMap[""] = destDirFid
+
+            // Index directories first so files can lookup their parent dir FID correctly
+            val dirs = items.filter { it.record.isDirectory }.sortedBy { it.relPath.length }
+            walLock.withLock {
+                java.io.BufferedOutputStream(
+                    java.io.FileOutputStream(walFile, true), 65536
+                ).use { out ->
+                    val nowMs = System.currentTimeMillis()
+                    for (dirItem in dirs) {
+                        val parentRelPath = if (dirItem.relPath.contains('/')) dirItem.relPath.substringBeforeLast('/') else ""
+                        val parentFid = createdFidMap[parentRelPath] ?: destDirFid
+                        
+                        val newFid = nextFid.getAndIncrement()
+                        val newPath = resolveDestPath("$destinationPath/${dirItem.relPath}")
+                        
+                        val newRecord = FileRecord.create(
+                            fid = newFid,
+                            parentDirFid = parentFid,
+                            name = newPath.substringAfterLast('/'),
+                            path = newPath,
+                            size = 0L,
+                            mtime = nowMs / 1000L,
+                            atime = nowMs / 1000L,
+                            ctime = nowMs / 1000L,
+                            mimeType = "directory",
+                            flags = FileRecord.FLAG_INDEXED
+                        )
+                        insertRecordToIndexes(newRecord)
+                        createdFidMap[dirItem.relPath] = newFid
+                        
+                        val entry = WalEntry(
+                            sequence = nextFid.getAndIncrement(),
+                            timestamp = nowMs,
+                            opCode = 1, // INSERT
+                            fid = newFid.toInt()
+                        )
+                        out.write(entry.toBytes())
+                    }
+                }
+            }
+
             // ── Copy leaf files in parallel (4 IO threads) ────────────────────
             val fileItems = items.filter { !it.record.isDirectory }
             val ioThreads = minOf(4, Runtime.getRuntime().availableProcessors())
@@ -1366,7 +1433,10 @@ class FluxIndex(private val context: Context) {
                     val chunk = fileItems.subList(chunkStart, chunkEnd)
 
                     val futures = chunk.map { item ->
-                        executor.submit<Pair<String, String>?> {
+                        val parentRelPath = if (item.relPath.contains('/')) item.relPath.substringBeforeLast('/') else ""
+                        val parentFid = createdFidMap[parentRelPath] ?: destDirFid
+                        
+                        executor.submit<Triple<String, String, Long>?> {
                             try {
                                 val destPath = resolveDestPath("$destinationPath/${item.relPath}")
                                 val srcFile = File(item.record.path)
@@ -1377,7 +1447,7 @@ class FluxIndex(private val context: Context) {
                                     java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                                     java.nio.file.StandardCopyOption.COPY_ATTRIBUTES
                                 )
-                                item.record.path to destPath
+                                Triple(item.record.path, destPath, parentFid)
                             } catch (e: Exception) {
                                 Log.w(TAG, "copyFiles: failed ${item.record.path}: ${e.message}")
                                 null
@@ -1393,13 +1463,13 @@ class FluxIndex(private val context: Context) {
                             val nowMs = System.currentTimeMillis()
                             for (future in futures) {
                                 val result = future.get(30, TimeUnit.SECONDS) ?: continue
-                                val (_, destPath) = result
+                                val (_, destPath, parentFid) = result
                                 val dstFile = File(destPath)
                                 val newFid = nextFid.getAndIncrement()
                                 val mimeType = if (dstFile.isDirectory) "directory" else getMimeType(dstFile)
                                 val newRecord = FileRecord.create(
                                     fid = newFid,
-                                    parentDirFid = destDirFid,
+                                    parentDirFid = parentFid,
                                     name = destPath.substringAfterLast('/'),
                                     path = destPath,
                                     size = dstFile.length(),
@@ -1421,7 +1491,7 @@ class FluxIndex(private val context: Context) {
                         }
                     }
                     val done = copied.addAndGet(chunk.size)
-                    onChunkProgress(done.toDouble() / total)
+                    onChunkProgress((dirs.size + done).toDouble() / total)
                 }
             } finally {
                 executor.shutdown()

@@ -53,7 +53,8 @@ class _FolderPickerSheetState extends State<FolderPickerSheet> {
     final contents = await FluxBridge.getDirectoryContents(path);
     final dirs = contents.where((item) {
       final cat = item['category'] as String? ?? '';
-      return cat == 'Directory';
+      final fid = item['fid'] as int?;
+      return cat == 'Directory' && (fid == null || !widget.sourceFids.contains(fid));
     }).toList();
     if (mounted) {
       setState(() {
