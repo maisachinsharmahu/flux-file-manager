@@ -75,16 +75,17 @@ class FluxBridge {
     void Function(double progress) onProgress,
   ) async {
     if (fids.isEmpty) return true;
+    final expanded = await expandFolderFids(fids);
     const chunkSize = 100;
     var deleted = 0;
     var allSuccess = true;
-    for (var i = 0; i < fids.length; i += chunkSize) {
-      final end = (i + chunkSize < fids.length) ? i + chunkSize : fids.length;
-      final chunk = fids.sublist(i, end);
+    for (var i = 0; i < expanded.length; i += chunkSize) {
+      final end = (i + chunkSize < expanded.length) ? i + chunkSize : expanded.length;
+      final chunk = expanded.sublist(i, end);
       final success = await executeBatchDelete(chunk);
       if (success) {
         deleted += chunk.length;
-        onProgress(deleted / fids.length);
+        onProgress(deleted / expanded.length);
       } else {
         allSuccess = false;
       }
@@ -124,16 +125,17 @@ class FluxBridge {
     void Function(double progress) onProgress,
   ) async {
     if (fids.isEmpty) return true;
+    final expanded = await expandFolderFids(fids);
     const chunkSize = 100;
     var restored = 0;
     var allSuccess = true;
-    for (var i = 0; i < fids.length; i += chunkSize) {
-      final end = (i + chunkSize < fids.length) ? i + chunkSize : fids.length;
-      final chunk = fids.sublist(i, end);
+    for (var i = 0; i < expanded.length; i += chunkSize) {
+      final end = (i + chunkSize < expanded.length) ? i + chunkSize : expanded.length;
+      final chunk = expanded.sublist(i, end);
       final success = await restoreTombstones(chunk);
       if (success) {
         restored += chunk.length;
-        onProgress(restored / fids.length);
+        onProgress(restored / expanded.length);
       } else {
         allSuccess = false;
       }
@@ -170,16 +172,17 @@ class FluxBridge {
     void Function(double progress) onProgress,
   ) async {
     if (fids.isEmpty) return true;
+    final expanded = await expandFolderFids(fids);
     const chunkSize = 100;
     var deleted = 0;
     var allSuccess = true;
-    for (var i = 0; i < fids.length; i += chunkSize) {
-      final end = (i + chunkSize < fids.length) ? i + chunkSize : fids.length;
-      final chunk = fids.sublist(i, end);
+    for (var i = 0; i < expanded.length; i += chunkSize) {
+      final end = (i + chunkSize < expanded.length) ? i + chunkSize : expanded.length;
+      final chunk = expanded.sublist(i, end);
       final success = await deletePermanently(chunk);
       if (success) {
         deleted += chunk.length;
-        onProgress(deleted / fids.length);
+        onProgress(deleted / expanded.length);
       } else {
         allSuccess = false;
       }
@@ -319,6 +322,18 @@ class FluxBridge {
     } on PlatformException catch (e) {
       print('[FluxBridge] Error: getAllDirectoryFids(parentPath: "$parentPath") -> $e');
       return [];
+    }
+  }
+
+  static Future<List<int>> expandFolderFids(List<int> fids) async {
+    try {
+      final List<dynamic> result = await _methodChannel.invokeMethod('expandFolderFids', {
+        'fids': fids,
+      });
+      return result.cast<int>();
+    } on PlatformException catch (e) {
+      print('[FluxBridge] Error: expandFolderFids(fids: $fids) -> $e');
+      return fids; // Fallback to original FIDs if method fails
     }
   }
 }

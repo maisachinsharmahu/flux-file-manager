@@ -707,6 +707,23 @@ class FluxIndex(private val context: Context) {
     }
 
     /**
+     * Expands a list of FIDs recursively to include all their child files/folders.
+     */
+    fun expandFolderFids(fids: List<Long>): List<Long> {
+        val allFids = mutableSetOf<Long>()
+        for (fid in fids) {
+            allFids.add(fid)
+            val record = getRecord(fid)
+            if (record != null && record.isDirectory) {
+                val recursiveList = mutableListOf<Long>()
+                getChildrenRecursive(fid, recursiveList)
+                allFids.addAll(recursiveList)
+            }
+        }
+        return allFids.toList()
+    }
+
+    /**
      * Restores FIDs from logical deletion.
      */
     fun restoreBatch(fids: List<Long>): Boolean {

@@ -164,6 +164,11 @@ class MainActivity : FlutterActivity() {
                             val fids = fluxIndex.getAllDirectoryFids(parentPath)
                             runOnUiThread { result.success(fids) }
                         }
+                        "expandFolderFids" -> {
+                            val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
+                            val expanded = fluxIndex.expandFolderFids(fids)
+                            runOnUiThread { result.success(expanded) }
+                        }
                         "requestUsageStatsPermission" -> {
                             checkAndRequestUsageStatsPermission()
                             runOnUiThread { result.success(true) }
