@@ -120,7 +120,9 @@ class CopyProgressOverlay extends ConsumerWidget {
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 600),
       curve: Curves.fastOutSlowIn,
-      top: state.isActive ? 16.0.h : -140.0.h,
+      top: state.isActive
+          ? (MediaQuery.of(context).padding.top + 12.0.h)
+          : -140.0.h,
       left: (MediaQuery.of(context).size.width - width) / 2,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),
@@ -130,41 +132,46 @@ class CopyProgressOverlay extends ConsumerWidget {
           onTap: () {
             ref.read(copyTaskProvider.notifier).toggleExpansion();
           },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.fastOutSlowIn,
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(height / 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  blurRadius: 20.0.r,
-                  offset: const Offset(0, 10),
+          child: Material(
+            type: MaterialType.transparency,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.fastOutSlowIn,
+              width: width,
+              height: height,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(height / 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    blurRadius: 20.0.r,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  width: 1.0.r,
                 ),
-              ],
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08),
-                width: 1.0.r,
               ),
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal:
-                  (state.displayMode == CopyTaskDisplayMode.compact ||
-                      state.displayMode == CopyTaskDisplayMode.completedCompact)
-                  ? 16.0.w
-                  : 14.0.w,
-              vertical:
-                  (state.displayMode == CopyTaskDisplayMode.compact ||
-                      state.displayMode == CopyTaskDisplayMode.completedCompact)
-                  ? 8.0.h
-                  : 12.0.h,
-            ),
-            child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              child: _buildPillContent(state, style, isDark),
+              padding: EdgeInsets.symmetric(
+                horizontal:
+                    (state.displayMode == CopyTaskDisplayMode.compact ||
+                        state.displayMode ==
+                            CopyTaskDisplayMode.completedCompact)
+                    ? 16.0.w
+                    : 14.0.w,
+                vertical:
+                    (state.displayMode == CopyTaskDisplayMode.compact ||
+                        state.displayMode ==
+                            CopyTaskDisplayMode.completedCompact)
+                    ? 8.0.h
+                    : 12.0.h,
+              ),
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: _buildPillContent(state, style, isDark),
+              ),
             ),
           ),
         ),
