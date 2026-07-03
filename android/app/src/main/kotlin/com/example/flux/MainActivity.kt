@@ -136,12 +136,14 @@ class MainActivity : FlutterActivity() {
                         }
                         "executeBatchDelete" -> {
                             val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
-                            val success = fluxIndex.deleteBatch(fids)
+                            val recursive = call.argument<Boolean>("recursive") ?: true
+                            val success = fluxIndex.deleteBatch(fids, recursive)
                             runOnUiThread { result.success(success) }
                         }
                         "restoreTombstones" -> {
                             val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
-                            val success = fluxIndex.restoreBatch(fids)
+                            val recursive = call.argument<Boolean>("recursive") ?: true
+                            val success = fluxIndex.restoreBatch(fids, recursive)
                             runOnUiThread { result.success(success) }
                         }
                         "getTombstones" -> {
@@ -150,7 +152,8 @@ class MainActivity : FlutterActivity() {
                         }
                         "deletePermanently" -> {
                             val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
-                            val success = fluxIndex.deletePermanently(fids)
+                            val recursive = call.argument<Boolean>("recursive") ?: true
+                            val success = fluxIndex.deletePermanently(fids, recursive)
                             runOnUiThread { result.success(success) }
                         }
                         "createDirectory" -> {

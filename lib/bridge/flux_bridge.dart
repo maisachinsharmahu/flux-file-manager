@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class FluxBridge {
@@ -9,7 +10,7 @@ class FluxBridge {
       final bool result = await _methodChannel.invokeMethod('initializeIndex', {'force': force});
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: initializeIndex() -> $e');
+      debugPrint('[FluxBridge] Error: initializeIndex() -> $e');
       return false;
     }
   }
@@ -19,7 +20,7 @@ class FluxBridge {
       final bool result = await _methodChannel.invokeMethod('requestUsageStatsPermission');
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: requestUsageStatsPermission() -> $e');
+      debugPrint('[FluxBridge] Error: requestUsageStatsPermission() -> $e');
       return false;
     }
   }
@@ -29,7 +30,7 @@ class FluxBridge {
       final List<dynamic> result = await _methodChannel.invokeMethod('getAllFiles');
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: getAllFiles() -> $e');
+      debugPrint('[FluxBridge] Error: getAllFiles() -> $e');
       return [];
     }
   }
@@ -39,7 +40,7 @@ class FluxBridge {
       final int result = await _methodChannel.invokeMethod('getFileCount');
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: getFileCount() -> $e');
+      debugPrint('[FluxBridge] Error: getFileCount() -> $e');
       return 0;
     }
   }
@@ -52,20 +53,20 @@ class FluxBridge {
       );
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: getDirectoryContents(parentPath: "$parentPath") -> $e');
+      debugPrint('[FluxBridge] Error: getDirectoryContents(parentPath: "$parentPath") -> $e');
       return [];
     }
   }
 
-  static Future<bool> executeBatchDelete(List<int> fids) async {
+  static Future<bool> executeBatchDelete(List<int> fids, {bool recursive = true}) async {
     try {
       final bool result = await _methodChannel.invokeMethod(
         'executeBatchDelete',
-        {'fids': fids},
+        {'fids': fids, 'recursive': recursive},
       );
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: executeBatchDelete(fids: $fids) -> $e');
+      debugPrint('[FluxBridge] Error: executeBatchDelete(fids: $fids) -> $e');
       return false;
     }
   }
@@ -76,20 +77,23 @@ class FluxBridge {
   ) async {
     if (fids.isEmpty) return true;
     final expanded = await expandFolderFids(fids);
-    const chunkSize = 100;
+    // Logical delete is O(1) per file (just a bitset flip + WAL entry).
+    // Large chunks minimize MethodChannel round-trip overhead.
+    const chunkSize = 1000;
     var deleted = 0;
     var allSuccess = true;
     for (var i = 0; i < expanded.length; i += chunkSize) {
       final end = (i + chunkSize < expanded.length) ? i + chunkSize : expanded.length;
       final chunk = expanded.sublist(i, end);
-      final success = await executeBatchDelete(chunk);
+      final success = await executeBatchDelete(chunk, recursive: false);
       if (success) {
         deleted += chunk.length;
         onProgress(deleted / expanded.length);
       } else {
         allSuccess = false;
       }
-      await Future.delayed(const Duration(milliseconds: 20));
+      // Yield one microtask so the UI thread can breathe (no artificial delay).
+      await Future.microtask(() {});
     }
     return allSuccess;
   }
@@ -102,20 +106,20 @@ class FluxBridge {
       );
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: shareFiles(paths: $paths) -> $e');
+      debugPrint('[FluxBridge] Error: shareFiles(paths: $paths) -> $e');
       return false;
     }
   }
 
-  static Future<bool> restoreTombstones(List<int> fids) async {
+  static Future<bool> restoreTombstones(List<int> fids, {bool recursive = true}) async {
     try {
       final bool result = await _methodChannel.invokeMethod(
         'restoreTombstones',
-        {'fids': fids},
+        {'fids': fids, 'recursive': recursive},
       );
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: restoreTombstones(fids: $fids) -> $e');
+      debugPrint('[FluxBridge] Error: restoreTombstones(fids: $fids) -> $e');
       return false;
     }
   }
@@ -126,20 +130,21 @@ class FluxBridge {
   ) async {
     if (fids.isEmpty) return true;
     final expanded = await expandFolderFids(fids);
-    const chunkSize = 100;
+    // Restore is also a bitset clear + WAL write — same O(1) logic.
+    const chunkSize = 1000;
     var restored = 0;
     var allSuccess = true;
     for (var i = 0; i < expanded.length; i += chunkSize) {
       final end = (i + chunkSize < expanded.length) ? i + chunkSize : expanded.length;
       final chunk = expanded.sublist(i, end);
-      final success = await restoreTombstones(chunk);
+      final success = await restoreTombstones(chunk, recursive: false);
       if (success) {
         restored += chunk.length;
         onProgress(restored / expanded.length);
       } else {
         allSuccess = false;
       }
-      await Future.delayed(const Duration(milliseconds: 20));
+      await Future.microtask(() {});
     }
     return allSuccess;
   }
@@ -149,20 +154,20 @@ class FluxBridge {
       final List<dynamic> result = await _methodChannel.invokeMethod('getTombstones');
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: getTombstones() -> $e');
+      debugPrint('[FluxBridge] Error: getTombstones() -> $e');
       return [];
     }
   }
 
-  static Future<bool> deletePermanently(List<int> fids) async {
+  static Future<bool> deletePermanently(List<int> fids, {bool recursive = true}) async {
     try {
       final bool result = await _methodChannel.invokeMethod(
         'deletePermanently',
-        {'fids': fids},
+        {'fids': fids, 'recursive': recursive},
       );
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: deletePermanently(fids: $fids) -> $e');
+      debugPrint('[FluxBridge] Error: deletePermanently(fids: $fids) -> $e');
       return false;
     }
   }
@@ -173,20 +178,22 @@ class FluxBridge {
   ) async {
     if (fids.isEmpty) return true;
     final expanded = await expandFolderFids(fids);
-    const chunkSize = 100;
+    // Permanent delete involves actual disk I/O — smaller chunks avoid ANR
+    // while still being 5x faster than 100-size chunks.
+    const chunkSize = 500;
     var deleted = 0;
     var allSuccess = true;
     for (var i = 0; i < expanded.length; i += chunkSize) {
       final end = (i + chunkSize < expanded.length) ? i + chunkSize : expanded.length;
       final chunk = expanded.sublist(i, end);
-      final success = await deletePermanently(chunk);
+      final success = await deletePermanently(chunk, recursive: false);
       if (success) {
         deleted += chunk.length;
         onProgress(deleted / expanded.length);
       } else {
         allSuccess = false;
       }
-      await Future.delayed(const Duration(milliseconds: 20));
+      await Future.microtask(() {});
     }
     return allSuccess;
   }
@@ -196,7 +203,7 @@ class FluxBridge {
       final Map<dynamic, dynamic> result = await _methodChannel.invokeMethod('getStorageStatistics');
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: getStorageStatistics() -> $e');
+      debugPrint('[FluxBridge] Error: getStorageStatistics() -> $e');
       return {};
     }
   }
@@ -206,7 +213,7 @@ class FluxBridge {
       final List<dynamic> result = await _methodChannel.invokeMethod('getAppStorageUsage');
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: getAppStorageUsage() -> $e');
+      debugPrint('[FluxBridge] Error: getAppStorageUsage() -> $e');
       return [];
     }
   }
@@ -243,7 +250,7 @@ class FluxBridge {
       );
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: searchAndFilter(query: "$query") -> $e');
+      debugPrint('[FluxBridge] Error: searchAndFilter(query: "$query") -> $e');
       return [];
     }
   }
@@ -263,7 +270,7 @@ class FluxBridge {
       });
       return result;
     } catch (e) {
-      print('[FluxBridge] Error: generateTestFiles() -> $e');
+      debugPrint('[FluxBridge] Error: generateTestFiles() -> $e');
       return false;
     }
   }
@@ -273,7 +280,7 @@ class FluxBridge {
       final Map<dynamic, dynamic> res = await _methodChannel.invokeMethod('getFileGenerationStatus');
       return Map<String, dynamic>.from(res);
     } catch (e) {
-      print('[FluxBridge] Error: getFileGenerationStatus() -> $e');
+      debugPrint('[FluxBridge] Error: getFileGenerationStatus() -> $e');
       return {'isGenerating': false, 'progressPercent': 0, 'filesCreated': 0, 'totalCount': 1000000};
     }
   }
@@ -283,19 +290,19 @@ class FluxBridge {
       final bool result = await _methodChannel.invokeMethod('cancelFileGeneration');
       return result;
     } catch (e) {
-      print('[FluxBridge] Error: cancelFileGeneration() -> $e');
+      debugPrint('[FluxBridge] Error: cancelFileGeneration() -> $e');
       return false;
     }
   }
 
   static Future<int> clearTestFiles() async {
     try {
-      print('[FluxBridge] Request: clearTestFiles()');
+      debugPrint('[FluxBridge] Request: clearTestFiles()');
       final int result = await _methodChannel.invokeMethod('clearTestFiles');
-      print('[FluxBridge] Response: clearTestFiles() -> Deleted $result test files');
+      debugPrint('[FluxBridge] Response: clearTestFiles() -> Deleted $result test files');
       return result;
     } catch (e) {
-      print('[FluxBridge] Error: clearTestFiles() -> $e');
+      debugPrint('[FluxBridge] Error: clearTestFiles() -> $e');
       return 0;
     }
   }
@@ -308,7 +315,7 @@ class FluxBridge {
       });
       return result;
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: createDirectory(parentPath: "$parentPath", name: "$name") -> $e');
+      debugPrint('[FluxBridge] Error: createDirectory(parentPath: "$parentPath", name: "$name") -> $e');
       return false;
     }
   }
@@ -320,7 +327,7 @@ class FluxBridge {
       });
       return result.cast<int>();
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: getAllDirectoryFids(parentPath: "$parentPath") -> $e');
+      debugPrint('[FluxBridge] Error: getAllDirectoryFids(parentPath: "$parentPath") -> $e');
       return [];
     }
   }
@@ -332,7 +339,7 @@ class FluxBridge {
       });
       return result.cast<int>();
     } on PlatformException catch (e) {
-      print('[FluxBridge] Error: expandFolderFids(fids: $fids) -> $e');
+      debugPrint('[FluxBridge] Error: expandFolderFids(fids: $fids) -> $e');
       return fids; // Fallback to original FIDs if method fails
     }
   }

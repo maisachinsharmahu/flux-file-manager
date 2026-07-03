@@ -62,10 +62,12 @@ class TrashNotifier extends StateNotifier<List<TrashFluxFile>> {
   }
 
   Future<bool> restoreFiles(List<int> fids, {void Function(double)? onProgress}) async {
+    final expandedFids = await FluxBridge.expandFolderFids(fids);
+    final count = expandedFids.length;
     ref.read(platformMonitorProvider.notifier).logAction(
       'restoreTombstones',
       'PENDING',
-      'Restoring ${fids.length} files from trash...',
+      'Restoring $count files from trash...',
     );
     final success = onProgress != null
         ? await FluxBridge.restoreTombstonesWithProgress(fids, onProgress)
@@ -74,7 +76,7 @@ class TrashNotifier extends StateNotifier<List<TrashFluxFile>> {
       ref.read(platformMonitorProvider.notifier).logAction(
         'restoreTombstones',
         'SUCCESS',
-        'Successfully restored ${fids.length} files.',
+        'Successfully restored $count files.',
       );
       await refreshTrash();
       await ref.read(allFilesProvider.notifier).refreshFiles();
@@ -89,10 +91,12 @@ class TrashNotifier extends StateNotifier<List<TrashFluxFile>> {
   }
 
   Future<bool> deletePermanently(List<int> fids, {void Function(double)? onProgress}) async {
+    final expandedFids = await FluxBridge.expandFolderFids(fids);
+    final count = expandedFids.length;
     ref.read(platformMonitorProvider.notifier).logAction(
       'deletePermanently',
       'PENDING',
-      'Permanently deleting ${fids.length} files from disk...',
+      'Permanently deleting $count files from disk...',
     );
     final success = onProgress != null
         ? await FluxBridge.deletePermanentlyWithProgress(fids, onProgress)
@@ -101,7 +105,7 @@ class TrashNotifier extends StateNotifier<List<TrashFluxFile>> {
       ref.read(platformMonitorProvider.notifier).logAction(
         'deletePermanently',
         'SUCCESS',
-        'Successfully erased ${fids.length} files.',
+        'Successfully erased $count files.',
       );
       await refreshTrash();
     } else {

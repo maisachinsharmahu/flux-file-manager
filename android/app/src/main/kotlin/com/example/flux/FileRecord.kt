@@ -129,7 +129,7 @@ data class FileRecord(
     val atime: Int,              // 4 B (uint32)
     val ctime: Int,              // 4 B (uint32)
     val mimeTypeIdx: Short,      // 2 B (uint16)
-    var flags: Int,              // 4 B (uint32)
+    @Volatile var flags: Int,              // 4 B (uint32)
     val vectorSlot: Int,         // 3 B (uint24 - mapped to Int)
     val accessCount: Short,      // 2 B (uint16)
     val checksum: Long           // 8 B (uint64)

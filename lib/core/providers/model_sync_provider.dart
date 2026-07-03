@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,7 +56,7 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
           await _methodChannel.invokeMethod('getModelFilePath');
 
       if (modelPath != null) {
-        print('[ModelSync] Model already exists at: $modelPath');
+        debugPrint('[ModelSync] Model already exists at: $modelPath');
         state = ModelSyncStatus(
           state: ModelSyncState.completed,
           progress: 1.0,
@@ -63,7 +64,7 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
           modelExists: true,
         );
       } else {
-        print('[ModelSync] Model not found. Auto-starting foreground download...');
+        debugPrint('[ModelSync] Model not found. Auto-starting foreground download...');
         state = state.copyWith(
           statusText: 'Model not found. Starting background download...',
         );
@@ -71,7 +72,7 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
         await startDownload();
       }
     } catch (e) {
-      print('[ModelSync] Error checking model: $e');
+      debugPrint('[ModelSync] Error checking model: $e');
       state = state.copyWith(
         state: ModelSyncState.error,
         statusText: 'Error checking model: $e',
@@ -101,9 +102,9 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
     try {
       // Start the Android foreground download service
       await _methodChannel.invokeMethod('startModelDownload');
-      print('[ModelSync] Foreground download service started');
+      debugPrint('[ModelSync] Foreground download service started');
     } catch (e) {
-      print('[ModelSync] Failed to start download service: $e');
+      debugPrint('[ModelSync] Failed to start download service: $e');
       state = state.copyWith(
         state: ModelSyncState.error,
         statusText: 'Failed to start download: $e',
@@ -122,7 +123,7 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
         final total = (map['total'] as num).toInt();
         final receivedMb = (received / (1024 * 1024)).toStringAsFixed(1);
         final totalMb = (total / (1024 * 1024)).toStringAsFixed(1);
-        print('[ModelSync] Download: $percent% ($receivedMb MB / $totalMb MB)');
+        debugPrint('[ModelSync] Download: $percent% ($receivedMb MB / $totalMb MB)');
         if (mounted) {
           state = state.copyWith(
             progress: (percent / 100.0).clamp(0.0, 0.99),
@@ -132,7 +133,7 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
         break;
 
       case 'complete':
-        print('[ModelSync] Download complete via foreground service!');
+        debugPrint('[ModelSync] Download complete via foreground service!');
         _progressSubscription?.cancel();
         if (mounted) {
           state = ModelSyncStatus(
@@ -146,7 +147,7 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
 
       case 'error':
         final msg = map['message'] as String? ?? 'Unknown error';
-        print('[ModelSync] Download error from service: $msg');
+        debugPrint('[ModelSync] Download error from service: $msg');
         // Partial file is preserved — next tap will resume from last byte
         if (mounted) {
           state = state.copyWith(
@@ -159,7 +160,7 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
   }
 
   void _onServiceError(dynamic error) {
-    print('[ModelSync] EventChannel error: $error');
+    debugPrint('[ModelSync] EventChannel error: $error');
   }
 
   Future<void> cancelDownload() async {

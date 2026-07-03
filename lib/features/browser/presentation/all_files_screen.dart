@@ -30,6 +30,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   String _searchScope = 'all'; // 'all', 'local', 'cloud'
   final TextEditingController _searchController = TextEditingController();
   late final FileFilterNotifier _filterNotifier;
+  bool _isDeleting = false;
 
   bool _isSelectionMode = false;
   final Set<int> _selectedFids = {};
@@ -229,32 +230,46 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
     _showDeleteConfirmDialog(
       itemCount: fids.length,
       onMoveToTrash: () async {
-        ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
+        if (_isDeleting) return;
+        _isDeleting = true;
+        final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
         setState(() {
           _isSelectionMode = false;
           _selectedFids.clear();
         });
         final success = await FluxBridge.executeBatchDeleteWithProgress(
           fids,
-          (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+          (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
         );
-        ref.read(copyTaskProvider.notifier).completeTask();
+        if (success) {
+          ref.read(copyTaskProvider.notifier).completeTask(taskId);
+        } else {
+          ref.read(copyTaskProvider.notifier).failTask(taskId);
+        }
+        _isDeleting = false;
         if (success) {
           ref.read(trashProvider.notifier).refreshTrash();
           ref.read(allFilesProvider.notifier).refreshFiles();
         }
       },
       onDeletePermanently: () async {
-        ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
+        if (_isDeleting) return;
+        _isDeleting = true;
+        final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
         setState(() {
           _isSelectionMode = false;
           _selectedFids.clear();
         });
         final success = await FluxBridge.deletePermanentlyWithProgress(
           fids,
-          (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+          (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
         );
-        ref.read(copyTaskProvider.notifier).completeTask();
+        if (success) {
+          ref.read(copyTaskProvider.notifier).completeTask(taskId);
+        } else {
+          ref.read(copyTaskProvider.notifier).failTask(taskId);
+        }
+        _isDeleting = false;
         if (success) {
           ref.read(trashProvider.notifier).refreshTrash();
           ref.read(allFilesProvider.notifier).refreshFiles();
@@ -914,24 +929,38 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                                 _showDeleteConfirmDialog(
                                   itemCount: 1,
                                   onMoveToTrash: () async {
-                                    ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
+                                    if (_isDeleting) return;
+                                    _isDeleting = true;
+                                    final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
                                     final success = await FluxBridge.executeBatchDeleteWithProgress(
                                       [fid],
-                                      (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                                      (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
                                     );
-                                    ref.read(copyTaskProvider.notifier).completeTask();
+                                    if (success) {
+                                      ref.read(copyTaskProvider.notifier).completeTask(taskId);
+                                    } else {
+                                      ref.read(copyTaskProvider.notifier).failTask(taskId);
+                                    }
+                                    _isDeleting = false;
                                     if (success) {
                                       ref.read(trashProvider.notifier).refreshTrash();
                                       ref.read(allFilesProvider.notifier).refreshFiles();
                                     }
                                   },
                                   onDeletePermanently: () async {
-                                    ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
+                                    if (_isDeleting) return;
+                                    _isDeleting = true;
+                                    final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
                                     final success = await FluxBridge.deletePermanentlyWithProgress(
                                       [fid],
-                                      (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                                      (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
                                     );
-                                    ref.read(copyTaskProvider.notifier).completeTask();
+                                    if (success) {
+                                      ref.read(copyTaskProvider.notifier).completeTask(taskId);
+                                    } else {
+                                      ref.read(copyTaskProvider.notifier).failTask(taskId);
+                                    }
+                                    _isDeleting = false;
                                     if (success) {
                                       ref.read(trashProvider.notifier).refreshTrash();
                                       ref.read(allFilesProvider.notifier).refreshFiles();

@@ -7,6 +7,10 @@ import java.io.File
 import java.util.BitSet
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.withLock
 
 private val TOKENIZE_SPLIT_REGEX = Regex("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[^a-zA-Z0-9]")
 private val WHITESPACE_REGEX = Regex("\\s+")
@@ -36,9 +40,9 @@ class FluxIndex(private val context: Context) {
     // The Master Record Array (Section 3.3)
     private val MAX_FILES = 200_000
     var masterIndex = Array<FileRecord>(MAX_FILES) { FileRecord.EMPTY }
-    var fileCount = 0
-    var scanDurationMs = 0L
-    var indexDurationMs = 0L
+    @Volatile var fileCount = 0
+    @Volatile var scanDurationMs = 0L
+    @Volatile var indexDurationMs = 0L
 
     // xxHash64 helper for O(1) path mapping
     fun xxHash64(str: String): Long {
@@ -90,6 +94,29 @@ class FluxIndex(private val context: Context) {
     // The Deletion BitSet (O(1) logical deletion)
     val deletionSet = BitSet()
 
+    val walLock = ReentrantLock()
+    val masterIndexLock = Any()
+
+    fun isDeleted(fid: Long): Boolean = synchronized(deletionSet) {
+        deletionSet.get(fid.toInt())
+    }
+
+    fun setDeleted(fid: Long) = synchronized(deletionSet) {
+        deletionSet.set(fid.toInt())
+    }
+
+    fun clearDeleted(fid: Long) = synchronized(deletionSet) {
+        deletionSet.clear(fid.toInt())
+    }
+
+    fun clearAllDeleted() = synchronized(deletionSet) {
+        deletionSet.clear()
+    }
+
+    fun getDeletedCardinality(): Int = synchronized(deletionSet) {
+        deletionSet.cardinality()
+    }
+
     // Ring Buffer for O(1) Recent Files List
     val recentFilesBuffer = RingBuffer(50)
 
@@ -123,21 +150,27 @@ class FluxIndex(private val context: Context) {
     }
 
     fun getRecord(fid: Long): FileRecord? {
-        val idx = fid.toInt()
-        if (idx < 0 || idx >= masterIndex.size) return null
-        val r = masterIndex[idx]
-        return if (r == FileRecord.EMPTY) null else r
+        return synchronized(masterIndexLock) {
+            val idx = fid.toInt()
+            if (idx < 0 || idx >= masterIndex.size) null
+            else {
+                val r = masterIndex[idx]
+                if (r == FileRecord.EMPTY) null else r
+            }
+        }
     }
 
     fun getActiveRecords(): List<FileRecord> {
-        val list = mutableListOf<FileRecord>()
-        for (i in 0 until masterIndex.size) {
-            val r = masterIndex[i]
-            if (r != FileRecord.EMPTY) {
-                list.add(r)
+        return synchronized(masterIndexLock) {
+            val list = mutableListOf<FileRecord>()
+            for (i in 0 until masterIndex.size) {
+                val r = masterIndex[i]
+                if (r != FileRecord.EMPTY) {
+                    list.add(r)
+                }
             }
+            list
         }
-        return list
     }
 
     /**
@@ -174,14 +207,16 @@ class FluxIndex(private val context: Context) {
                 val startTime = System.currentTimeMillis()
                 
                 // 1. Clear existing in-memory structures (keep root)
-                masterIndex.fill(FileRecord.EMPTY)
+                synchronized(masterIndexLock) {
+                    masterIndex.fill(FileRecord.EMPTY)
+                }
                 fileCount = 0
                 pathMap.clear()
                 tokenIndex.clear()
                 directoryIndex.clear()
                 typeBuckets.clear()
                 checksumMap.clear()
-                deletionSet.clear()
+                clearAllDeleted()
                 StringPool.clear()
                 MimeTable.clear()
 
@@ -233,32 +268,34 @@ class FluxIndex(private val context: Context) {
                         nextFid.set(nextFidVal)
                         
                         val activeLimit = dis.readInt()
-                        if (activeLimit >= masterIndex.size) {
-                            val newSize = activeLimit + 1024
-                            masterIndex = Array<FileRecord>(newSize) { FileRecord.EMPTY }
-                        } else {
-                            masterIndex.fill(FileRecord.EMPTY)
-                        }
-                        
-                        for (i in 0 until activeLimit) {
-                            val record = FileRecord(
-                                fid = dis.readLong(),
-                                parentDirFid = dis.readLong(),
-                                nameOffset = dis.readInt(),
-                                nameLen = dis.readShort(),
-                                pathOffset = dis.readInt(),
-                                pathLen = dis.readShort(),
-                                size = dis.readLong(),
-                                mtime = dis.readInt(),
-                                atime = dis.readInt(),
-                                ctime = dis.readInt(),
-                                mimeTypeIdx = dis.readShort(),
-                                flags = dis.readInt(),
-                                vectorSlot = dis.readInt(),
-                                accessCount = dis.readShort(),
-                                checksum = dis.readLong()
-                            )
-                            masterIndex[i] = record
+                        synchronized(masterIndexLock) {
+                            if (activeLimit >= masterIndex.size) {
+                                val newSize = activeLimit + 1024
+                                masterIndex = Array<FileRecord>(newSize) { FileRecord.EMPTY }
+                            } else {
+                                masterIndex.fill(FileRecord.EMPTY)
+                            }
+                            
+                            for (i in 0 until activeLimit) {
+                                val record = FileRecord(
+                                    fid = dis.readLong(),
+                                    parentDirFid = dis.readLong(),
+                                    nameOffset = dis.readInt(),
+                                    nameLen = dis.readShort(),
+                                    pathOffset = dis.readInt(),
+                                    pathLen = dis.readShort(),
+                                    size = dis.readLong(),
+                                    mtime = dis.readInt(),
+                                    atime = dis.readInt(),
+                                    ctime = dis.readInt(),
+                                    mimeTypeIdx = dis.readShort(),
+                                    flags = dis.readInt(),
+                                    vectorSlot = dis.readInt(),
+                                    accessCount = dis.readShort(),
+                                    checksum = dis.readLong()
+                                )
+                                masterIndex[i] = record
+                            }
                         }
                         
                         StringPool.readFrom(dis)
@@ -271,13 +308,12 @@ class FluxIndex(private val context: Context) {
                         tokenIndex.clear()
                         nameTrie.clear()
                         tokenTrie.clear()
-                        deletionSet.clear()
+                        clearAllDeleted()
                         
                         for (i in 0 until activeLimit) {
-                            val record = masterIndex[i]
-                            if (record == FileRecord.EMPTY) continue
+                            val record = getRecord(i.toLong()) ?: continue
                             if (record.isDeleted) {
-                                deletionSet.set(record.fid.toInt())
+                                setDeleted(record.fid)
                             }
                             
                             pathMap[xxHash64(record.path)] = record.fid
@@ -668,32 +704,41 @@ class FluxIndex(private val context: Context) {
     /**
      * Moves FIDs to the deletion bitset in O(1) time. Persists operation in WAL.
      */
-    fun deleteBatch(fids: List<Long>): Boolean {
+    fun deleteBatch(fids: List<Long>, recursive: Boolean = true): Boolean {
         val startTime = System.nanoTime()
         val allFids = mutableListOf<Long>()
         try {
-            java.io.FileOutputStream(walFile, true).use { out ->
-                for (fid in fids) {
-                    allFids.add(fid)
+            for (fid in fids) {
+                allFids.add(fid)
+                if (recursive) {
                     val record = getRecord(fid)
                     if (record != null && record.isDirectory) {
                         getChildrenRecursive(fid, allFids)
                     }
                 }
-                
-                for (fid in allFids) {
-                    val record = getRecord(fid) ?: continue
-                    deletionSet.set(fid.toInt())
-                    record.flags = record.flags or FileRecord.FLAG_DELETED
-                    
-                    // Write binary 32-byte WAL entry (opCode 2 = DELETE)
-                    val entry = WalEntry(
-                        sequence = nextFid.get(),
-                        timestamp = System.currentTimeMillis(),
-                        opCode = 2,
-                        fid = fid.toInt()
-                    )
-                    out.write(entry.toBytes())
+            }
+            
+            walLock.withLock {
+                // Buffered write: one kernel syscall per 64 KB instead of one per 32-byte entry.
+                java.io.BufferedOutputStream(
+                    java.io.FileOutputStream(walFile, true), 65536
+                ).use { out ->
+                    val nowMs = System.currentTimeMillis()
+                    for (fid in allFids) {
+                        val record = getRecord(fid) ?: continue
+                        setDeleted(fid)
+                        synchronized(record) {
+                            record.flags = record.flags or FileRecord.FLAG_DELETED
+                        }
+                        // Write binary 32-byte WAL entry (opCode 2 = DELETE)
+                        val entry = WalEntry(
+                            sequence = nextFid.getAndIncrement(),
+                            timestamp = nowMs,
+                            opCode = 2,
+                            fid = fid.toInt()
+                        )
+                        out.write(entry.toBytes())
+                    }
                 }
             }
             val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
@@ -726,31 +771,37 @@ class FluxIndex(private val context: Context) {
     /**
      * Restores FIDs from logical deletion.
      */
-    fun restoreBatch(fids: List<Long>): Boolean {
+    fun restoreBatch(fids: List<Long>, recursive: Boolean = true): Boolean {
         try {
-            java.io.FileOutputStream(walFile, true).use { out ->
-                val allFids = mutableListOf<Long>()
-                for (fid in fids) {
-                    allFids.add(fid)
+            val allFids = mutableListOf<Long>()
+            for (fid in fids) {
+                allFids.add(fid)
+                if (recursive) {
                     val record = getRecord(fid)
                     if (record != null && record.isDirectory) {
                         getChildrenRecursive(fid, allFids)
                     }
                 }
-                
-                for (fid in allFids) {
-                    val record = getRecord(fid) ?: continue
-                    deletionSet.clear(fid.toInt())
-                    record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
-                    
-                    // Write binary 32-byte WAL entry (opCode 5 = RESTORE)
-                    val entry = WalEntry(
-                        sequence = nextFid.get(),
-                        timestamp = System.currentTimeMillis(),
-                        opCode = 5,
-                        fid = fid.toInt()
-                    )
-                    out.write(entry.toBytes())
+            }
+            
+            walLock.withLock {
+                java.io.FileOutputStream(walFile, true).use { out ->
+                    for (fid in allFids) {
+                        val record = getRecord(fid) ?: continue
+                        clearDeleted(fid)
+                        synchronized(record) {
+                            record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
+                        }
+                        
+                        // Write binary 32-byte WAL entry (opCode 5 = RESTORE)
+                        val entry = WalEntry(
+                            sequence = nextFid.getAndIncrement(),
+                            timestamp = System.currentTimeMillis(),
+                            opCode = 5,
+                            fid = fid.toInt()
+                        )
+                        out.write(entry.toBytes())
+                    }
                 }
             }
             return true
@@ -761,50 +812,88 @@ class FluxIndex(private val context: Context) {
     }
 
     /**
-     * Physically deletes files from disk and removes them from the index.
+     * Physically deletes files from disk in parallel, then updates the index.
+     *
+     * Strategy:
+     *  1. Separate leaf files from directories.
+     *  2. Delete leaf files concurrently via a fixed IO thread pool (4 threads).
+     *  3. Delete now-empty directories deepest-first (sequential, safe).
+     *  4. Batch-update the deletion BitSet + WAL in one locked write.
      */
-    fun deletePermanently(fids: List<Long>): Boolean {
+    fun deletePermanently(fids: List<Long>, recursive: Boolean = true): Boolean {
+        val startTime = System.nanoTime()
         try {
-            java.io.FileOutputStream(walFile, true).use { out ->
-                val allFids = mutableListOf<Long>()
-                for (fid in fids) {
-                    allFids.add(fid)
+            val allFids = mutableListOf<Long>()
+            for (fid in fids) {
+                allFids.add(fid)
+                if (recursive) {
                     val record = getRecord(fid)
                     if (record != null && record.isDirectory) {
                         getChildrenRecursive(fid, allFids)
                     }
                 }
-                
-                val sortedRecords = allFids.mapNotNull { getRecord(it) }.sortedByDescending { it.path.length }
+            }
 
-                for (record in sortedRecords) {
-                    // Physical delete from disk
-                    val file = java.io.File(record.path)
-                    if (file.exists()) {
-                        if (record.isDirectory) {
-                            file.deleteRecursively()
-                        } else {
-                            file.delete()
+            // Sort deepest paths first so child dirs are deleted before parents.
+            val sortedRecords = allFids.mapNotNull { getRecord(it) }.sortedByDescending { it.path.length }
+
+            val fileRecords = sortedRecords.filter { !it.isDirectory }
+            val dirRecords  = sortedRecords.filter { it.isDirectory }
+
+            // ── Phase 1: Delete leaf files in parallel ────────────────────────
+            val ioThreads = minOf(4, Runtime.getRuntime().availableProcessors())
+            val executor = Executors.newFixedThreadPool(ioThreads)
+            try {
+                val futures = fileRecords.map { record ->
+                    executor.submit {
+                        try {
+                            val f = File(record.path)
+                            if (f.exists()) f.delete()
+                        } catch (e: Exception) {
+                            Log.w(TAG, "deletePermanently: could not delete ${record.path}: ${e.message}")
                         }
                     }
-                    
-                    // Mark as logically deleted and permanently evicted from index list
-                    deletionSet.set(record.fid.toInt())
-                    record.flags = record.flags or FileRecord.FLAG_DELETED
-                    
-                    // Write binary 32-byte WAL entry (opCode 2 = DELETE)
-                    val entry = WalEntry(
-                        sequence = nextFid.get(),
-                        timestamp = System.currentTimeMillis(),
-                        opCode = 2,
-                        fid = record.fid.toInt()
-                    )
-                    out.write(entry.toBytes())
+                }
+                // Wait for all file deletions to finish (max 60 s safety guard).
+                futures.forEach { it.get(60, TimeUnit.SECONDS) }
+            } finally {
+                executor.shutdown()
+            }
+
+            // ── Phase 2: Remove now-empty directories deepest-first ───────────
+            for (record in dirRecords) {
+                val d = File(record.path)
+                if (d.exists()) d.delete() // non-recursive; children already gone
+            }
+
+            // ── Phase 3: Update index + WAL in one batched write ─────────────
+            walLock.withLock {
+                java.io.BufferedOutputStream(
+                    java.io.FileOutputStream(walFile, true), 65536
+                ).use { out ->
+                    val nowMs = System.currentTimeMillis()
+                    for (record in sortedRecords) {
+                        setDeleted(record.fid)
+                        synchronized(record) {
+                            record.flags = record.flags or FileRecord.FLAG_DELETED
+                        }
+                        val entry = WalEntry(
+                            sequence = nextFid.getAndIncrement(),
+                            timestamp = nowMs,
+                            opCode = 2,
+                            fid = record.fid.toInt()
+                        )
+                        out.write(entry.toBytes())
+                    }
                 }
             }
+
+            val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
+            Log.d(TAG, "[PERFORMANCE] deletePermanently: ${sortedRecords.size} files in ${String.format("%.1f", durationMs)} ms (${ioThreads} IO threads)")
             return true
         } catch (e: Exception) {
-            Log.e(TAG, "Permanent delete failed: ${e.message}")
+            val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
+            Log.e(TAG, "[PERFORMANCE] deletePermanently failed after ${String.format("%.1f", durationMs)} ms: ${e.message}")
             return false
         }
     }
@@ -822,11 +911,15 @@ class FluxIndex(private val context: Context) {
                     if (entry.magic == 0x464C5558) {
                         val record = getRecord(entry.fid.toLong()) ?: continue
                         if (entry.opCode.toInt() == 2) {
-                            deletionSet.set(entry.fid)
-                            record.flags = record.flags or FileRecord.FLAG_DELETED
+                            setDeleted(entry.fid.toLong())
+                            synchronized(record) {
+                                record.flags = record.flags or FileRecord.FLAG_DELETED
+                            }
                         } else if (entry.opCode.toInt() == 5) {
-                            deletionSet.clear(entry.fid)
-                            record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
+                            clearDeleted(entry.fid.toLong())
+                            synchronized(record) {
+                                record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
+                            }
                         }
                     }
                 }
@@ -880,7 +973,7 @@ class FluxIndex(private val context: Context) {
             val childList = directoryIndex[fid] ?: continue
             val snapshot = synchronized(childList) { childList.toList() }
             for (childFid in snapshot) {
-                if (deletionSet.get(childFid.toInt())) continue
+                if (isDeleted(childFid)) continue
                 val childRecord = getRecord(childFid) ?: continue
                 if (childRecord.isDirectory) {
                     queue.addLast(childFid)
@@ -899,20 +992,24 @@ class FluxIndex(private val context: Context) {
         // Check if parent directory exists physically
         val parentFile = File(normalized)
         if (!parentFile.exists() && parentFid != rootFid) {
-            deletionSet.set(parentFid.toInt())
+            setDeleted(parentFid)
             val record = getRecord(parentFid)
             if (record != null) {
-                record.flags = record.flags or FileRecord.FLAG_DELETED
+                synchronized(record) {
+                    record.flags = record.flags or FileRecord.FLAG_DELETED
+                }
             }
             try {
-                java.io.FileOutputStream(walFile, true).use { out ->
-                    val entry = WalEntry(
-                        sequence = nextFid.get(),
-                        timestamp = System.currentTimeMillis(),
-                        opCode = 2,
-                        fid = parentFid.toInt()
-                    )
-                    out.write(entry.toBytes())
+                walLock.withLock {
+                    java.io.FileOutputStream(walFile, true).use { out ->
+                        val entry = WalEntry(
+                            sequence = nextFid.getAndIncrement(),
+                            timestamp = System.currentTimeMillis(),
+                            opCode = 2,
+                            fid = parentFid.toInt()
+                        )
+                        out.write(entry.toBytes())
+                    }
                 }
             } catch (e: Exception) {}
             java.util.concurrent.ForkJoinPool.commonPool().execute {
@@ -928,24 +1025,28 @@ class FluxIndex(private val context: Context) {
         }
         var indexChanged = false
         for (fid in localCopy) {
-            if (deletionSet.get(fid.toInt())) continue
+            if (isDeleted(fid)) continue
             val record = getRecord(fid) ?: continue
             
             // Check if file/directory exists physically on disk
             val file = File(record.path)
             if (!file.exists()) {
-                deletionSet.set(fid.toInt())
-                record.flags = record.flags or FileRecord.FLAG_DELETED
+                setDeleted(fid)
+                synchronized(record) {
+                    record.flags = record.flags or FileRecord.FLAG_DELETED
+                }
                 
                 try {
-                    java.io.FileOutputStream(walFile, true).use { out ->
-                        val entry = WalEntry(
-                            sequence = nextFid.get(),
-                            timestamp = System.currentTimeMillis(),
-                            opCode = 2,
-                            fid = fid.toInt()
-                        )
-                        out.write(entry.toBytes())
+                    walLock.withLock {
+                        java.io.FileOutputStream(walFile, true).use { out ->
+                            val entry = WalEntry(
+                                sequence = nextFid.getAndIncrement(),
+                                timestamp = System.currentTimeMillis(),
+                                opCode = 2,
+                                fid = fid.toInt()
+                            )
+                            out.write(entry.toBytes())
+                        }
                     }
                 } catch (e: Exception) {}
                 indexChanged = true
@@ -1555,10 +1656,12 @@ class FluxIndex(private val context: Context) {
     fun logicalDelete(path: String) {
         val normalized = normalizePath(path)
         val fid = pathMap[xxHash64(normalized.lowercase())] ?: return
-        deletionSet.set(fid.toInt())
+        setDeleted(fid)
         val record = getRecord(fid)
         if (record != null) {
-            record.flags = record.flags or FileRecord.FLAG_DELETED
+            synchronized(record) {
+                record.flags = record.flags or FileRecord.FLAG_DELETED
+            }
         }
     }
 
@@ -1566,7 +1669,9 @@ class FluxIndex(private val context: Context) {
         val normalized = normalizePath(path)
         val fid = pathMap[xxHash64(normalized.lowercase())] ?: return
         val record = getRecord(fid) ?: return
-        record.flags = record.flags and FileRecord.FLAG_DUPLICATE.inv()
+        synchronized(record) {
+            record.flags = record.flags and FileRecord.FLAG_DUPLICATE.inv()
+        }
     }
 
     fun createDirectory(parentPath: String, name: String): Boolean {
@@ -1608,7 +1713,7 @@ class FluxIndex(private val context: Context) {
         val localCopy = synchronized(childrenFids) { childrenFids.toList() }
         val activeFids = mutableListOf<Long>()
         for (fid in localCopy) {
-            if (!deletionSet.get(fid.toInt())) {
+            if (!isDeleted(fid)) {
                 activeFids.add(fid)
             }
         }

@@ -46,9 +46,12 @@ class CopyTaskNotifier extends StateNotifier<CopyTaskState> {
   CopyTaskNotifier() : super(CopyTaskState());
 
   Timer? _timer;
+  int _currentTaskId = 0;
 
-  void startMockTask(GlobalTaskType type) {
+  int startMockTask(GlobalTaskType type) {
     _timer?.cancel();
+    _currentTaskId++;
+    final taskId = _currentTaskId;
 
     // Always start compact
     state = CopyTaskState(
@@ -61,6 +64,10 @@ class CopyTaskNotifier extends StateNotifier<CopyTaskState> {
 
     const interval = Duration(milliseconds: 150);
     _timer = Timer.periodic(interval, (timer) {
+      if (taskId != _currentTaskId) {
+        timer.cancel();
+        return;
+      }
       if (state.progress >= 1.0) {
         timer.cancel();
 
@@ -72,7 +79,7 @@ class CopyTaskNotifier extends StateNotifier<CopyTaskState> {
 
         // Auto-dismiss after 3 seconds
         Future.delayed(const Duration(seconds: 3), () {
-          if (state.isCompleted && state.isActive && state.taskType == type) {
+          if (taskId == _currentTaskId && state.isCompleted && state.isActive && state.taskType == type) {
             state = state.copyWith(isActive: false);
           }
         });
@@ -81,10 +88,12 @@ class CopyTaskNotifier extends StateNotifier<CopyTaskState> {
         state = state.copyWith(progress: newProgress > 1.0 ? 1.0 : newProgress);
       }
     });
+    return taskId;
   }
 
-  void startRealTask(GlobalTaskType type) {
+  int startRealTask(GlobalTaskType type) {
     _timer?.cancel();
+    _currentTaskId++;
     state = CopyTaskState(
       isActive: true,
       progress: 0.0,
@@ -92,16 +101,19 @@ class CopyTaskNotifier extends StateNotifier<CopyTaskState> {
       displayMode: CopyTaskDisplayMode.compact,
       taskType: type,
     );
+    return _currentTaskId;
   }
 
-  void updateProgress(double progress) {
+  void updateProgress(double progress, int taskId) {
+    if (taskId != _currentTaskId) return;
     if (!state.isActive || state.isCompleted) return;
     state = state.copyWith(
       progress: progress.clamp(0.0, 1.0),
     );
   }
 
-  void completeTask() {
+  void completeTask(int taskId) {
+    if (taskId != _currentTaskId) return;
     if (!state.isActive) return;
     final type = state.taskType;
     state = state.copyWith(
@@ -111,10 +123,16 @@ class CopyTaskNotifier extends StateNotifier<CopyTaskState> {
     );
 
     Future.delayed(const Duration(seconds: 3), () {
-      if (state.isCompleted && state.isActive && state.taskType == type) {
+      if (taskId == _currentTaskId && state.isCompleted && state.isActive && state.taskType == type) {
         state = state.copyWith(isActive: false);
       }
     });
+  }
+
+  void failTask(int taskId) {
+    if (taskId != _currentTaskId) return;
+    _timer?.cancel();
+    state = CopyTaskState(); // Reset/hide on failure
   }
 
   void toggleExpansion() {
@@ -140,6 +158,7 @@ class CopyTaskNotifier extends StateNotifier<CopyTaskState> {
 
   void cancel() {
     _timer?.cancel();
+    _currentTaskId++;
     state = CopyTaskState();
   }
 

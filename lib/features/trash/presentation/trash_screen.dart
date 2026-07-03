@@ -24,6 +24,7 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
   // Selection mode state
   bool _isSelectionMode = false;
   final Set<int> _selectedFids = {};
+  bool _isProcessing = false;
 
   @override
   void initState() {
@@ -159,14 +160,21 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
                   contentPadding: EdgeInsets.zero,
                   onTap: () async {
                     Navigator.of(context).pop();
-                    ref
+                    if (_isProcessing) return;
+                    _isProcessing = true;
+                    final taskId = ref
                         .read(copyTaskProvider.notifier)
                         .startRealTask(GlobalTaskType.restore);
-                    await ref.read(trashProvider.notifier).restoreFiles(
+                    final success = await ref.read(trashProvider.notifier).restoreFiles(
                       [file.fid],
-                      onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                      onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
                     );
-                    ref.read(copyTaskProvider.notifier).completeTask();
+                    if (success) {
+                      ref.read(copyTaskProvider.notifier).completeTask(taskId);
+                    } else {
+                      ref.read(copyTaskProvider.notifier).failTask(taskId);
+                    }
+                    _isProcessing = false;
                   },
                 ),
                 SizedBox(height: 8.0.h),
@@ -250,18 +258,27 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              ref
+              if (_isProcessing) return;
+              _isProcessing = true;
+              final taskId = ref
                   .read(copyTaskProvider.notifier)
                   .startRealTask(GlobalTaskType.delete);
-              await ref.read(trashProvider.notifier).deletePermanently(
+              final success = await ref.read(trashProvider.notifier).deletePermanently(
                 fids,
-                onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
               );
-              ref.read(copyTaskProvider.notifier).completeTask();
-              setState(() {
-                _isSelectionMode = false;
-                _selectedFids.clear();
-              });
+              if (success) {
+                ref.read(copyTaskProvider.notifier).completeTask(taskId);
+              } else {
+                ref.read(copyTaskProvider.notifier).failTask(taskId);
+              }
+              _isProcessing = false;
+              if (mounted) {
+                setState(() {
+                  _isSelectionMode = false;
+                  _selectedFids.clear();
+                });
+              }
             },
             child: const Text(
               'Delete',
@@ -318,15 +335,22 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
+              if (_isProcessing) return;
+              _isProcessing = true;
               final fids = files.map((f) => f.fid).toList();
-              ref
+              final taskId = ref
                   .read(copyTaskProvider.notifier)
                   .startRealTask(GlobalTaskType.delete);
-              await ref.read(trashProvider.notifier).deletePermanently(
+              final success = await ref.read(trashProvider.notifier).deletePermanently(
                 fids,
-                onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
               );
-              ref.read(copyTaskProvider.notifier).completeTask();
+              if (success) {
+                ref.read(copyTaskProvider.notifier).completeTask(taskId);
+              } else {
+                ref.read(copyTaskProvider.notifier).failTask(taskId);
+              }
+              _isProcessing = false;
             },
             child: const Text(
               'Empty All',
@@ -704,21 +728,30 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
                                 children: [
                                   GestureDetector(
                                     onTap: () async {
+                                      if (_isProcessing) return;
+                                      _isProcessing = true;
                                       final selectedList = _selectedFids.toList();
-                                      ref
+                                      final taskId = ref
                                           .read(copyTaskProvider.notifier)
                                           .startRealTask(GlobalTaskType.restore);
-                                      await ref
+                                      final success = await ref
                                           .read(trashProvider.notifier)
                                           .restoreFiles(
                                             selectedList,
-                                            onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                                            onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
                                           );
-                                      ref.read(copyTaskProvider.notifier).completeTask();
-                                      setState(() {
-                                        _isSelectionMode = false;
-                                        _selectedFids.clear();
-                                      });
+                                      if (success) {
+                                        ref.read(copyTaskProvider.notifier).completeTask(taskId);
+                                      } else {
+                                        ref.read(copyTaskProvider.notifier).failTask(taskId);
+                                      }
+                                      _isProcessing = false;
+                                      if (mounted) {
+                                        setState(() {
+                                          _isSelectionMode = false;
+                                          _selectedFids.clear();
+                                        });
+                                      }
                                     },
                                     child: Container(
                                       padding: EdgeInsets.symmetric(

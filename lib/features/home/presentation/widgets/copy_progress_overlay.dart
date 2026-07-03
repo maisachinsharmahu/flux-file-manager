@@ -280,30 +280,7 @@ class CopyProgressOverlay extends ConsumerWidget {
           ),
           SizedBox(height: 12.0.h),
           // Smooth progress bar
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: state.progress),
-            duration: const Duration(milliseconds: 200),
-            builder: (context, value, child) {
-              return Container(
-                height: 6.0.h,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(3.0.r),
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: value,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(3.0.r),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          _ProgressBar(progress: state.progress),
         ],
       );
     }
@@ -361,6 +338,53 @@ class CopyProgressOverlay extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProgressBar extends StatefulWidget {
+  final double progress;
+  const _ProgressBar({Key? key, required this.progress}) : super(key: key);
+
+  @override
+  State<_ProgressBar> createState() => _ProgressBarState();
+}
+
+class _ProgressBarState extends State<_ProgressBar> {
+  double _oldProgress = 0.0;
+
+  @override
+  void didUpdateWidget(covariant _ProgressBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _oldProgress = oldWidget.progress;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: _oldProgress, end: widget.progress),
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        return Container(
+          height: 6.0.h,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(3.0.r),
+          ),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: value,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(3.0.r),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -461,5 +485,7 @@ class _FolderIconPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _FolderIconPainter oldDelegate) {
+    return oldDelegate.isDark != isDark || oldDelegate.style != style;
+  }
 }
