@@ -83,6 +83,8 @@ final GoRouter _router = GoRouter(
   ],
 );
 
+import 'features/home/presentation/widgets/copy_progress_overlay.dart';
+
 class FluxApp extends ConsumerWidget {
   const FluxApp({Key? key}) : super(key: key);
 
@@ -105,6 +107,14 @@ class FluxApp extends ConsumerWidget {
           themeMode: themeMode,
           routerConfig: _router,
           debugShowCheckedModeBanner: false,
+          builder: (context, child) {
+            return Stack(
+              children: [
+                if (child != null) child,
+                const CopyProgressOverlay(),
+              ],
+            );
+          },
         );
       },
     );

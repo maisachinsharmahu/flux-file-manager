@@ -17,12 +17,7 @@ class MainNavigationShell extends ConsumerWidget {
       backgroundColor: bgColor,
       extendBody: true,
       drawer: const FluxNavigationDrawer(),
-      body: Stack(
-        children: [
-          const HomeScreen(),
-          const CopyProgressOverlay(),
-        ],
-      ),
+      body: const HomeScreen(),
     );
   }
 }
