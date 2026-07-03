@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import kotlin.concurrent.withLock
 
 private val TOKENIZE_SPLIT_REGEX = Regex("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[^a-zA-Z0-9]")
@@ -96,6 +98,37 @@ class FluxIndex(private val context: Context) {
 
     val walLock = ReentrantLock()
     val masterIndexLock = Any()
+
+    /**
+     * Schedules physical deletion of the files corresponding to [fids].
+     *
+     * Uses Android WorkManager so deletion is GUARANTEED to complete even if:
+     *   - The user swipes the app away mid-deletion
+     *   - Android kills the process for memory
+     *   - The device is rebooted before deletion finishes
+     *
+     * Steps:
+     *   1. Resolve FIDs → file paths (from in-memory index, before records may be evicted).
+     *   2. Append paths to a persistent binary queue file on internal storage.
+     *   3. Enqueue a OneTimeWorkRequest; WorkManager schedules it via JobScheduler.
+     *   4. Return immediately — the user is already looking at a "Done" screen.
+     */
+    fun schedulePhysicalDelete(context: Context, fids: List<Long>) {
+        if (fids.isEmpty()) return
+        // Resolve paths now, while the index is live. Workers can't call getRecord().
+        val paths = fids.mapNotNull { getRecord(it)?.path }
+        if (paths.isEmpty()) return
+
+        // Persist paths to the queue file (survives app death).
+        PhysicalDeleteWorker.appendToQueue(context, paths)
+
+        // Enqueue WorkManager job. Android guarantees it runs even after app kill.
+        val request = OneTimeWorkRequestBuilder<PhysicalDeleteWorker>()
+            .addTag("flux_physical_delete")
+            .build()
+        WorkManager.getInstance(context).enqueue(request)
+        Log.d(TAG, "[PhysicalDelete] Queued ${paths.size} paths for WorkManager deletion")
+    }
 
     fun isDeleted(fid: Long): Boolean = synchronized(deletionSet) {
         deletionSet.get(fid.toInt())

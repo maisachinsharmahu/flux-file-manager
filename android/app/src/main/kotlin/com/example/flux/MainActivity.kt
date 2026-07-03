@@ -156,6 +156,12 @@ class MainActivity : FlutterActivity() {
                             val success = fluxIndex.deletePermanently(fids, recursive)
                             runOnUiThread { result.success(success) }
                         }
+                        "schedulePhysicalDelete" -> {
+                            // Fire-and-forget: logical delete already done, schedule disk cleanup.
+                            val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
+                            fluxIndex.schedulePhysicalDelete(applicationContext, fids)
+                            runOnUiThread { result.success(true) } // returns immediately
+                        }
                         "createDirectory" -> {
                             val parentPath = call.argument<String>("parentPath") ?: ""
                             val name = call.argument<String>("name") ?: ""
