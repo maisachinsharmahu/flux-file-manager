@@ -12,6 +12,8 @@ import '../../../core/providers/trash_provider.dart';
 import '../../../../bridge/flux_bridge.dart';
 import '../../../../core/utils/date_formatter.dart';
 
+import '../../home/providers/copy_task_provider.dart';
+
 class AllFilesScreen extends ConsumerStatefulWidget {
   final String title;
   final String? category;
@@ -46,48 +48,211 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
     });
   }
 
+  void _showDeleteConfirmDialog({
+    required VoidCallback onMoveToTrash,
+    required VoidCallback onDeletePermanently,
+    required int itemCount,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: isDark ? AppColors.neutral950 : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0.r),
+          side: BorderSide(
+            color: isDark ? Colors.white12 : Colors.black12,
+            width: 1.0.r,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(20.0.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Delete $itemCount ${itemCount == 1 ? 'item' : 'items'}?',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18.0.sp,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              SizedBox(height: 12.0.h),
+              Text(
+                'Choose how you want to delete these files. Permanent deletion cannot be undone.',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14.0.sp,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                  height: 1.5,
+                ),
+              ),
+              SizedBox(height: 20.0.h),
+              Column(
+                children: [
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      onMoveToTrash();
+                    },
+                    borderRadius: BorderRadius.circular(12.0.r),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 12.0.h),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.black12,
+                        ),
+                        borderRadius: BorderRadius.circular(12.0.r),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline_rounded,
+                            color: AppColors.mintAccent,
+                            size: 22.0.r,
+                          ),
+                          SizedBox(width: 12.0.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Move to Trash',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14.0.sp,
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                SizedBox(height: 2.0.h),
+                                Text(
+                                  'Files can be restored from trash later.',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11.0.sp,
+                                    color: isDark ? Colors.white38 : Colors.black38,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12.0.h),
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      onDeletePermanently();
+                    },
+                    borderRadius: BorderRadius.circular(12.0.r),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 12.0.h),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.black12,
+                        ),
+                        borderRadius: BorderRadius.circular(12.0.r),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_forever_rounded,
+                            color: Colors.redAccent,
+                            size: 22.0.r,
+                          ),
+                          SizedBox(width: 12.0.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Delete Permanently',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14.0.sp,
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                SizedBox(height: 2.0.h),
+                                Text(
+                                  'Permanently remove files from disk storage.',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11.0.sp,
+                                    color: isDark ? Colors.white38 : Colors.black38,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.0.h),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _deleteSelectedFiles(List<FluxFile> filesList) async {
     final selectedFiles = filesList.where((f) => _selectedFids.contains(f.fid)).toList();
     final fids = selectedFiles.map((f) => f.fid!).toList();
     if (fids.isEmpty) return;
 
-    final success = await FluxBridge.executeBatchDelete(fids);
-    if (success) {
-      ref.read(trashProvider.notifier).refreshTrash();
-      ref.read(allFilesProvider.notifier).refreshFiles();
-
-      final fileNames = selectedFiles.map((f) => f.name).toList();
-      setState(() {
-        _isSelectionMode = false;
-        _selectedFids.clear();
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            fids.length == 1
-                ? 'Moved "${fileNames.first}" to Trash'
-                : 'Moved ${fids.length} files to Trash',
-            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
-          ),
-          backgroundColor: AppColors.neutral900,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(16.0.r),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
-          action: SnackBarAction(
-            label: 'UNDO',
-            textColor: AppColors.mintAccent,
-            onPressed: () async {
-              final restored = await FluxBridge.restoreTombstones(fids);
-              if (restored) {
-                ref.read(trashProvider.notifier).refreshTrash();
-                ref.read(allFilesProvider.notifier).refreshFiles();
-              }
-            },
-          ),
-        ),
-      );
-    }
+    _showDeleteConfirmDialog(
+      itemCount: fids.length,
+      onMoveToTrash: () async {
+        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+        setState(() {
+          _isSelectionMode = false;
+          _selectedFids.clear();
+        });
+        final success = await FluxBridge.executeBatchDelete(fids);
+        if (success) {
+          ref.read(trashProvider.notifier).refreshTrash();
+          ref.read(allFilesProvider.notifier).refreshFiles();
+        }
+      },
+      onDeletePermanently: () async {
+        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+        setState(() {
+          _isSelectionMode = false;
+          _selectedFids.clear();
+        });
+        final success = await FluxBridge.deletePermanently(fids);
+        if (success) {
+          ref.read(trashProvider.notifier).refreshTrash();
+          ref.read(allFilesProvider.notifier).refreshFiles();
+        }
+      },
+    );
   }
 
   void _shareSelectedFiles(List<FluxFile> filesList) {
@@ -736,41 +901,29 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
                                 FluxBridge.shareFiles([file.path]);
                                 return false; // Do not dismiss the tile
                               }
-                              return true; // Dismiss (delete)
-                            },
-                            onDismissed: (direction) async {
                               final fid = file.fid;
-                              if (fid == null) return;
-                              
-                              final success = await FluxBridge.executeBatchDelete([fid]);
-                              if (success) {
-                                ref.read(trashProvider.notifier).refreshTrash();
-                                ref.read(allFilesProvider.notifier).refreshFiles();
-                                
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Moved "${file.name}" to Trash',
-                                      style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
-                                    ),
-                                    backgroundColor: AppColors.neutral900,
-                                    behavior: SnackBarBehavior.floating,
-                                    margin: EdgeInsets.all(16.0.r),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
-                                    action: SnackBarAction(
-                                      label: 'UNDO',
-                                      textColor: AppColors.mintAccent,
-                                      onPressed: () async {
-                                        final restored = await FluxBridge.restoreTombstones([fid]);
-                                        if (restored) {
-                                          ref.read(trashProvider.notifier).refreshTrash();
-                                          ref.read(allFilesProvider.notifier).refreshFiles();
-                                        }
-                                      },
-                                    ),
-                                  ),
+                              if (fid != null) {
+                                _showDeleteConfirmDialog(
+                                  itemCount: 1,
+                                  onMoveToTrash: () async {
+                                    ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+                                    final success = await FluxBridge.executeBatchDelete([fid]);
+                                    if (success) {
+                                      ref.read(trashProvider.notifier).refreshTrash();
+                                      ref.read(allFilesProvider.notifier).refreshFiles();
+                                    }
+                                  },
+                                  onDeletePermanently: () async {
+                                    ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+                                    final success = await FluxBridge.deletePermanently([fid]);
+                                    if (success) {
+                                      ref.read(trashProvider.notifier).refreshTrash();
+                                      ref.read(allFilesProvider.notifier).refreshFiles();
+                                    }
+                                  },
                                 );
                               }
+                              return false;
                             },
                             child: GestureDetector(
                               onTap: () {

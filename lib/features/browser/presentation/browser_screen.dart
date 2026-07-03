@@ -821,18 +821,29 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                       FluxBridge.shareFiles([file.path]);
                       return false;
                     }
-                    return true;
-                  },
-                  onDismissed: (direction) async {
                     final fid = file.fid;
-                    if (fid == null) return;
-                    // Show delete overlay immediately then execute
-                    ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
-                    final success = await FluxBridge.executeBatchDelete([fid]);
-                    if (success) {
-                      ref.read(trashProvider.notifier).refreshTrash();
-                      await _loadDirectoryContents();
+                    if (fid != null) {
+                      _showDeleteConfirmDialog(
+                        itemCount: 1,
+                        onMoveToTrash: () async {
+                          ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+                          final success = await FluxBridge.executeBatchDelete([fid]);
+                          if (success) {
+                            ref.read(trashProvider.notifier).refreshTrash();
+                            await _loadDirectoryContents();
+                          }
+                        },
+                        onDeletePermanently: () async {
+                          ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+                          final success = await FluxBridge.deletePermanently([fid]);
+                          if (success) {
+                            ref.read(trashProvider.notifier).refreshTrash();
+                            await _loadDirectoryContents();
+                          }
+                        },
+                      );
                     }
+                    return false;
                   },
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -1050,17 +1061,29 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                     FluxBridge.shareFiles([file.path]);
                     return false;
                   }
-                  return true;
-                },
-                onDismissed: (direction) async {
                   final fid = file.fid;
-                  if (fid == null) return;
-                  ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
-                  final success = await FluxBridge.executeBatchDelete([fid]);
-                  if (success) {
-                    ref.read(trashProvider.notifier).refreshTrash();
-                    await _loadDirectoryContents();
+                  if (fid != null) {
+                    _showDeleteConfirmDialog(
+                      itemCount: 1,
+                      onMoveToTrash: () async {
+                        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+                        final success = await FluxBridge.executeBatchDelete([fid]);
+                        if (success) {
+                          ref.read(trashProvider.notifier).refreshTrash();
+                          await _loadDirectoryContents();
+                        }
+                      },
+                      onDeletePermanently: () async {
+                        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+                        final success = await FluxBridge.deletePermanently([fid]);
+                        if (success) {
+                          ref.read(trashProvider.notifier).refreshTrash();
+                          await _loadDirectoryContents();
+                        }
+                      },
+                    );
                   }
+                  return false;
                 },
                 child: GestureDetector(
                   onTap: () {
