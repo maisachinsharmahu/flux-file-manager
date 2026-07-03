@@ -250,24 +250,32 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     _showDeleteConfirmDialog(
       itemCount: fids.length,
       onMoveToTrash: () async {
-        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+        ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
         setState(() {
           _isSelectionMode = false;
           _selectedFids.clear();
         });
-        final success = await FluxBridge.executeBatchDelete(fids);
+        final success = await FluxBridge.executeBatchDeleteWithProgress(
+          fids,
+          (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+        );
+        ref.read(copyTaskProvider.notifier).completeTask();
         if (success) {
           ref.read(trashProvider.notifier).refreshTrash();
           await _loadDirectoryContents();
         }
       },
       onDeletePermanently: () async {
-        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+        ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
         setState(() {
           _isSelectionMode = false;
           _selectedFids.clear();
         });
-        final success = await FluxBridge.deletePermanently(fids);
+        final success = await FluxBridge.deletePermanentlyWithProgress(
+          fids,
+          (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+        );
+        ref.read(copyTaskProvider.notifier).completeTask();
         if (success) {
           ref.read(trashProvider.notifier).refreshTrash();
           await _loadDirectoryContents();
@@ -826,16 +834,24 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                       _showDeleteConfirmDialog(
                         itemCount: 1,
                         onMoveToTrash: () async {
-                          ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
-                          final success = await FluxBridge.executeBatchDelete([fid]);
+                          ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
+                          final success = await FluxBridge.executeBatchDeleteWithProgress(
+                            [fid],
+                            (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                          );
+                          ref.read(copyTaskProvider.notifier).completeTask();
                           if (success) {
                             ref.read(trashProvider.notifier).refreshTrash();
                             await _loadDirectoryContents();
                           }
                         },
                         onDeletePermanently: () async {
-                          ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
-                          final success = await FluxBridge.deletePermanently([fid]);
+                          ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
+                          final success = await FluxBridge.deletePermanentlyWithProgress(
+                            [fid],
+                            (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                          );
+                          ref.read(copyTaskProvider.notifier).completeTask();
                           if (success) {
                             ref.read(trashProvider.notifier).refreshTrash();
                             await _loadDirectoryContents();
@@ -1066,16 +1082,24 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                     _showDeleteConfirmDialog(
                       itemCount: 1,
                       onMoveToTrash: () async {
-                        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
-                        final success = await FluxBridge.executeBatchDelete([fid]);
+                        ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
+                        final success = await FluxBridge.executeBatchDeleteWithProgress(
+                          [fid],
+                          (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                        );
+                        ref.read(copyTaskProvider.notifier).completeTask();
                         if (success) {
                           ref.read(trashProvider.notifier).refreshTrash();
                           await _loadDirectoryContents();
                         }
                       },
                       onDeletePermanently: () async {
-                        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
-                        final success = await FluxBridge.deletePermanently([fid]);
+                        ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.delete);
+                        final success = await FluxBridge.deletePermanentlyWithProgress(
+                          [fid],
+                          (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                        );
+                        ref.read(copyTaskProvider.notifier).completeTask();
                         if (success) {
                           ref.read(trashProvider.notifier).refreshTrash();
                           await _loadDirectoryContents();

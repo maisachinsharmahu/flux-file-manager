@@ -69,6 +69,30 @@ class FluxBridge {
       return false;
     }
   }
+
+  static Future<bool> executeBatchDeleteWithProgress(
+    List<int> fids,
+    void Function(double progress) onProgress,
+  ) async {
+    if (fids.isEmpty) return true;
+    const chunkSize = 100;
+    var deleted = 0;
+    var allSuccess = true;
+    for (var i = 0; i < fids.length; i += chunkSize) {
+      final end = (i + chunkSize < fids.length) ? i + chunkSize : fids.length;
+      final chunk = fids.sublist(i, end);
+      final success = await executeBatchDelete(chunk);
+      if (success) {
+        deleted += chunk.length;
+        onProgress(deleted / fids.length);
+      } else {
+        allSuccess = false;
+      }
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+    return allSuccess;
+  }
+
   static Future<bool> shareFiles(List<String> paths) async {
     try {
       final bool result = await _methodChannel.invokeMethod(
@@ -81,6 +105,7 @@ class FluxBridge {
       return false;
     }
   }
+
   static Future<bool> restoreTombstones(List<int> fids) async {
     try {
       final bool result = await _methodChannel.invokeMethod(
@@ -92,6 +117,29 @@ class FluxBridge {
       print('[FluxBridge] Error: restoreTombstones(fids: $fids) -> $e');
       return false;
     }
+  }
+
+  static Future<bool> restoreTombstonesWithProgress(
+    List<int> fids,
+    void Function(double progress) onProgress,
+  ) async {
+    if (fids.isEmpty) return true;
+    const chunkSize = 100;
+    var restored = 0;
+    var allSuccess = true;
+    for (var i = 0; i < fids.length; i += chunkSize) {
+      final end = (i + chunkSize < fids.length) ? i + chunkSize : fids.length;
+      final chunk = fids.sublist(i, end);
+      final success = await restoreTombstones(chunk);
+      if (success) {
+        restored += chunk.length;
+        onProgress(restored / fids.length);
+      } else {
+        allSuccess = false;
+      }
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+    return allSuccess;
   }
 
   static Future<List<dynamic>> getTombstones() async {
@@ -115,6 +163,29 @@ class FluxBridge {
       print('[FluxBridge] Error: deletePermanently(fids: $fids) -> $e');
       return false;
     }
+  }
+
+  static Future<bool> deletePermanentlyWithProgress(
+    List<int> fids,
+    void Function(double progress) onProgress,
+  ) async {
+    if (fids.isEmpty) return true;
+    const chunkSize = 100;
+    var deleted = 0;
+    var allSuccess = true;
+    for (var i = 0; i < fids.length; i += chunkSize) {
+      final end = (i + chunkSize < fids.length) ? i + chunkSize : fids.length;
+      final chunk = fids.sublist(i, end);
+      final success = await deletePermanently(chunk);
+      if (success) {
+        deleted += chunk.length;
+        onProgress(deleted / fids.length);
+      } else {
+        allSuccess = false;
+      }
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+    return allSuccess;
   }
 
   static Future<Map<dynamic, dynamic>> getStorageStatistics() async {

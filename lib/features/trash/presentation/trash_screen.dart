@@ -161,10 +161,12 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
                     Navigator.of(context).pop();
                     ref
                         .read(copyTaskProvider.notifier)
-                        .startMockTask(GlobalTaskType.restore);
-                    await ref.read(trashProvider.notifier).restoreFiles([
-                      file.fid,
-                    ]);
+                        .startRealTask(GlobalTaskType.restore);
+                    await ref.read(trashProvider.notifier).restoreFiles(
+                      [file.fid],
+                      onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                    );
+                    ref.read(copyTaskProvider.notifier).completeTask();
                   },
                 ),
                 SizedBox(height: 8.0.h),
@@ -250,8 +252,12 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
               Navigator.of(context).pop();
               ref
                   .read(copyTaskProvider.notifier)
-                  .startMockTask(GlobalTaskType.delete);
-              await ref.read(trashProvider.notifier).deletePermanently(fids);
+                  .startRealTask(GlobalTaskType.delete);
+              await ref.read(trashProvider.notifier).deletePermanently(
+                fids,
+                onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+              );
+              ref.read(copyTaskProvider.notifier).completeTask();
               setState(() {
                 _isSelectionMode = false;
                 _selectedFids.clear();
@@ -315,8 +321,12 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
               final fids = files.map((f) => f.fid).toList();
               ref
                   .read(copyTaskProvider.notifier)
-                  .startMockTask(GlobalTaskType.delete);
-              await ref.read(trashProvider.notifier).deletePermanently(fids);
+                  .startRealTask(GlobalTaskType.delete);
+              await ref.read(trashProvider.notifier).deletePermanently(
+                fids,
+                onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+              );
+              ref.read(copyTaskProvider.notifier).completeTask();
             },
             child: const Text(
               'Empty All',
@@ -694,16 +704,17 @@ class _TrashScreenState extends ConsumerState<TrashScreen>
                                 children: [
                                   GestureDetector(
                                     onTap: () async {
-                                      final selectedList = _selectedFids
-                                          .toList();
+                                      final selectedList = _selectedFids.toList();
                                       ref
                                           .read(copyTaskProvider.notifier)
-                                          .startMockTask(
-                                            GlobalTaskType.restore,
-                                          );
+                                          .startRealTask(GlobalTaskType.restore);
                                       await ref
                                           .read(trashProvider.notifier)
-                                          .restoreFiles(selectedList);
+                                          .restoreFiles(
+                                            selectedList,
+                                            onProgress: (p) => ref.read(copyTaskProvider.notifier).updateProgress(p),
+                                          );
+                                      ref.read(copyTaskProvider.notifier).completeTask();
                                       setState(() {
                                         _isSelectionMode = false;
                                         _selectedFids.clear();

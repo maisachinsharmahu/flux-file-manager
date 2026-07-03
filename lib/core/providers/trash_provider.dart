@@ -61,13 +61,15 @@ class TrashNotifier extends StateNotifier<List<TrashFluxFile>> {
     }).toList();
   }
 
-  Future<bool> restoreFiles(List<int> fids) async {
+  Future<bool> restoreFiles(List<int> fids, {void Function(double)? onProgress}) async {
     ref.read(platformMonitorProvider.notifier).logAction(
       'restoreTombstones',
       'PENDING',
       'Restoring ${fids.length} files from trash...',
     );
-    final success = await FluxBridge.restoreTombstones(fids);
+    final success = onProgress != null
+        ? await FluxBridge.restoreTombstonesWithProgress(fids, onProgress)
+        : await FluxBridge.restoreTombstones(fids);
     if (success) {
       ref.read(platformMonitorProvider.notifier).logAction(
         'restoreTombstones',
@@ -86,13 +88,15 @@ class TrashNotifier extends StateNotifier<List<TrashFluxFile>> {
     return success;
   }
 
-  Future<bool> deletePermanently(List<int> fids) async {
+  Future<bool> deletePermanently(List<int> fids, {void Function(double)? onProgress}) async {
     ref.read(platformMonitorProvider.notifier).logAction(
       'deletePermanently',
       'PENDING',
       'Permanently deleting ${fids.length} files from disk...',
     );
-    final success = await FluxBridge.deletePermanently(fids);
+    final success = onProgress != null
+        ? await FluxBridge.deletePermanentlyWithProgress(fids, onProgress)
+        : await FluxBridge.deletePermanently(fids);
     if (success) {
       ref.read(platformMonitorProvider.notifier).logAction(
         'deletePermanently',
