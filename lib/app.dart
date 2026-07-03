@@ -13,6 +13,7 @@ import 'features/browser/presentation/browser_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'features/trash/presentation/trash_screen.dart';
 import 'features/navigation/presentation/main_navigation_shell.dart';
+import 'features/home/presentation/widgets/copy_progress_overlay.dart';
 
 final GoRouter _router = GoRouter(
   initialLocation: '/',
@@ -39,7 +40,10 @@ final GoRouter _router = GoRouter(
             const begin = Offset(0.0, 1.0);
             const end = Offset.zero;
             const curve = Curves.easeInOutCubic;
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            var tween = Tween(
+              begin: begin,
+              end: end,
+            ).chain(CurveTween(curve: curve));
             return SlideTransition(
               position: animation.drive(tween),
               child: child,
@@ -83,8 +87,6 @@ final GoRouter _router = GoRouter(
   ],
 );
 
-import 'features/home/presentation/widgets/copy_progress_overlay.dart';
-
 class FluxApp extends ConsumerWidget {
   const FluxApp({Key? key}) : super(key: key);
 
@@ -109,10 +111,7 @@ class FluxApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
           builder: (context, child) {
             return Stack(
-              children: [
-                if (child != null) child,
-                const CopyProgressOverlay(),
-              ],
+              children: [if (child != null) child, const CopyProgressOverlay()],
             );
           },
         );
