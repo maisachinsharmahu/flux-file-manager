@@ -897,7 +897,7 @@ class FluxIndex(private val context: Context) {
                     )
                     out.write(entry.toBytes())
                 }
-            } catch (_) {}
+            } catch (e: Exception) {}
             java.util.concurrent.ForkJoinPool.commonPool().execute {
                 saveToCache()
             }
@@ -930,7 +930,7 @@ class FluxIndex(private val context: Context) {
                         )
                         out.write(entry.toBytes())
                     }
-                } catch (_) {}
+                } catch (e: Exception) {}
                 indexChanged = true
                 continue
             }
