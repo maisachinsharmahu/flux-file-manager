@@ -878,15 +878,63 @@ class FluxIndex(private val context: Context) {
     fun getDirectoryContents(parentPath: String): List<Map<String, Any>> {
         val normalized = normalizePath(parentPath)
         val parentFid = pathMap[xxHash64(normalized.lowercase())] ?: return emptyList()
-        val childrenFids = directoryIndex[parentFid] ?: return emptyList()
         
+        // Check if parent directory exists physically
+        val parentFile = File(normalized)
+        if (!parentFile.exists() && parentFid != rootFid) {
+            deletionSet.set(parentFid.toInt())
+            val record = getRecord(parentFid)
+            if (record != null) {
+                record.flags = record.flags or FileRecord.FLAG_DELETED
+            }
+            try {
+                java.io.FileOutputStream(walFile, true).use { out ->
+                    val entry = WalEntry(
+                        sequence = nextFid.get(),
+                        timestamp = System.currentTimeMillis(),
+                        opCode = 2,
+                        fid = parentFid.toInt()
+                    )
+                    out.write(entry.toBytes())
+                }
+            } catch (_) {}
+            java.util.concurrent.ForkJoinPool.commonPool().execute {
+                saveToCache()
+            }
+            return emptyList()
+        }
+
+        val childrenFids = directoryIndex[parentFid] ?: return emptyList()
         val results = mutableListOf<Map<String, Any>>()
         val localCopy = synchronized(childrenFids) {
             childrenFids.toList()
         }
+        var indexChanged = false
         for (fid in localCopy) {
             if (deletionSet.get(fid.toInt())) continue
             val record = getRecord(fid) ?: continue
+            
+            // Check if file/directory exists physically on disk
+            val file = File(record.path)
+            if (!file.exists()) {
+                deletionSet.set(fid.toInt())
+                record.flags = record.flags or FileRecord.FLAG_DELETED
+                
+                try {
+                    java.io.FileOutputStream(walFile, true).use { out ->
+                        val entry = WalEntry(
+                            sequence = nextFid.get(),
+                            timestamp = System.currentTimeMillis(),
+                            opCode = 2,
+                            fid = fid.toInt()
+                        )
+                        out.write(entry.toBytes())
+                    }
+                } catch (_) {}
+                indexChanged = true
+                continue
+            }
+
             val map = record.toMap().toMutableMap()
             // For directories: compute and inject real folder size
             if (record.isDirectory) {
@@ -898,6 +946,12 @@ class FluxIndex(private val context: Context) {
             results.add(map)
             if (results.size >= 1000) {
                 break
+            }
+        }
+
+        if (indexChanged) {
+            java.util.concurrent.ForkJoinPool.commonPool().execute {
+                saveToCache()
             }
         }
         return results
