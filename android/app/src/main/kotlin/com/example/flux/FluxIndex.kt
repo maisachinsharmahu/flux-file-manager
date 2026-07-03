@@ -232,7 +232,12 @@ class FluxIndex(private val context: Context) {
 
                 // Try reading from cache first if not forced re-scan
                 if (!force && loadFromCache()) {
-                    return
+                    if (!isCacheIncomplete()) {
+                        Log.d(TAG, "[PERFORMANCE] initializeIndex: Loaded valid cache with $fileCount entries.")
+                        return
+                    } else {
+                        Log.d(TAG, "[PERFORMANCE] Cache is incomplete/stale compared to disk contents. Proceeding with full scan.")
+                    }
                 }
 
                 Log.d(TAG, "[PERFORMANCE] initializeIndex: Scan started...")
@@ -283,6 +288,34 @@ class FluxIndex(private val context: Context) {
                 isScanning = false
             }
         }
+    }
+
+    private fun isCacheIncomplete(): Boolean {
+        val rootStorage = Environment.getExternalStorageDirectory() ?: return false
+        if (!rootStorage.exists() || !rootStorage.canRead()) return false
+
+        // Count files/folders in the first level of root storage
+        val files = rootStorage.listFiles() ?: return false
+        var actualCount = files.size
+
+        // Also check Tier 1 directories' first-level contents
+        val tier1Names = setOf("DCIM", "Download", "Downloads", "Documents", "Pictures", "Movies", "Music")
+        for (f in files) {
+            if (f.isDirectory && tier1Names.contains(f.name)) {
+                val subFiles = f.listFiles()
+                if (subFiles != null) {
+                    actualCount += subFiles.size
+                }
+            }
+        }
+
+        // If the first-level content count alone is larger than the cache's total file count,
+        // it means the cache was generated when storage was inaccessible or is incomplete.
+        if (actualCount > fileCount) {
+            Log.d(TAG, "[PERFORMANCE] Cache has $fileCount files, but first-level disk check has $actualCount. Cache is incomplete.")
+            return true
+        }
+        return false
     }
 
     private fun loadFromCache(): Boolean {
