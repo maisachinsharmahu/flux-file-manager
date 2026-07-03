@@ -34,6 +34,16 @@ class FluxBridge {
     }
   }
 
+  static Future<int> getFileCount() async {
+    try {
+      final int result = await _methodChannel.invokeMethod('getFileCount');
+      return result;
+    } on PlatformException catch (e) {
+      print('[FluxBridge] Error: getFileCount() -> $e');
+      return 0;
+    }
+  }
+
   static Future<List<dynamic>> getDirectoryContents(String parentPath) async {
     try {
       final List<dynamic> result = await _methodChannel.invokeMethod(
@@ -215,4 +225,30 @@ class FluxBridge {
       return 0;
     }
   }
+
+  static Future<bool> createDirectory(String parentPath, String name) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('createDirectory', {
+        'parentPath': parentPath,
+        'name': name,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      print('[FluxBridge] Error: createDirectory(parentPath: "$parentPath", name: "$name") -> $e');
+      return false;
+    }
+  }
+
+  static Future<List<int>> getAllDirectoryFids(String parentPath) async {
+    try {
+      final List<dynamic> result = await _methodChannel.invokeMethod('getAllDirectoryFids', {
+        'parentPath': parentPath,
+      });
+      return result.cast<int>();
+    } on PlatformException catch (e) {
+      print('[FluxBridge] Error: getAllDirectoryFids(parentPath: "$parentPath") -> $e');
+      return [];
+    }
+  }
 }
+

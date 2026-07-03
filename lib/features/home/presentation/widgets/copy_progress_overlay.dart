@@ -71,6 +71,15 @@ class CopyProgressOverlay extends ConsumerWidget {
           flapGradient: const [Color(0xFF14B8A6), Color(0xFF5EEAD4)],
           backFlapColor: const Color(0xFF0F766E),
         );
+      case GlobalTaskType.createFolder:
+        return _TaskStyle(
+          compactText: 'Creating',
+          expandedText: 'Creating directory',
+          completedText: 'Folder created successfully',
+          bgGradient: const [Color(0xFF064E3B), Color(0xFF10B981)],
+          flapGradient: const [Color(0xFF34D399), Color(0xFF6EE7B7)],
+          backFlapColor: const Color(0xFF047857),
+        );
     }
   }
 

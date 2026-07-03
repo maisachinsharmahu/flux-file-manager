@@ -126,6 +126,9 @@ class MainActivity : FlutterActivity() {
                             val files = fluxIndex.getAllFiles()
                             runOnUiThread { result.success(files) }
                         }
+                        "getFileCount" -> {
+                            runOnUiThread { result.success(fluxIndex.fileCount) }
+                        }
                         "getDirectoryContents" -> {
                             val parentPath = call.argument<String>("parentPath") ?: "/"
                             val contents = fluxIndex.getDirectoryContents(parentPath)
@@ -149,6 +152,17 @@ class MainActivity : FlutterActivity() {
                             val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
                             val success = fluxIndex.deletePermanently(fids)
                             runOnUiThread { result.success(success) }
+                        }
+                        "createDirectory" -> {
+                            val parentPath = call.argument<String>("parentPath") ?: ""
+                            val name = call.argument<String>("name") ?: ""
+                            val success = fluxIndex.createDirectory(parentPath, name)
+                            runOnUiThread { result.success(success) }
+                        }
+                        "getAllDirectoryFids" -> {
+                            val parentPath = call.argument<String>("parentPath") ?: ""
+                            val fids = fluxIndex.getAllDirectoryFids(parentPath)
+                            runOnUiThread { result.success(fids) }
                         }
                         "requestUsageStatsPermission" -> {
                             checkAndRequestUsageStatsPermission()

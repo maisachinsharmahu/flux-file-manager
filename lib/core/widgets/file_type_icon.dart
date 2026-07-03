@@ -168,28 +168,46 @@ class FileTypeIcon extends StatelessWidget {
     final isImage = const ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].contains(extension.toLowerCase().trim());
 
     if (isImage && path != null && path!.isNotEmpty) {
-      // Listing 4.3 layout pattern: strict RGB_565 decodes with 256x256 cacheWidth bounds
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.file(
-          File(path!),
-          width: size,
-          height: size,
-          cacheWidth: 256,
-          cacheHeight: 256,
-          fit: BoxFit.cover,
-          filterQuality: FilterQuality.low,
-          errorBuilder: (context, error, stackTrace) {
-            // Instant fallback placeholder
-            return SvgPicture.asset(
-              fileTypeIconPath(extension),
-              width: size,
-              height: size,
-              fit: BoxFit.contain,
-            );
-          },
-        ),
-      );
+      final file = File(path!);
+      bool isValidRealImage = false;
+      try {
+        if (file.existsSync() && !path!.contains("flux_test_files")) {
+          final raf = file.openSync(mode: FileMode.read);
+          final bytes = raf.readSync(4);
+          raf.closeSync();
+          if (bytes.length >= 4) {
+            // Ensure first 4 bytes are not all zero (which indicates zero-filled mock files)
+            if (bytes[0] != 0 || bytes[1] != 0 || bytes[2] != 0 || bytes[3] != 0) {
+              isValidRealImage = true;
+            }
+          }
+        }
+      } catch (_) {}
+
+      if (isValidRealImage) {
+        // Listing 4.3 layout pattern: strict RGB_565 decodes with 256x256 cacheWidth bounds
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.file(
+            file,
+            width: size,
+            height: size,
+            cacheWidth: 256,
+            cacheHeight: 256,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.low,
+            errorBuilder: (context, error, stackTrace) {
+              // Instant fallback placeholder
+              return SvgPicture.asset(
+                fileTypeIconPath(extension),
+                width: size,
+                height: size,
+                fit: BoxFit.contain,
+              );
+            },
+          ),
+        );
+      }
     }
 
     return SvgPicture.asset(

@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/navigation_provider.dart';
 import '../../home/presentation/home_screen.dart';
-import '../../browser/presentation/browser_screen.dart';
-import '../../analytics/presentation/analytics_screen.dart';
-import '../../settings/presentation/settings_screen.dart';
-import '../../trash/presentation/trash_screen.dart';
 import '../../home/presentation/widgets/copy_progress_overlay.dart';
 import 'widgets/navigation_drawer.dart';
 import '../../../core/theme/app_colors.dart';

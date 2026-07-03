@@ -653,14 +653,35 @@ class FluxIndex(private val context: Context) {
 
 
 
+    private fun getChildrenRecursive(parentFid: Long, result: MutableList<Long>) {
+        val children = directoryIndex[parentFid] ?: return
+        val list = synchronized(children) { children.toList() }
+        for (childFid in list) {
+            result.add(childFid)
+            val record = getRecord(childFid)
+            if (record != null && record.isDirectory) {
+                getChildrenRecursive(childFid, result)
+            }
+        }
+    }
+
     /**
      * Moves FIDs to the deletion bitset in O(1) time. Persists operation in WAL.
      */
     fun deleteBatch(fids: List<Long>): Boolean {
         val startTime = System.nanoTime()
+        val allFids = mutableListOf<Long>()
         try {
             java.io.FileOutputStream(walFile, true).use { out ->
                 for (fid in fids) {
+                    allFids.add(fid)
+                    val record = getRecord(fid)
+                    if (record != null && record.isDirectory) {
+                        getChildrenRecursive(fid, allFids)
+                    }
+                }
+                
+                for (fid in allFids) {
                     val record = getRecord(fid) ?: continue
                     deletionSet.set(fid.toInt())
                     record.flags = record.flags or FileRecord.FLAG_DELETED
@@ -676,7 +697,7 @@ class FluxIndex(private val context: Context) {
                 }
             }
             val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
-            Log.d(TAG, "[PERFORMANCE] deleteBatch: Deleted ${fids.size} files in ${String.format("%.3f", durationMs)} ms")
+            Log.d(TAG, "[PERFORMANCE] deleteBatch: Logically deleted ${fids.size} roots (Total ${allFids.size} elements) in ${String.format("%.3f", durationMs)} ms")
             return true
         } catch (e: Exception) {
             val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
@@ -691,7 +712,16 @@ class FluxIndex(private val context: Context) {
     fun restoreBatch(fids: List<Long>): Boolean {
         try {
             java.io.FileOutputStream(walFile, true).use { out ->
+                val allFids = mutableListOf<Long>()
                 for (fid in fids) {
+                    allFids.add(fid)
+                    val record = getRecord(fid)
+                    if (record != null && record.isDirectory) {
+                        getChildrenRecursive(fid, allFids)
+                    }
+                }
+                
+                for (fid in allFids) {
                     val record = getRecord(fid) ?: continue
                     deletionSet.clear(fid.toInt())
                     record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
@@ -719,17 +749,30 @@ class FluxIndex(private val context: Context) {
     fun deletePermanently(fids: List<Long>): Boolean {
         try {
             java.io.FileOutputStream(walFile, true).use { out ->
+                val allFids = mutableListOf<Long>()
                 for (fid in fids) {
-                    val record = getRecord(fid) ?: continue
-                    
+                    allFids.add(fid)
+                    val record = getRecord(fid)
+                    if (record != null && record.isDirectory) {
+                        getChildrenRecursive(fid, allFids)
+                    }
+                }
+                
+                val sortedRecords = allFids.mapNotNull { getRecord(it) }.sortedByDescending { it.path.length }
+
+                for (record in sortedRecords) {
                     // Physical delete from disk
                     val file = java.io.File(record.path)
                     if (file.exists()) {
-                        file.delete()
+                        if (record.isDirectory) {
+                            file.deleteRecursively()
+                        } else {
+                            file.delete()
+                        }
                     }
                     
                     // Mark as logically deleted and permanently evicted from index list
-                    deletionSet.set(fid.toInt())
+                    deletionSet.set(record.fid.toInt())
                     record.flags = record.flags or FileRecord.FLAG_DELETED
                     
                     // Write binary 32-byte WAL entry (opCode 2 = DELETE)
@@ -737,7 +780,7 @@ class FluxIndex(private val context: Context) {
                         sequence = nextFid.get(),
                         timestamp = System.currentTimeMillis(),
                         opCode = 2,
-                        fid = fid.toInt()
+                        fid = record.fid.toInt()
                     )
                     out.write(entry.toBytes())
                 }
@@ -1453,6 +1496,52 @@ class FluxIndex(private val context: Context) {
         val fid = pathMap[xxHash64(normalized.lowercase())] ?: return
         val record = getRecord(fid) ?: return
         record.flags = record.flags and FileRecord.FLAG_DUPLICATE.inv()
+    }
+
+    fun createDirectory(parentPath: String, name: String): Boolean {
+        try {
+            val dir = File(parentPath, name)
+            if (dir.exists()) return false
+            if (!dir.mkdirs()) return false
+
+            val normalizedParent = normalizePath(parentPath)
+            val parentFid = pathMap[xxHash64(normalizedParent.lowercase())] ?: rootFid
+
+            val fid = nextFid.getAndIncrement()
+            val now = System.currentTimeMillis() / 1000L
+            val record = FileRecord.create(
+                fid = fid,
+                parentDirFid = parentFid,
+                name = name,
+                path = dir.absolutePath,
+                size = 0L,
+                mtime = now,
+                atime = now,
+                ctime = now,
+                mimeType = "directory",
+                flags = FileRecord.FLAG_INDEXED
+            )
+            insertRecordToIndexes(record)
+            saveToCache()
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating directory: ${e.message}")
+            return false
+        }
+    }
+
+    fun getAllDirectoryFids(parentPath: String): List<Long> {
+        val normalized = normalizePath(parentPath)
+        val parentFid = pathMap[xxHash64(normalized.lowercase())] ?: return emptyList()
+        val childrenFids = directoryIndex[parentFid] ?: return emptyList()
+        val localCopy = synchronized(childrenFids) { childrenFids.toList() }
+        val activeFids = mutableListOf<Long>()
+        for (fid in localCopy) {
+            if (!deletionSet.get(fid.toInt())) {
+                activeFids.add(fid)
+            }
+        }
+        return activeFids
     }
 }
 

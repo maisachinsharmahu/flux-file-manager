@@ -10,6 +10,7 @@ import '../../search/presentation/widgets/quick_sort_filter_sheet.dart';
 import '../../../core/widgets/file_type_icon.dart';
 import '../../../../bridge/flux_bridge.dart';
 import '../../../core/providers/trash_provider.dart';
+import '../../home/providers/copy_task_provider.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
   const BrowserScreen({Key? key}) : super(key: key);
@@ -32,6 +33,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
   String _currentPath = '/storage/emulated/0';
   final List<String> _pathHistory = [];
   List<dynamic> _currentContents = [];
+  List<int> _allDirFids = [];
   bool _isLoading = false;
   late final FileFilterNotifier _filterNotifier;
 
@@ -52,9 +54,181 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     });
   }
 
+  void _showDeleteConfirmDialog({
+    required VoidCallback onMoveToTrash,
+    required VoidCallback onDeletePermanently,
+    required int itemCount,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: isDark ? AppColors.neutral950 : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0.r),
+          side: BorderSide(
+            color: isDark ? Colors.white12 : Colors.black12,
+            width: 1.0.r,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(20.0.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Delete $itemCount ${itemCount == 1 ? 'item' : 'items'}?',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18.0.sp,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              SizedBox(height: 12.0.h),
+              Text(
+                'Choose how you want to delete these files. Permanent deletion cannot be undone.',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14.0.sp,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                  height: 1.5,
+                ),
+              ),
+              SizedBox(height: 20.0.h),
+              Column(
+                children: [
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      onMoveToTrash();
+                    },
+                    borderRadius: BorderRadius.circular(12.0.r),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 12.0.h),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.black12,
+                        ),
+                        borderRadius: BorderRadius.circular(12.0.r),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline_rounded,
+                            color: AppColors.mintAccent,
+                            size: 22.0.r,
+                          ),
+                          SizedBox(width: 12.0.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Move to Trash',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14.0.sp,
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                SizedBox(height: 2.0.h),
+                                Text(
+                                  'Files can be restored from trash later.',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11.0.sp,
+                                    color: isDark ? Colors.white38 : Colors.black38,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12.0.h),
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+                      onDeletePermanently();
+                    },
+                    borderRadius: BorderRadius.circular(12.0.r),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 12.0.h),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.black12,
+                        ),
+                        borderRadius: BorderRadius.circular(12.0.r),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_forever_rounded,
+                            color: Colors.redAccent,
+                            size: 22.0.r,
+                          ),
+                          SizedBox(width: 12.0.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Delete Permanently',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14.0.sp,
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                SizedBox(height: 2.0.h),
+                                Text(
+                                  'Permanently remove files from disk storage.',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11.0.sp,
+                                    color: isDark ? Colors.white38 : Colors.black38,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.0.h),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _deleteSelectedFiles(List<dynamic> itemsList, List<FluxFile> currentFileList, bool isFolderList) async {
     final List<int> fids = [];
-    final List<String> fileNames = [];
 
     if (isFolderList) {
       final selectedItems = itemsList.where((item) {
@@ -63,54 +237,43 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
       }).toList();
       for (final item in selectedItems) {
         fids.add((item['fid'] as num).toInt());
-        fileNames.add(item['name'] as String);
       }
     } else {
       final selectedItems = currentFileList.where((f) => f.fid != null && _selectedFids.contains(f.fid)).toList();
       for (final f in selectedItems) {
         fids.add(f.fid!);
-        fileNames.add(f.name);
       }
     }
 
     if (fids.isEmpty) return;
 
-    final success = await FluxBridge.executeBatchDelete(fids);
-    if (success) {
-      ref.read(trashProvider.notifier).refreshTrash();
-      await _loadDirectoryContents();
-
-      setState(() {
-        _isSelectionMode = false;
-        _selectedFids.clear();
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            fids.length == 1
-                ? 'Moved "${fileNames.first}" to Trash'
-                : 'Moved ${fids.length} files to Trash',
-            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
-          ),
-          backgroundColor: AppColors.neutral900,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(16.0.r),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
-          action: SnackBarAction(
-            label: 'UNDO',
-            textColor: AppColors.mintAccent,
-            onPressed: () async {
-              final restored = await FluxBridge.restoreTombstones(fids);
-              if (restored) {
-                ref.read(trashProvider.notifier).refreshTrash();
-                await _loadDirectoryContents();
-              }
-            },
-          ),
-        ),
-      );
-    }
+    _showDeleteConfirmDialog(
+      itemCount: fids.length,
+      onMoveToTrash: () async {
+        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+        setState(() {
+          _isSelectionMode = false;
+          _selectedFids.clear();
+        });
+        final success = await FluxBridge.executeBatchDelete(fids);
+        if (success) {
+          ref.read(trashProvider.notifier).refreshTrash();
+          await _loadDirectoryContents();
+        }
+      },
+      onDeletePermanently: () async {
+        ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
+        setState(() {
+          _isSelectionMode = false;
+          _selectedFids.clear();
+        });
+        final success = await FluxBridge.deletePermanently(fids);
+        if (success) {
+          ref.read(trashProvider.notifier).refreshTrash();
+          await _loadDirectoryContents();
+        }
+      },
+    );
   }
 
   void _shareSelectedFiles(List<dynamic> itemsList, List<FluxFile> currentFileList, bool isFolderList) {
@@ -165,6 +328,119 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     _loadDirectoryContents();
   }
 
+  void _showCreateFolderDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final folderController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: isDark ? AppColors.neutral950 : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0.r),
+          side: BorderSide(
+            color: isDark ? Colors.white12 : Colors.black12,
+            width: 1.0.r,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(20.0.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'New Folder',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18.0.sp,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              SizedBox(height: 16.0.h),
+              TextField(
+                controller: folderController,
+                autofocus: true,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 15.0.sp,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Folder name',
+                  hintStyle: TextStyle(
+                    fontFamily: 'Inter',
+                    color: isDark ? Colors.white38 : Colors.black38,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 12.0.h),
+                  filled: true,
+                  fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0.r),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0.r),
+                    borderSide: const BorderSide(color: AppColors.mintAccent, width: 1.5),
+                  ),
+                ),
+              ),
+              SizedBox(height: 20.0.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.0.w),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final name = folderController.text.trim();
+                      if (name.isEmpty) return;
+                      Navigator.pop(context);
+                      
+                      ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.createFolder);
+                      
+                      final success = await FluxBridge.createDirectory(_currentPath, name);
+                      if (success) {
+                        await _loadDirectoryContents();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mintAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0.r),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 10.0.h),
+                    ),
+                    child: Text(
+                      'Create',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        fontSize: 14.0.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _loadDirectoryContents() async {
     if (!mounted) return;
     setState(() {
@@ -172,6 +448,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     });
     try {
       final contents = await FluxBridge.getDirectoryContents(_currentPath);
+      final allFids = await FluxBridge.getAllDirectoryFids(_currentPath);
       if (!mounted) return;
       
       // Sort directories first, then files alphabetically
@@ -185,6 +462,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
 
       setState(() {
         _currentContents = contents;
+        _allDirFids = allFids;
         _isLoading = false;
       });
     } catch (e) {
@@ -385,17 +663,56 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
               final isDir = category == 'Directory';
 
               if (isDir) {
+                final dirFid = (item['fid'] as num?)?.toInt();
+                final isSelected = dirFid != null && _selectedFids.contains(dirFid);
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => _navigateToFolder(path),
+                  onTap: () {
+                    if (_isSelectionMode) {
+                      if (dirFid != null) _toggleSelection(dirFid);
+                    } else {
+                      _navigateToFolder(path);
+                    }
+                  },
+                  onLongPress: () {
+                    if (!_isSelectionMode && dirFid != null) {
+                      setState(() {
+                        _isSelectionMode = true;
+                        _selectedFids.add(dirFid);
+                      });
+                    }
+                  },
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.0.h),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.folder,
-                          size: 44.0.r,
-                          color: const Color(0xFFFFB020),
+                        if (_isSelectionMode)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: EdgeInsets.only(right: 12.0.w),
+                            child: Icon(
+                              isSelected
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_unchecked_rounded,
+                              color: isSelected ? AppColors.mintAccent : subtitleColor,
+                              size: 22.0.r,
+                            ),
+                          ),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: isSelected
+                              ? BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                  color: AppColors.mintAccent.withValues(alpha: 0.12),
+                                )
+                              : null,
+                          child: Icon(
+                            Icons.folder,
+                            size: 44.0.r,
+                            color: isSelected
+                                ? AppColors.mintAccent
+                                : const Color(0xFFFFB020),
+                          ),
                         ),
                         SizedBox(width: 16.0.w),
                         Expanded(
@@ -410,7 +727,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                   fontFamily: 'Inter',
                                   fontSize: 16.0.sp,
                                   fontWeight: FontWeight.w600,
-                                  color: textColor,
+                                  color: isSelected ? AppColors.mintAccent : textColor,
                                 ),
                               ),
                               SizedBox(height: 4.0.h),
@@ -426,11 +743,12 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                             ],
                           ),
                         ),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 14.0.r,
-                          color: isDark ? Colors.white38 : Colors.black38,
-                        ),
+                        if (!_isSelectionMode)
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 14.0.r,
+                            color: isDark ? Colors.white38 : Colors.black38,
+                          ),
                       ],
                     ),
                   ),
@@ -508,33 +826,12 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                   onDismissed: (direction) async {
                     final fid = file.fid;
                     if (fid == null) return;
+                    // Show delete overlay immediately then execute
+                    ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
                     final success = await FluxBridge.executeBatchDelete([fid]);
                     if (success) {
                       ref.read(trashProvider.notifier).refreshTrash();
                       await _loadDirectoryContents();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Moved "${file.name}" to Trash',
-                            style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
-                          ),
-                          backgroundColor: AppColors.neutral900,
-                          behavior: SnackBarBehavior.floating,
-                          margin: EdgeInsets.all(16.0.r),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
-                          action: SnackBarAction(
-                            label: 'UNDO',
-                            textColor: AppColors.mintAccent,
-                            onPressed: () async {
-                              final restored = await FluxBridge.restoreTombstones([fid]);
-                              if (restored) {
-                                ref.read(trashProvider.notifier).refreshTrash();
-                                await _loadDirectoryContents();
-                              }
-                            },
-                          ),
-                        ),
-                      );
                     }
                   },
                   child: GestureDetector(
@@ -758,33 +1055,11 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                 onDismissed: (direction) async {
                   final fid = file.fid;
                   if (fid == null) return;
+                  ref.read(copyTaskProvider.notifier).startMockTask(GlobalTaskType.delete);
                   final success = await FluxBridge.executeBatchDelete([fid]);
                   if (success) {
                     ref.read(trashProvider.notifier).refreshTrash();
                     await _loadDirectoryContents();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Moved "${file.name}" to Trash',
-                          style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
-                        ),
-                        backgroundColor: AppColors.neutral900,
-                        behavior: SnackBarBehavior.floating,
-                        margin: EdgeInsets.all(16.0.r),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0.r)),
-                        action: SnackBarAction(
-                          label: 'UNDO',
-                          textColor: AppColors.mintAccent,
-                          onPressed: () async {
-                            final restored = await FluxBridge.restoreTombstones([fid]);
-                            if (restored) {
-                              ref.read(trashProvider.notifier).refreshTrash();
-                              await _loadDirectoryContents();
-                            }
-                          },
-                        ),
-                      ),
-                    );
                   }
                 },
                 child: GestureDetector(
@@ -971,37 +1246,54 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                       child: Container(
                                         padding: EdgeInsets.all(8.0.r),
                                         child: Icon(
-                                          Icons.close_rounded,
+                                        Icons.close_rounded,
                                           size: 24.0.r,
                                           color: iconColor,
                                         ),
                                       ),
                                     ),
                                     SizedBox(width: 8.0.w),
-                                    Text(
-                                      '${_selectedFids.length} selected',
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 20.0.sp,
-                                        fontWeight: FontWeight.w800,
-                                        color: textColor,
-                                      ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${_selectedFids.length} selected',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 20.0.sp,
+                                            fontWeight: FontWeight.w800,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        if (isFolderList) ((){
+                                          final selFolders = displayedContents.where((item) {
+                                            final fid = (item['fid'] as num?)?.toInt();
+                                            return fid != null && _selectedFids.contains(fid) && (item['category'] as String? ?? '') == 'Directory';
+                                          }).length;
+                                          final selFiles = _selectedFids.length - selFolders;
+                                          final parts = <String>[];
+                                          if (selFolders > 0) parts.add('$selFolders ${selFolders == 1 ? 'folder' : 'folders'}');
+                                          if (selFiles > 0) parts.add('$selFiles ${selFiles == 1 ? 'file' : 'files'}');
+                                          return Text(
+                                            parts.join(', '),
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 11.0.sp,
+                                              fontWeight: FontWeight.w500,
+                                              color: subtitleColor,
+                                            ),
+                                          );
+                                        })(),
+                                      ],
                                     ),
                                     const Spacer(),
                                     // Select/Deselect All
                                     GestureDetector(
                                       onTap: () {
                                         setState(() {
-                                          // Gather all selectable FIDs in current view
                                           final List<int> selectableFids = [];
                                           if (isFolderList) {
-                                            for (final item in displayedContents) {
-                                              final category = item['category'] as String? ?? 'Others';
-                                              final fid = (item['fid'] as num?)?.toInt();
-                                              if (category != 'Directory' && fid != null) {
-                                                selectableFids.add(fid);
-                                              }
-                                            }
+                                            selectableFids.addAll(_allDirFids);
                                           } else {
                                             for (final file in currentFileList) {
                                               if (file.fid != null) {
@@ -1021,17 +1313,10 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                                       child: Padding(
                                         padding: EdgeInsets.symmetric(horizontal: 8.0.w),
                                         child: Icon(
-                                          // Simple length comparison to toggle Select All icon
                                           (() {
                                             final List<int> selectableFids = [];
                                             if (isFolderList) {
-                                              for (final item in displayedContents) {
-                                                final category = item['category'] as String? ?? 'Others';
-                                                final fid = (item['fid'] as num?)?.toInt();
-                                                if (category != 'Directory' && fid != null) {
-                                                  selectableFids.add(fid);
-                                                }
-                                              }
+                                              selectableFids.addAll(_allDirFids);
                                             } else {
                                               for (final file in currentFileList) {
                                                 if (file.fid != null) {
@@ -1428,33 +1713,33 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                           ),
                   ],
                 ),
-                // Floating scan/layout icon at the bottom right corner
+                // Floating Add Folder FAB at the bottom right corner
                 Positioned(
                   right: 24.0.w,
                   bottom: 24.0.h,
-                  child: Container(
-                    width: 48.0.r,
-                    height: 48.0.r,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.neutral900 : Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10.0.r,
-                          offset: Offset(0, 4.h),
-                        ),
-                      ],
-                      border: Border.all(
-                        color: dividerColor,
-                        width: 1.0.r,
+                  child: GestureDetector(
+                    onTap: _showCreateFolderDialog,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 52.0.r,
+                      height: 52.0.r,
+                      decoration: BoxDecoration(
+                        color: AppColors.mintAccent,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.mintAccent.withValues(alpha: 0.35),
+                            blurRadius: 16.0.r,
+                            offset: Offset(0, 6.h),
+                          ),
+                        ],
                       ),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.fit_screen_outlined,
-                        size: 22.0.r,
-                        color: iconColor,
+                      child: Center(
+                        child: Icon(
+                          Icons.create_new_folder_outlined,
+                          size: 24.0.r,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),

@@ -221,6 +221,9 @@ final fileFilterProvider =
 // Global flag to show scan progress on home screen
 final isScanInProgressProvider = StateProvider<bool>((ref) => false);
 
+// Live file count updated during scan for the storyline screen
+final scanFileCountProvider = StateProvider<int>((ref) => 0);
+
 class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
   final Ref ref;
 
@@ -233,6 +236,7 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
     if (shouldShowBanner) {
       Future.microtask(() {
         if (mounted) ref.read(isScanInProgressProvider.notifier).state = true;
+        if (mounted) ref.read(scanFileCountProvider.notifier).state = 0;
       });
     }
 
@@ -241,6 +245,19 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
       'PENDING',
       'Scanning device storage — building 9 composite indexes...',
     );
+
+    // Poll the native file count every 600ms during scan to feed the live counter
+    final pollTimer = Future.doWhile(() async {
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return false;
+      final isStillScanning = ref.read(isScanInProgressProvider);
+      if (!isStillScanning) return false;
+      try {
+        final count = await FluxBridge.getFileCount();
+        if (mounted) ref.read(scanFileCountProvider.notifier).state = count;
+      } catch (_) {}
+      return mounted && ref.read(isScanInProgressProvider);
+    });
     
     // Run native initialization asynchronously to let the UI start instantly
     FluxBridge.initializeIndex(force: force).then((ok) async {
@@ -261,6 +278,9 @@ class AllFilesNotifier extends StateNotifier<List<FluxFile>> {
       // Invalidate storageStatusProvider so storage numbers refresh on home screen
       ref.invalidate(storageStatusProvider);
       ref.read(isScanInProgressProvider.notifier).state = false;
+      // Set final count after scan completes
+      if (mounted) ref.read(scanFileCountProvider.notifier).state = state.length;
+      await pollTimer; // ensure poll loop exits
     });
   }
 
