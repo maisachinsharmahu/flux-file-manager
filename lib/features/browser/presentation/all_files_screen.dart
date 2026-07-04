@@ -621,9 +621,17 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
         }
       },
       child: PopScope(
-        canPop: !_isSelectionMode,
+        canPop: !_isSelectionMode && !_isSearching,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
+          if (_isSearching) {
+            setState(() {
+              _isSearching = false;
+              _searchQuery = '';
+              _searchController.clear();
+            });
+            return;
+          }
           if (_isSelectionMode) {
             _showDeselectDialog(onConfirmed: () {
               context.pop();

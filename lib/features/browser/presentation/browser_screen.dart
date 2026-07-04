@@ -1561,10 +1561,18 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
         }
       },
       child: PopScope(
-        // Block system back when selection is active OR when deep in a folder / category.
-        canPop: !_isSelectionMode && activeCategory == null && _pathHistory.isEmpty,
+        // Block system back when selection is active, search is active, OR when deep in a folder / category.
+        canPop: !_isSelectionMode && activeCategory == null && _pathHistory.isEmpty && !_isSearching,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
+          if (_isSearching) {
+            setState(() {
+              _isSearching = false;
+              _searchQuery = '';
+              _searchController.clear();
+            });
+            return;
+          }
           if (_isSelectionMode) {
             // Back while items are selected → ask to deselect first.
             _showDeselectDialog(onConfirmed: () {
