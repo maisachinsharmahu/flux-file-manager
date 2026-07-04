@@ -160,6 +160,19 @@ class FluxIndex(private val context: Context) {
     val fileObserverHub = FileObserverHub(this)
     var onIndexChanged: (() -> Unit)? = null
 
+    // Debounced cache-save: coalesces rapid writes (e.g. during copy) into one flush 2s after last call
+    private val _saveCacheExecutor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "flux-save-debounce").also { it.isDaemon = true }
+    }
+    @Volatile private var _pendingSaveFuture: java.util.concurrent.ScheduledFuture<*>? = null
+
+    private fun scheduleSaveToCache(delayMs: Long = 2000) {
+        _pendingSaveFuture?.cancel(false)
+        _pendingSaveFuture = _saveCacheExecutor.schedule({
+            saveToCache()
+        }, delayMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+    }
+
     // Root directory FID definition
     val rootFid = 1L
 
@@ -1127,9 +1140,7 @@ class FluxIndex(private val context: Context) {
                     }
                 }
             } catch (e: Exception) {}
-            java.util.concurrent.ForkJoinPool.commonPool().execute {
-                saveToCache()
-            }
+            scheduleSaveToCache()
             return emptyList()
         }
 
@@ -1183,9 +1194,7 @@ class FluxIndex(private val context: Context) {
         }
 
         if (indexChanged) {
-            java.util.concurrent.ForkJoinPool.commonPool().execute {
-                saveToCache()
-            }
+            scheduleSaveToCache()
         }
         return results
     }
@@ -2052,21 +2061,55 @@ class FluxIndex(private val context: Context) {
     }
 
     fun scanDirAsync(path: String) {
+        // Run the entire directory scan in a SINGLE background task instead of spawning
+        // one ForkJoinPool thread per file. This prevents OOM when large folders (1000+ files)
+        // trigger the FileObserver CREATE event (e.g. after copy/move from another app).
         java.util.concurrent.ForkJoinPool.commonPool().execute {
             val dir = File(path)
             val files = dir.listFiles() ?: return@execute
+            var anyInserted = false
             for (f in files) {
-                if (f.isFile) {
-                    insertAsync(f.absolutePath)
-                }
+                if (!f.isFile) continue
+                // Skip files already tracked to prevent double-indexing after copy/move
+                val normalizedPath = normalizePath(f.absolutePath)
+                if (pathMap.containsKey(xxHash64(normalizedPath.lowercase()))) continue
+
+                val parentPath = f.parent ?: "/"
+                val parentFid = pathMap[xxHash64(normalizePath(parentPath).lowercase())] ?: rootFid
+                val now = System.currentTimeMillis() / 1000L
+                val record = FileRecord.create(
+                    fid = nextFid.getAndIncrement(),
+                    parentDirFid = parentFid,
+                    name = f.name,
+                    path = f.absolutePath,
+                    size = f.length(),
+                    mtime = now,
+                    atime = now,
+                    ctime = now,
+                    mimeType = getMimeType(f),
+                    flags = FileRecord.FLAG_INDEXED
+                )
+                insertRecordToIndexes(record)
+                anyInserted = true
+            }
+            if (anyInserted) {
+                scheduleSaveToCache()
+                onIndexChanged?.invoke()
             }
         }
     }
 
     fun insertAsync(path: String) {
+        // Skip files already tracked to prevent double-indexing after copy/move
+        val normalizedPath = normalizePath(path)
+        if (pathMap.containsKey(xxHash64(normalizedPath.lowercase()))) return
+
         java.util.concurrent.ForkJoinPool.commonPool().execute {
             val f = File(path)
             if (!f.exists() || f.isDirectory) return@execute
+            // Re-check inside the lambda in case another thread just indexed it
+            if (pathMap.containsKey(xxHash64(normalizePath(f.absolutePath).lowercase()))) return@execute
+
             val parentPath = f.parent ?: "/"
             val parentFid = pathMap[xxHash64(normalizePath(parentPath).lowercase())] ?: rootFid
             val now = System.currentTimeMillis() / 1000L
@@ -2083,7 +2126,7 @@ class FluxIndex(private val context: Context) {
                 flags = FileRecord.FLAG_INDEXED
             )
             insertRecordToIndexes(record)
-            saveToCache()
+            scheduleSaveToCache()
             onIndexChanged?.invoke()
         }
     }
@@ -2233,9 +2276,7 @@ class FluxIndex(private val context: Context) {
         }
 
         if (indexChanged) {
-            java.util.concurrent.ForkJoinPool.commonPool().execute {
-                saveToCache()
-            }
+            scheduleSaveToCache()
         }
     }
 }

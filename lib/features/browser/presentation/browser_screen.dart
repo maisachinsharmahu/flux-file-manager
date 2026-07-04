@@ -696,7 +696,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
 
     _indexChangeSubscription = FluxBridge.onIndexChanged.listen((_) {
       if (mounted) {
-        _loadDirectoryContents();
+        _loadDirectoryContents(silent: true);
       }
     });
   }
@@ -830,11 +830,13 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     );
   }
 
-  Future<void> _loadDirectoryContents() async {
+  Future<void> _loadDirectoryContents({bool silent = false}) async {
     if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-    });
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
     try {
       final contents = await FluxBridge.getDirectoryContents(_currentPath);
       final allFids = await FluxBridge.getAllDirectoryFids(_currentPath);
@@ -899,7 +901,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _loadDirectoryContents();
+      _loadDirectoryContents(silent: true);
     }
   }
 
