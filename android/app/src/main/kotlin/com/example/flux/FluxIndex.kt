@@ -2102,7 +2102,10 @@ class FluxIndex(private val context: Context) {
                 flags = FileRecord.FLAG_INDEXED
             )
             insertRecordToIndexes(record)
-            saveToCache()
+            java.util.concurrent.ForkJoinPool.commonPool().execute {
+                saveToCache()
+            }
+            onIndexChanged?.invoke()
             return true
         } catch (e: Exception) {
             Log.e(TAG, "Error creating directory: ${e.message}")

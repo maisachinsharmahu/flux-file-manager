@@ -92,6 +92,117 @@ class _FolderPickerSheetState extends State<FolderPickerSheet> {
     }
   }
 
+  void _showCreateFolderDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final folderController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: isDark ? AppColors.neutral950 : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0.r),
+          side: BorderSide(
+            color: isDark ? Colors.white12 : Colors.black12,
+            width: 1.0.r,
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(20.0.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'New Folder',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18.0.sp,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              SizedBox(height: 16.0.h),
+              TextField(
+                controller: folderController,
+                autofocus: true,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 15.0.sp,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Folder name',
+                  hintStyle: TextStyle(
+                    fontFamily: 'Inter',
+                    color: isDark ? Colors.white38 : Colors.black38,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 12.0.h),
+                  filled: true,
+                  fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0.r),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0.r),
+                    borderSide: const BorderSide(color: AppColors.mintAccent, width: 1.5),
+                  ),
+                ),
+              ),
+              SizedBox(height: 20.0.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.0.w),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final name = folderController.text.trim();
+                      if (name.isEmpty) return;
+                      Navigator.pop(ctx);
+                      
+                      final success = await FluxBridge.createDirectory(_currentPath, name);
+                      if (success) {
+                        _loadFolders(_currentPath);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mintAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0.r),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 10.0.h),
+                    ),
+                    child: Text(
+                      'Create',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
+                        fontSize: 14.0.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   String get _displayPath =>
       _currentPath.replaceAll('/storage/emulated/0', 'Internal Storage');
 
@@ -218,6 +329,17 @@ class _FolderPickerSheetState extends State<FolderPickerSheet> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _showCreateFolderDialog,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 14.w),
+                          child: Icon(
+                            Icons.create_new_folder_outlined,
+                            size: 22.r,
+                            color: AppColors.mintAccent,
+                          ),
                         ),
                       ),
                       GestureDetector(
