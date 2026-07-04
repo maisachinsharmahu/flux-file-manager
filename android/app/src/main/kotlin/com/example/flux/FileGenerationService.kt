@@ -188,4 +188,14 @@ class FileGenerationService : Service() {
             nm.createNotificationChannel(channel)
         }
     }
+
+    override fun onDestroy() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        super.onDestroy()
+    }
 }
