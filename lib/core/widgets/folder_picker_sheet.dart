@@ -101,16 +101,19 @@ class _FolderPickerSheetState extends State<FolderPickerSheet> {
       maxChildSize: 0.92,
       expand: false,
       builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-            border: Border.all(
-              color: isDark ? Colors.white12 : const Color(0x1A000000),
-              width: 1.0.r,
+        return Material(
+          color: bgColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+          clipBehavior: Clip.antiAlias,
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: isDark ? Colors.white12 : const Color(0x1A000000),
+                width: 1.0.r,
+              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
             ),
-          ),
-          child: Column(
+            child: Column(
             children: [
               // ── Drag handle ────────────────────────────────────────────────
               Padding(
