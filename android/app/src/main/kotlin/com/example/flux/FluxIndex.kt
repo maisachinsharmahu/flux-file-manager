@@ -2187,7 +2187,7 @@ class FluxIndex(private val context: Context) {
                 val now = f.lastModified() / 1000L
                 val fid = nextFid.getAndIncrement()
 
-                val mimeType = if (isDir) "directory" else MimeTable.getMimeTypeForPath(f.name)
+                val mimeType = if (isDir) "directory" else getMimeType(f)
 
                 val record = FileRecord.create(
                     fid = fid,
