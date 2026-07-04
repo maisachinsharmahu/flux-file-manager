@@ -417,5 +417,17 @@ class FluxBridge {
       return fids; // Fallback to original FIDs if method fails
     }
   }
+
+  static Future<int> getTotalBytes(List<int> fids) async {
+    try {
+      final int result = await _methodChannel.invokeMethod('getTotalBytes', {
+        'fids': fids,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getTotalBytes(fids: $fids) -> $e');
+      return 0;
+    }
+  }
 }
 

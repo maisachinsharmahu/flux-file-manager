@@ -835,6 +835,21 @@ class FluxIndex(private val context: Context) {
     }
 
     /**
+     * Calculates the sum of physical sizes of all nested non-directory files under [fids].
+     */
+    fun getTotalBytes(fids: List<Long>): Long {
+        val expanded = expandFolderFids(fids)
+        var total = 0L
+        for (fid in expanded) {
+            val record = getRecord(fid)
+            if (record != null && !record.isDirectory) {
+                total += record.size
+            }
+        }
+        return total
+    }
+
+    /**
      * Restores FIDs from logical deletion.
      */
     fun restoreBatch(fids: List<Long>, recursive: Boolean = true): Boolean {
@@ -1128,9 +1143,6 @@ class FluxIndex(private val context: Context) {
                 map["sizeInMb"] = folderSize.toDouble() / (1024.0 * 1024.0)
             }
             results.add(map)
-            if (results.size >= 1000) {
-                break
-            }
         }
 
         if (indexChanged) {
@@ -1942,9 +1954,6 @@ class FluxIndex(private val context: Context) {
             val record = masterIndex[i]
             if (record == FileRecord.EMPTY || record.isDeleted || record.isDirectory) continue
             results.add(record.toMap())
-            if (results.size >= 2000) {
-                break
-            }
         }
         cachedAllFiles = results
         return results
@@ -1959,9 +1968,6 @@ class FluxIndex(private val context: Context) {
             val record = masterIndex[i]
             if (record == FileRecord.EMPTY || !record.isDeleted || record.isDirectory) continue
             results.add(record.toMap())
-            if (results.size >= 1000) {
-                break
-            }
         }
         return results
     }

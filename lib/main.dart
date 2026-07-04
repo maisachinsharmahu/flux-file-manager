@@ -20,8 +20,9 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Disable dynamic font fetching at runtime to avoid SocketExceptions on offline devices/emulators
-  GoogleFonts.config.allowRuntimeFetching = false;
+  // Enable dynamic font fetching at runtime so GoogleFonts can download the font if online,
+  // or fall back gracefully to the system default font when offline (preventing fatal crash).
+  GoogleFonts.config.allowRuntimeFetching = true;
 
   // Pre-initialize SharedPreferences for synchronous state access in providers
   final sharedPreferences = await SharedPreferences.getInstance();

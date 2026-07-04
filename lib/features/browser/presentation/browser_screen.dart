@@ -13,6 +13,7 @@ import '../../../core/providers/trash_provider.dart';
 import '../../home/providers/copy_task_provider.dart';
 import '../../../core/providers/clipboard_provider.dart';
 import '../../../../core/widgets/folder_picker_sheet.dart';
+import '../../../core/widgets/shimmer_placeholder.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
   const BrowserScreen({Key? key}) : super(key: key);
@@ -341,18 +342,27 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     for (final fid in _selectedFids) {
       // Check in folder list first
       if (isFolderList) {
-        final item = itemsList.firstWhere(
-          (i) => (i['fid'] as num?)?.toInt() == fid,
-          orElse: () => null,
-        );
-        if (item != null) {
-          if (item['category'] == 'Directory') folderCount++; else fileCount++;
+        Map<dynamic, dynamic>? foundItem;
+        for (final item in itemsList) {
+          if (item is Map && (item['fid'] as num?)?.toInt() == fid) {
+            foundItem = item;
+            break;
+          }
+        }
+        if (foundItem != null) {
+          if (foundItem['category'] == 'Directory') folderCount++; else fileCount++;
           continue;
         }
       }
-      final file = currentFileList.firstWhere((f) => f.fid == fid, orElse: () => currentFileList.first);
-      if (file.fid == fid) {
-        if (file.category == 'Directory') folderCount++; else fileCount++;
+      FluxFile? foundFile;
+      for (final file in currentFileList) {
+        if (file.fid == fid) {
+          foundFile = file;
+          break;
+        }
+      }
+      if (foundFile != null) {
+        if (foundFile.category == 'Directory') folderCount++; else fileCount++;
       }
     }
     ref.read(clipboardProvider.notifier).copyFiles(
@@ -379,18 +389,27 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     int fileCount = 0, folderCount = 0;
     for (final fid in _selectedFids) {
       if (isFolderList) {
-        final item = itemsList.firstWhere(
-          (i) => (i['fid'] as num?)?.toInt() == fid,
-          orElse: () => null,
-        );
-        if (item != null) {
-          if (item['category'] == 'Directory') folderCount++; else fileCount++;
+        Map<dynamic, dynamic>? foundItem;
+        for (final item in itemsList) {
+          if (item is Map && (item['fid'] as num?)?.toInt() == fid) {
+            foundItem = item;
+            break;
+          }
+        }
+        if (foundItem != null) {
+          if (foundItem['category'] == 'Directory') folderCount++; else fileCount++;
           continue;
         }
       }
-      final file = currentFileList.firstWhere((f) => f.fid == fid, orElse: () => currentFileList.first);
-      if (file.fid == fid) {
-        if (file.category == 'Directory') folderCount++; else fileCount++;
+      FluxFile? foundFile;
+      for (final file in currentFileList) {
+        if (file.fid == fid) {
+          foundFile = file;
+          break;
+        }
+      }
+      if (foundFile != null) {
+        if (foundFile.category == 'Directory') folderCount++; else fileCount++;
       }
     }
     ref.read(clipboardProvider.notifier).cutFiles(
@@ -431,32 +450,60 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     ref.read(clipboardProvider.notifier).clear();
 
     if (isCut) {
-      // ── Move: O(1) rename per file, instant ──
-      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.move);
+      // ── Move: O(1) rename per file — show animated progress overlay ──────
+      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(
+        GlobalTaskType.move,
+        fileCount: fids.length,
+        destPath: destPath,
+        isCut: true,
+      );
+      final sw = Stopwatch()..start();
       final success = await FluxBridge.moveFiles(fids, destPath);
+      sw.stop();
       if (success) {
-        ref.read(copyTaskProvider.notifier).completeTask(taskId);
+        ref
+            .read(copyTaskProvider.notifier)
+            .completeTask(taskId, elapsedMs: sw.elapsedMilliseconds);
+        debugPrint(
+          '[PERFORMANCE] Paste(Move): ${fids.length} items → $destPath in ${sw.elapsedMilliseconds} ms',
+        );
         // Permanently delete originals from source (cut = destructive)
         await FluxBridge.deletePermanentlyWithProgress(fids, (_) {});
       } else {
         ref.read(copyTaskProvider.notifier).failTask(taskId);
       }
     } else {
-      // ── Copy: parallel IO with live progress overlay ──
-      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.copy);
+      // ── Copy: parallel IO with live progress overlay ──────────────────────
+      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(
+        GlobalTaskType.copy,
+        fileCount: fids.length,
+        destPath: destPath,
+        isCut: false,
+      );
+      final totalBytes = await FluxBridge.getTotalBytes(fids);
+      final sw = Stopwatch()..start();
       final success = await FluxBridge.copyFilesWithProgress(
         fids,
         destPath,
         (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
       );
+      sw.stop();
       if (success) {
-        ref.read(copyTaskProvider.notifier).completeTask(taskId);
+        ref.read(copyTaskProvider.notifier).completeTask(
+              taskId,
+              elapsedMs: sw.elapsedMilliseconds,
+              totalBytes: totalBytes,
+            );
+        debugPrint(
+          '[PERFORMANCE] Paste(Copy): ${fids.length} items (${(totalBytes / 1048576.0).toStringAsFixed(1)} MB) → $destPath in ${sw.elapsedMilliseconds} ms',
+        );
       } else {
         ref.read(copyTaskProvider.notifier).failTask(taskId);
       }
     }
     if (mounted) await _loadDirectoryContents();
   }
+
 
   // ───────────────────────────────────────────────────────────────────────────
   // Back-press deselect dialog
@@ -866,10 +913,10 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
 
     Widget buildListContent() {
       if (_isLoading) {
-        return const Center(
-          child: CircularProgressIndicator(
-            color: AppColors.mintAccent,
-          ),
+        return ListView.builder(
+          itemCount: 8,
+          physics: const NeverScrollableScrollPhysics(),
+          itemBuilder: (context, index) => const ShimmerListTile(),
         );
       }
 

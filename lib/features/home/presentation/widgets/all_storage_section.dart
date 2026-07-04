@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/storage_category_icon.dart';
+import '../../../../core/widgets/shimmer_placeholder.dart';
 import '../../../navigation/providers/navigation_provider.dart';
 import '../../providers/storage_status_provider.dart';
 
@@ -42,7 +43,64 @@ class AllStorageSection extends ConsumerWidget {
     final storageAsync = ref.watch(storageStatusProvider);
 
     return storageAsync.when(
-      loading: () => const SizedBox.shrink(),
+      loading: () {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(24.0.w, 24.0.h, 24.0.w, 12.0.h),
+              child: const ShimmerContainer(
+                width: 100,
+                height: 22,
+                borderRadius: 6,
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.0.w),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 140.h,
+                      decoration: BoxDecoration(
+                        color: cardBgColor,
+                        borderRadius: BorderRadius.circular(20.0.r),
+                        border: Border.all(
+                          color: borderColor,
+                          width: 1.2.r,
+                        ),
+                      ),
+                      padding: EdgeInsets.all(16.0.r),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const ShimmerContainer(
+                            width: 36,
+                            height: 36,
+                            shape: BoxShape.circle,
+                          ),
+                          const Spacer(),
+                          const ShimmerContainer(
+                            width: 120,
+                            height: 16,
+                            borderRadius: 4,
+                          ),
+                          SizedBox(height: 8.h),
+                          const ShimmerContainer(
+                            width: 80,
+                            height: 12,
+                            borderRadius: 3,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
       error: (err, stack) => const SizedBox.shrink(),
       data: (data) {
         final totalStorage =

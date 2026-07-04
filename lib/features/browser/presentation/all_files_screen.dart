@@ -231,9 +231,15 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   void _copySelectedFiles(List<FluxFile> currentFileList) {
     int fileCount = 0, folderCount = 0;
     for (final fid in _selectedFids) {
-      final file = currentFileList.firstWhere((f) => f.fid == fid, orElse: () => currentFileList.first);
-      if (file.fid == fid) {
-        if (file.category == 'Directory') folderCount++; else fileCount++;
+      FluxFile? foundFile;
+      for (final file in currentFileList) {
+        if (file.fid == fid) {
+          foundFile = file;
+          break;
+        }
+      }
+      if (foundFile != null) {
+        if (foundFile.category == 'Directory') folderCount++; else fileCount++;
       }
     }
     ref.read(clipboardProvider.notifier).copyFiles(
@@ -259,9 +265,15 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   void _cutSelectedFiles(List<FluxFile> currentFileList) {
     int fileCount = 0, folderCount = 0;
     for (final fid in _selectedFids) {
-      final file = currentFileList.firstWhere((f) => f.fid == fid, orElse: () => currentFileList.first);
-      if (file.fid == fid) {
-        if (file.category == 'Directory') folderCount++; else fileCount++;
+      FluxFile? foundFile;
+      for (final file in currentFileList) {
+        if (file.fid == fid) {
+          foundFile = file;
+          break;
+        }
+      }
+      if (foundFile != null) {
+        if (foundFile.category == 'Directory') folderCount++; else fileCount++;
       }
     }
     ref.read(clipboardProvider.notifier).cutFiles(
@@ -302,29 +314,59 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
     ref.read(clipboardProvider.notifier).clear();
 
     if (isCut) {
-      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.move);
+      // ── Move: O(1) rename per file — show animated progress overlay ──────
+      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(
+        GlobalTaskType.move,
+        fileCount: fids.length,
+        destPath: destPath,
+        isCut: true,
+      );
+      final sw = Stopwatch()..start();
       final success = await FluxBridge.moveFiles(fids, destPath);
+      sw.stop();
       if (success) {
-        ref.read(copyTaskProvider.notifier).completeTask(taskId);
+        ref
+            .read(copyTaskProvider.notifier)
+            .completeTask(taskId, elapsedMs: sw.elapsedMilliseconds);
+        debugPrint(
+          '[PERFORMANCE] Paste(Move): ${fids.length} items → $destPath in ${sw.elapsedMilliseconds} ms',
+        );
         await FluxBridge.deletePermanentlyWithProgress(fids, (_) {});
       } else {
         ref.read(copyTaskProvider.notifier).failTask(taskId);
       }
     } else {
-      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(GlobalTaskType.copy);
+      // ── Copy: parallel IO with live progress overlay ──────────────────────
+      final taskId = ref.read(copyTaskProvider.notifier).startRealTask(
+        GlobalTaskType.copy,
+        fileCount: fids.length,
+        destPath: destPath,
+        isCut: false,
+      );
+      final totalBytes = await FluxBridge.getTotalBytes(fids);
+      final sw = Stopwatch()..start();
       final success = await FluxBridge.copyFilesWithProgress(
         fids,
         destPath,
         (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
       );
+      sw.stop();
       if (success) {
-        ref.read(copyTaskProvider.notifier).completeTask(taskId);
+        ref.read(copyTaskProvider.notifier).completeTask(
+              taskId,
+              elapsedMs: sw.elapsedMilliseconds,
+              totalBytes: totalBytes,
+            );
+        debugPrint(
+          '[PERFORMANCE] Paste(Copy): ${fids.length} items (${(totalBytes / 1048576.0).toStringAsFixed(1)} MB) → $destPath in ${sw.elapsedMilliseconds} ms',
+        );
       } else {
         ref.read(copyTaskProvider.notifier).failTask(taskId);
       }
     }
     ref.read(allFilesProvider.notifier).refreshFiles();
   }
+
 
   void _showDeselectDialog({required VoidCallback onConfirmed}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;

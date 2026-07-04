@@ -208,6 +208,11 @@ class MainActivity : FlutterActivity() {
                             val expanded = fluxIndex.expandFolderFids(fids)
                             runOnUiThread { result.success(expanded) }
                         }
+                        "getTotalBytes" -> {
+                            val fids = call.argument<List<Number>>("fids")?.map { it.toLong() } ?: listOf()
+                            val totalBytes = fluxIndex.getTotalBytes(fids)
+                            runOnUiThread { result.success(totalBytes) }
+                        }
                         "requestUsageStatsPermission" -> {
                             checkAndRequestUsageStatsPermission()
                             runOnUiThread { result.success(true) }

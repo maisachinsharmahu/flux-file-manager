@@ -5,7 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/file_filter_provider.dart';
-import '../../../navigation/providers/navigation_provider.dart';
+import '../../../../core/widgets/shimmer_placeholder.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/storage_status_provider.dart';
 
 class StorageBar extends ConsumerStatefulWidget {
@@ -19,10 +20,11 @@ class _StorageBarState extends ConsumerState<StorageBar>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _progressAnimation;
+  bool _isExpanded = false;
 
   @override
   void initState() {
-    super.initState();
+    super.initState(); 
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -103,15 +105,23 @@ class _StorageBarState extends ConsumerState<StorageBar>
                 children: [
                   Row(
                     children: [
-                      SizedBox(
-                        width: 16.r,
-                        height: 16.r,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.0,
+                      Container(
+                        width: 10.r,
+                        height: 10.r,
+                        decoration: const BoxDecoration(
                           color: AppColors.mintAccent,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.mintAccent,
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ],
                         ),
-                      ),
-                      SizedBox(width: 12.w),
+                      ).animate(onPlay: (controller) => controller.repeat(reverse: true))
+                       .fade(begin: 0.4, end: 1.0, duration: const Duration(milliseconds: 800)),
+                      SizedBox(width: 14.w),
                       Text(
                         'Scanning Storage...',
                         style: TextStyle(
@@ -135,10 +145,17 @@ class _StorageBarState extends ConsumerState<StorageBar>
                   SizedBox(height: 16.h),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4.r),
-                    child: LinearProgressIndicator(
-                      minHeight: 6.h,
-                      backgroundColor: isDark ? Colors.white12 : Colors.black12,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.mintAccent),
+                    child: Container(
+                      height: 6.h,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white12 : Colors.black12,
+                      ),
+                      child: const ShimmerContainer(
+                        width: double.infinity,
+                        height: 6,
+                        borderRadius: 4,
+                      ),
                     ),
                   ),
                   SizedBox(height: 14.h),
@@ -159,12 +176,45 @@ class _StorageBarState extends ConsumerState<StorageBar>
     }
 
     return storageAsync.when(
-      loading: () => Container(
-        height: 160.h,
-        margin: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
-        alignment: Alignment.center,
-        child: const CircularProgressIndicator(color: AppColors.mintAccent),
-      ),
+      loading: () {
+        final cardBgColor = isDark
+            ? AppColors.neutral900.withValues(alpha: 0.9)
+            : Colors.white.withValues(alpha: 0.95);
+        final borderColor = isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.black.withValues(alpha: 0.05);
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28.0.r),
+            child: Container(
+              padding: EdgeInsets.all(24.0.r),
+              decoration: BoxDecoration(
+                color: cardBgColor,
+                borderRadius: BorderRadius.circular(28.0.r),
+                border: Border.all(color: borderColor, width: 1.5.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const ShimmerContainer(
+                    width: 160.0,
+                    height: 24.0,
+                    borderRadius: 6,
+                  ),
+                  SizedBox(height: 18.0.h),
+                  const ShimmerContainer(
+                    width: double.infinity,
+                    height: 10.0,
+                    borderRadius: 5,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
       error: (err, stack) => const SizedBox.shrink(),
       data: (data) {
         final totalStorage = data['totalStorage'] as int? ?? 256 * 1000 * 1000 * 1000;
@@ -220,29 +270,65 @@ class _StorageBarState extends ConsumerState<StorageBar>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Top Row: e.g. 48 GB of 120 GB Used
-                      RichText(
-                        text: TextSpan(
-                          style: const TextStyle(fontFamily: 'Inter'),
-                          children: [
-                            TextSpan(
-                              text: '${_formatSize(totalUsed)} ',
-                              style: TextStyle(
-                                fontSize: 24.0.sp,
-                                fontWeight: FontWeight.w700,
-                                color: usedTextColor,
+                      // Top Row: e.g. 48 GB of 120 GB Used + Expand/Collapse Button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              style: const TextStyle(fontFamily: 'Inter'),
+                              children: [
+                                TextSpan(
+                                  text: '${_formatSize(totalUsed)} ',
+                                  style: TextStyle(
+                                    fontSize: 24.0.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: usedTextColor,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'of ${_formatSize(totalStorage)} Used',
+                                  style: TextStyle(
+                                    fontSize: 14.0.sp,
+                                    fontWeight: FontWeight.w400,
+                                    color: totalTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isExpanded = !_isExpanded;
+                              });
+                            },
+                            child: Container(
+                              width: 32.0.r,
+                              height: 32.0.r,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.05)
+                                    : Colors.black.withValues(alpha: 0.03),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: borderColor,
+                                  width: 1.0.r,
+                                ),
+                              ),
+                              child: AnimatedRotation(
+                                turns: _isExpanded ? 0.5 : 0.0,
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeInOut,
+                                child: Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  color: usedTextColor,
+                                  size: 20.0.r,
+                                ),
                               ),
                             ),
-                            TextSpan(
-                              text: 'of ${_formatSize(totalStorage)} Used',
-                              style: TextStyle(
-                                fontSize: 14.0.sp,
-                                fontWeight: FontWeight.w400,
-                                color: totalTextColor,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                       SizedBox(height: 18.0.h),
                       // Animated Segmented Horizontal Progress Bar
@@ -380,97 +466,108 @@ class _StorageBarState extends ConsumerState<StorageBar>
                           );
                         },
                       ),
-                      SizedBox(height: 24.0.h),
-                      // Bottom grid of Legends (9 categories matching system exactly)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                _buildLegendItem(
-                                  isDark,
-                                  'Apps',
-                                  _formatSize(apps),
-                                  const Color(0xFFFF4D4D),
-                                ),
-                                SizedBox(height: 6.0.h),
-                                _buildLegendItem(
-                                  isDark,
-                                  'Others',
-                                  _formatSize(others),
-                                  const Color(0xFF9E9E9E),
-                                ),
-                                SizedBox(height: 6.0.h),
-                                _buildLegendItem(
-                                  isDark,
-                                  'Docs',
-                                  _formatSize(docs),
-                                  AppColors.storageYellow,
-                                ),
-                                SizedBox(height: 6.0.h),
-                                _buildLegendItem(
-                                  isDark,
-                                  'Bin',
-                                  _formatSize(bin),
-                                  const Color(0xFF607D8B),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(width: 8.0.w),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                _buildLegendItem(
-                                  isDark,
-                                  'Videos',
-                                  _formatSize(videos),
-                                  AppColors.mintAccent,
-                                ),
-                                SizedBox(height: 6.0.h),
-                                _buildLegendItem(
-                                  isDark,
-                                  'Images',
-                                  _formatSize(photos),
-                                  AppColors.storageSkyBlue,
-                                ),
-                                SizedBox(height: 6.0.h),
-                                _buildLegendItem(
-                                  isDark,
-                                  'Audio',
-                                  _formatSize(audio),
-                                  AppColors.storageOrange,
-                                ),
-                                SizedBox(height: 6.0.h),
-                                _buildLegendItem(
-                                  isDark,
-                                  'Games',
-                                  _formatSize(games),
-                                  const Color(0xFF4CAF50),
-                                ),
-                                SizedBox(height: 6.0.h),
-                                _buildLegendItem(
-                                  isDark,
-                                  'System',
-                                  _formatSize(system),
-                                  const Color(0xFF9C27B0),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 18.0.h),
-                      Divider(color: borderColor, height: 1.0.r),
-                      SizedBox(height: 12.0.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildStatDetail('Scanned Files', '${data['fileCount'] ?? 0}'),
-                          _buildStatDetail('Scan Duration', '${data['scanDurationMs'] ?? 0} ms'),
-                          _buildStatDetail('9-Index Build', '${data['indexDurationMs'] ?? 0} ms'),
-                        ],
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        child: _isExpanded
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 24.0.h),
+                                  // Bottom grid of Legends (9 categories matching system exactly)
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          children: [
+                                            _buildLegendItem(
+                                              isDark,
+                                              'Apps',
+                                              _formatSize(apps),
+                                              const Color(0xFFFF4D4D),
+                                            ),
+                                            SizedBox(height: 6.0.h),
+                                            _buildLegendItem(
+                                              isDark,
+                                              'Others',
+                                              _formatSize(others),
+                                              const Color(0xFF9E9E9E),
+                                            ),
+                                            SizedBox(height: 6.0.h),
+                                            _buildLegendItem(
+                                              isDark,
+                                              'Docs',
+                                              _formatSize(docs),
+                                              AppColors.storageYellow,
+                                            ),
+                                            SizedBox(height: 6.0.h),
+                                            _buildLegendItem(
+                                              isDark,
+                                              'Bin',
+                                              _formatSize(bin),
+                                              const Color(0xFF607D8B),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(width: 8.0.w),
+                                      Expanded(
+                                        child: Column(
+                                          children: [
+                                            _buildLegendItem(
+                                              isDark,
+                                              'Videos',
+                                              _formatSize(videos),
+                                              AppColors.mintAccent,
+                                            ),
+                                            SizedBox(height: 6.0.h),
+                                            _buildLegendItem(
+                                              isDark,
+                                              'Images',
+                                              _formatSize(photos),
+                                              AppColors.storageSkyBlue,
+                                            ),
+                                            SizedBox(height: 6.0.h),
+                                            _buildLegendItem(
+                                              isDark,
+                                              'Audio',
+                                              _formatSize(audio),
+                                              AppColors.storageOrange,
+                                            ),
+                                            SizedBox(height: 6.0.h),
+                                            _buildLegendItem(
+                                              isDark,
+                                              'Games',
+                                              _formatSize(games),
+                                              const Color(0xFF4CAF50),
+                                            ),
+                                            SizedBox(height: 6.0.h),
+                                            _buildLegendItem(
+                                              isDark,
+                                              'System',
+                                              _formatSize(system),
+                                              const Color(0xFF9C27B0),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 18.0.h),
+                                  Divider(color: borderColor, height: 1.0.r),
+                                  SizedBox(height: 12.0.h),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      _buildStatDetail('Scanned Files', '${data['fileCount'] ?? 0}'),
+                                      _buildStatDetail('Scan Duration', '${data['scanDurationMs'] ?? 0} ms'),
+                                      _buildStatDetail('9-Index Build', '${data['indexDurationMs'] ?? 0} ms'),
+                                    ],
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
                     ],
                   ),

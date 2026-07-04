@@ -5,7 +5,6 @@ import '../../providers/copy_task_provider.dart';
 
 class _TaskStyle {
   final String compactText;
-  final String expandedText;
   final String completedText;
   final List<Color> bgGradient;
   final List<Color> flapGradient;
@@ -13,7 +12,6 @@ class _TaskStyle {
 
   _TaskStyle({
     required this.compactText,
-    required this.expandedText,
     required this.completedText,
     required this.bgGradient,
     required this.flapGradient,
@@ -29,8 +27,7 @@ class CopyProgressOverlay extends ConsumerWidget {
       case GlobalTaskType.copy:
         return _TaskStyle(
           compactText: 'Copying',
-          expandedText: 'Copying files to Google Drive',
-          completedText: 'File copying is completed',
+          completedText: 'Copy completed',
           bgGradient: const [Color(0xFF1E3A8A), Color(0xFF2563EB)],
           flapGradient: const [Color(0xFF3B82F6), Color(0xFF60A5FA)],
           backFlapColor: const Color(0xFF1D4ED8),
@@ -38,8 +35,7 @@ class CopyProgressOverlay extends ConsumerWidget {
       case GlobalTaskType.delete:
         return _TaskStyle(
           compactText: 'Deleting',
-          expandedText: 'Deleting selected files',
-          completedText: 'File deletion is completed',
+          completedText: 'Deletion completed',
           bgGradient: const [Color(0xFF7F1D1D), Color(0xFFDC2626)],
           flapGradient: const [Color(0xFFEF4444), Color(0xFFF87171)],
           backFlapColor: const Color(0xFFB91C1C),
@@ -47,8 +43,7 @@ class CopyProgressOverlay extends ConsumerWidget {
       case GlobalTaskType.move:
         return _TaskStyle(
           compactText: 'Moving',
-          expandedText: 'Moving files to Secure Folder',
-          completedText: 'File moving is completed',
+          completedText: 'Move completed',
           bgGradient: const [Color(0xFF4C1D95), Color(0xFF7C3AED)],
           flapGradient: const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
           backFlapColor: const Color(0xFF6D28D9),
@@ -56,8 +51,7 @@ class CopyProgressOverlay extends ConsumerWidget {
       case GlobalTaskType.archive:
         return _TaskStyle(
           compactText: 'Archiving',
-          expandedText: 'Archiving document bundles',
-          completedText: 'File archiving is completed',
+          completedText: 'Archiving completed',
           bgGradient: const [Color(0xFF7C2D12), Color(0xFFD97706)],
           flapGradient: const [Color(0xFFF59E0B), Color(0xFFFBBF24)],
           backFlapColor: const Color(0xFFB45309),
@@ -65,8 +59,7 @@ class CopyProgressOverlay extends ConsumerWidget {
       case GlobalTaskType.unarchive:
         return _TaskStyle(
           compactText: 'Unarchiving',
-          expandedText: 'Unarchiving system binaries',
-          completedText: 'File unarchiving is completed',
+          completedText: 'Unarchiving completed',
           bgGradient: const [Color(0xFF115E59), Color(0xFF0D9488)],
           flapGradient: const [Color(0xFF14B8A6), Color(0xFF5EEAD4)],
           backFlapColor: const Color(0xFF0F766E),
@@ -74,8 +67,7 @@ class CopyProgressOverlay extends ConsumerWidget {
       case GlobalTaskType.createFolder:
         return _TaskStyle(
           compactText: 'Creating',
-          expandedText: 'Creating directory',
-          completedText: 'Folder created successfully',
+          completedText: 'Folder created',
           bgGradient: const [Color(0xFF064E3B), Color(0xFF10B981)],
           flapGradient: const [Color(0xFF34D399), Color(0xFF6EE7B7)],
           backFlapColor: const Color(0xFF047857),
@@ -83,13 +75,37 @@ class CopyProgressOverlay extends ConsumerWidget {
       case GlobalTaskType.restore:
         return _TaskStyle(
           compactText: 'Restoring',
-          expandedText: 'Restoring files from Trash',
-          completedText: 'File restoration is completed',
+          completedText: 'Restore completed',
           bgGradient: const [Color(0xFF0F766E), Color(0xFF0D9488)],
           flapGradient: const [Color(0xFF14B8A6), Color(0xFF5EEAD4)],
           backFlapColor: const Color(0xFF115E59),
         );
     }
+  }
+
+  /// Build the line shown below the task title in expanded mode.
+  String _buildExpandedSubtitle(CopyTaskState state) {
+    final type = state.taskType;
+    final count = state.itemCountLabel;
+    final dest = state.destFolderName;
+    switch (type) {
+      case GlobalTaskType.copy:
+        return dest.isNotEmpty ? '$count → $dest' : count;
+      case GlobalTaskType.move:
+        return dest.isNotEmpty ? '$count → $dest' : count;
+      case GlobalTaskType.delete:
+        return count;
+      case GlobalTaskType.restore:
+        return count;
+      default:
+        return dest.isNotEmpty ? dest : count;
+    }
+  }
+
+  /// Build the operation verb + percentage for the compact pill.
+  String _buildCompactLabel(CopyTaskState state, _TaskStyle style) {
+    final pct = (state.progress * 100).toInt();
+    return '${style.compactText}  $pct%';
   }
 
   @override
@@ -99,21 +115,21 @@ class CopyProgressOverlay extends ConsumerWidget {
 
     final style = _getTaskStyle(state.taskType);
 
-    // Define dimensions based on current state mode
-    double width = 180.0.w;
+    // Pill dimensions
+    double width = 200.0.w;
     double height = 36.0.h;
 
     if (state.isActive) {
       if (state.displayMode == CopyTaskDisplayMode.compact ||
           state.displayMode == CopyTaskDisplayMode.completedCompact) {
-        width = 180.0.w;
+        width = 200.0.w;
         height = 36.0.h;
       } else if (state.displayMode == CopyTaskDisplayMode.expanded) {
         width = 340.0.w;
         height = 92.0.h;
       } else if (state.displayMode == CopyTaskDisplayMode.completedExpanded) {
         width = 340.0.w;
-        height = 68.0.h;
+        height = 76.0.h;
       }
     }
 
@@ -180,6 +196,7 @@ class CopyProgressOverlay extends ConsumerWidget {
   }
 
   Widget _buildPillContent(CopyTaskState state, _TaskStyle style, bool isDark) {
+    // ── Compact: "Copying  42%" ──────────────────────────────────────────────
     if (state.displayMode == CopyTaskDisplayMode.compact) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -193,25 +210,33 @@ class CopyProgressOverlay extends ConsumerWidget {
               color: Colors.white,
             ),
           ),
-          Text(
-            '${(state.progress * 100).toInt()} %',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13.0.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+          // Animated spinning indicator + percentage
+          Row(
+            children: [
+              _SpinningArc(color: _accentColor(style)),
+              SizedBox(width: 6.w),
+              Text(
+                '${(state.progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13.0.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
         ],
       );
     }
 
+    // ── Compact Completed ────────────────────────────────────────────────────
     if (state.displayMode == CopyTaskDisplayMode.completedCompact) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Completed',
+            'Done',
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 13.0.sp,
@@ -219,28 +244,34 @@ class CopyProgressOverlay extends ConsumerWidget {
               color: Colors.white,
             ),
           ),
-          Text(
-            '100 %',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13.0.sp,
-              fontWeight: FontWeight.w600,
-              color: const Color(
-                0xFF10B981,
-              ), // Neon green completion highlighting
-            ),
+          Row(
+            children: [
+              Icon(Icons.check_circle_rounded,
+                  color: const Color(0xFF10B981), size: 14.r),
+              SizedBox(width: 4.w),
+              Text(
+                '100%',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13.0.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF10B981),
+                ),
+              ),
+            ],
           ),
         ],
       );
     }
 
+    // ── Expanded: in-progress ────────────────────────────────────────────────
     if (state.displayMode == CopyTaskDisplayMode.expanded) {
+      final subtitle = _buildExpandedSubtitle(state);
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              // Custom folder icon with dynamic style gradients
               SizedBox(
                 width: 38.0.w,
                 height: 38.0.h,
@@ -255,7 +286,7 @@ class CopyProgressOverlay extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      style.expandedText,
+                      style.compactText,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13.0.sp,
@@ -265,7 +296,9 @@ class CopyProgressOverlay extends ConsumerWidget {
                     ),
                     SizedBox(height: 2.0.h),
                     Text(
-                      '${(state.progress * 100).toInt()}%',
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11.0.sp,
@@ -276,19 +309,34 @@ class CopyProgressOverlay extends ConsumerWidget {
                   ],
                 ),
               ),
+              SizedBox(width: 8.w),
+              // percentage badge
+              Text(
+                '${(state.progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
+                  color: _accentColor(style),
+                ),
+              ),
             ],
           ),
           SizedBox(height: 12.0.h),
-          // Smooth progress bar
-          _ProgressBar(progress: state.progress),
+          _ProgressBar(progress: state.progress, accentColor: _accentColor(style)),
         ],
       );
     }
 
-    // Completed Expanded State
+    // ── Completed Expanded ───────────────────────────────────────────────────
+    final speedText = state.speedLabel.isNotEmpty ? state.speedLabel : '';
+    final subtitle = state.fileCount > 0 ? state.itemCountLabel : '';
+    final detailLine = [subtitle, speedText]
+        .where((s) => s.isNotEmpty)
+        .join('  ·  ');
+
     return Row(
       children: [
-        // Custom folder icon
         SizedBox(
           width: 38.0.w,
           height: 38.0.h,
@@ -311,40 +359,102 @@ class CopyProgressOverlay extends ConsumerWidget {
                   color: Colors.white,
                 ),
               ),
-              SizedBox(height: 2.0.h),
-              Text(
-                '100%',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 11.0.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white60,
+              if (detailLine.isNotEmpty) ...[
+                SizedBox(height: 2.0.h),
+                Text(
+                  detailLine,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11.0.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF10B981),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
         SizedBox(width: 8.0.w),
-        // Neon green circular check ring
+        // Green checkmark ring
         Container(
           width: 24.0.r,
           height: 24.0.r,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: const Color(0xFF10B981), // Neon green accent
+              color: const Color(0xFF10B981),
               width: 2.5.r,
             ),
+          ),
+          child: Icon(
+            Icons.check,
+            size: 13.r,
+            color: const Color(0xFF10B981),
           ),
         ),
       ],
     );
   }
+
+  Color _accentColor(_TaskStyle style) => style.flapGradient.first;
 }
+
+// ─── Spinning arc indicator ─────────────────────────────────────────────────
+
+class _SpinningArc extends StatefulWidget {
+  final Color color;
+  const _SpinningArc({required this.color});
+
+  @override
+  State<_SpinningArc> createState() => _SpinningArcState();
+}
+
+class _SpinningArcState extends State<_SpinningArc>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _ctrl,
+      child: SizedBox(
+        width: 12.r,
+        height: 12.r,
+        child: CircularProgressIndicator(
+          value: 0.72,
+          strokeWidth: 2.r,
+          color: widget.color,
+          backgroundColor: Colors.white12,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Smooth progress bar ────────────────────────────────────────────────────
 
 class _ProgressBar extends StatefulWidget {
   final double progress;
-  const _ProgressBar({Key? key, required this.progress}) : super(key: key);
+  final Color accentColor;
+  const _ProgressBar({Key? key, required this.progress, required this.accentColor})
+      : super(key: key);
 
   @override
   State<_ProgressBar> createState() => _ProgressBarState();
@@ -378,7 +488,9 @@ class _ProgressBarState extends State<_ProgressBar> {
             widthFactor: value,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: LinearGradient(
+                  colors: [widget.accentColor, Colors.white],
+                ),
                 borderRadius: BorderRadius.circular(3.0.r),
               ),
             ),
@@ -388,6 +500,8 @@ class _ProgressBarState extends State<_ProgressBar> {
     );
   }
 }
+
+// ─── Folder icon painter ────────────────────────────────────────────────────
 
 class _FolderIconPainter extends CustomPainter {
   final bool isDark;
@@ -400,7 +514,7 @@ class _FolderIconPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // 1. Draw backing squircle with task gradient
+    // 1. Backing squircle with task gradient
     final backPaint = Paint()
       ..shader = LinearGradient(
         colors: style.bgGradient,
@@ -415,7 +529,7 @@ class _FolderIconPainter extends CustomPainter {
       backPaint,
     );
 
-    // 2. Draw Back Folder Flap
+    // 2. Back folder flap
     final folderBackPaint = Paint()
       ..color = style.backFlapColor
       ..style = PaintingStyle.fill;
@@ -433,7 +547,7 @@ class _FolderIconPainter extends CustomPainter {
       ..quadraticBezierTo(w * 0.15, h * 0.35, w * 0.2, h * 0.35);
     canvas.drawPath(backPath, folderBackPaint);
 
-    // 3. Draw Protruding Document Sheet
+    // 3. Protruding document sheet
     final sheetPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
@@ -443,27 +557,15 @@ class _FolderIconPainter extends CustomPainter {
     );
     canvas.drawRRect(sheetRect, sheetPaint);
 
-    // Draw document stripes
+    // Document stripes
     final stripePaint = Paint()
       ..color = Colors.grey.shade300
       ..strokeWidth = 1.5;
-    canvas.drawLine(
-      Offset(w * 0.36, h * 0.32),
-      Offset(w * 0.64, h * 0.32),
-      stripePaint,
-    );
-    canvas.drawLine(
-      Offset(w * 0.36, h * 0.40),
-      Offset(w * 0.64, h * 0.40),
-      stripePaint,
-    );
-    canvas.drawLine(
-      Offset(w * 0.36, h * 0.48),
-      Offset(w * 0.54, h * 0.48),
-      stripePaint,
-    );
+    canvas.drawLine(Offset(w * 0.36, h * 0.32), Offset(w * 0.64, h * 0.32), stripePaint);
+    canvas.drawLine(Offset(w * 0.36, h * 0.40), Offset(w * 0.64, h * 0.40), stripePaint);
+    canvas.drawLine(Offset(w * 0.36, h * 0.48), Offset(w * 0.54, h * 0.48), stripePaint);
 
-    // 4. Draw Front Folder Flap (Pocket cover) with task gradient
+    // 4. Front folder flap with task gradient
     final folderFrontPaint = Paint()
       ..shader = LinearGradient(
         colors: style.flapGradient,

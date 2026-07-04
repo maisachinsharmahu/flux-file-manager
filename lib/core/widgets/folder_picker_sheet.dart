@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../bridge/flux_bridge.dart';
 import '../theme/app_colors.dart';
+import 'shimmer_placeholder.dart';
 
 /// A bottom sheet that lets the user pick a destination folder.
 /// Starts at `/storage/emulated/0` (Internal Storage).
@@ -104,10 +105,9 @@ class _FolderPickerSheetState extends State<FolderPickerSheet> {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-            border: Border(
-              top: BorderSide(color: isDark ? Colors.white12 : const Color(0x1A000000)),
-              left: BorderSide(color: isDark ? const Color(0x14FFFFFF) : const Color(0x0A000000)),
-              right: BorderSide(color: isDark ? const Color(0x14FFFFFF) : const Color(0x0A000000)),
+            border: Border.all(
+              color: isDark ? Colors.white12 : const Color(0x1A000000),
+              width: 1.0.r,
             ),
           ),
           child: Column(
@@ -203,15 +203,10 @@ class _FolderPickerSheetState extends State<FolderPickerSheet> {
               // ── Folder list ────────────────────────────────────────────────
               Expanded(
                 child: _isLoading
-                    ? Center(
-                        child: SizedBox(
-                          width: 24.r,
-                          height: 24.r,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.mintAccent,
-                          ),
-                        ),
+                    ? ListView.builder(
+                        itemCount: 6,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemBuilder: (context, index) => const ShimmerListTile(),
                       )
                     : _folders.isEmpty
                         ? Center(
