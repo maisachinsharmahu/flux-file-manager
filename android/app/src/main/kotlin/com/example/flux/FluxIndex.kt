@@ -665,9 +665,7 @@ class FluxIndex(private val context: Context) {
 
                 val isTestFile = path.contains("flux_test_files")
                 val lastMod = if (isTestFile) 1719782400L else f.lastModified() / 1000L
-                val size = if (isDir) 0L else {
-                    if (isTestFile) 1024L else f.length()
-                }
+                val size = if (isDir) 0L else f.length()
 
                 val record = FileRecord.create(
                     fid = fid,
