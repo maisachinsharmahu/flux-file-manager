@@ -35,25 +35,29 @@ class ModelSyncStatus {
 
 class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
   static const _methodChannel = MethodChannel('com.flux.channel/methods');
-  static const _downloadEventChannel =
-      EventChannel('com.flux.channel/download_progress');
+  static const _downloadEventChannel = EventChannel(
+    'com.flux.channel/download_progress',
+  );
 
   StreamSubscription? _progressSubscription;
 
   ModelSyncNotifier()
-      : super(ModelSyncStatus(
+    : super(
+        ModelSyncStatus(
           state: ModelSyncState.idle,
           progress: 0.0,
           statusText: 'Checking for on-device model...',
-        )) {
+        ),
+      ) {
     _checkAndAutoStart();
   }
 
   Future<void> _checkAndAutoStart() async {
     try {
       // Check if model already exists on device via native bridge
-      final String? modelPath =
-          await _methodChannel.invokeMethod('getModelFilePath');
+      final String? modelPath = await _methodChannel.invokeMethod(
+        'getModelFilePath',
+      );
 
       if (modelPath != null) {
         debugPrint('[ModelSync] Model already exists at: $modelPath');
@@ -64,7 +68,9 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
           modelExists: true,
         );
       } else {
-        debugPrint('[ModelSync] Model not found. Auto-starting foreground download...');
+        debugPrint(
+          '[ModelSync] Model not found. Auto-starting foreground download...',
+        );
         state = state.copyWith(
           statusText: 'Model not found. Starting background download...',
         );
@@ -85,7 +91,8 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
   /// Download continues even when app is minimized/backgrounded.
   Future<void> startDownload() async {
     if (state.state == ModelSyncState.downloading ||
-        state.state == ModelSyncState.indexing) return;
+        state.state == ModelSyncState.indexing)
+      return;
 
     state = ModelSyncStatus(
       state: ModelSyncState.downloading,
@@ -123,7 +130,9 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
         final total = (map['total'] as num).toInt();
         final receivedMb = (received / (1024 * 1024)).toStringAsFixed(1);
         final totalMb = (total / (1024 * 1024)).toStringAsFixed(1);
-        debugPrint('[ModelSync] Download: $percent% ($receivedMb MB / $totalMb MB)');
+        debugPrint(
+          '[ModelSync] Download: $percent% ($receivedMb MB / $totalMb MB)',
+        );
         if (mounted) {
           state = state.copyWith(
             progress: (percent / 100.0).clamp(0.0, 0.99),
@@ -185,5 +194,5 @@ class ModelSyncNotifier extends StateNotifier<ModelSyncStatus> {
 
 final modelSyncProvider =
     StateNotifierProvider<ModelSyncNotifier, ModelSyncStatus>((ref) {
-  return ModelSyncNotifier();
-});
+      return ModelSyncNotifier();
+    });

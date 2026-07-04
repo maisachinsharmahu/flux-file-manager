@@ -2137,78 +2137,6 @@ class FluxIndex(private val context: Context) {
         }
         return activeFids
     }
-}
-
-/**
- * Custom range index simulating Van Emde Boas range lookup characteristics in O(log log U).
- */
-class VanEmdeBoasIndex {
-    private val index = java.util.TreeMap<Long, BitSet>()
-
-    fun insert(key: Long, fid: Long) {
-        index.getOrPut(key) { BitSet() }.set(fid.toInt())
-    }
-
-    fun clear() {
-        index.clear()
-    }
-
-    fun getRange(min: Long, max: Long): BitSet {
-        val result = BitSet()
-        index.subMap(min, true, max, true).values.forEach { result.or(it) }
-        return result
-    }
-}
-
-/**
- * Index 9: HNSW Proximity Graph — O(N * M) memory where M = max neighbors per node.
- * Capped at M=16 neighbors per node to prevent O(N²) OOM with large file sets.
- */
-class HNSWProximityGraph {
-    private val M = 16 // Max neighbors per node (standard HNSW param)
-    class Node(val fid: Long, val vector: FloatArray, val friends: MutableList<Long> = mutableListOf())
-    private val nodes = java.util.concurrent.ConcurrentHashMap<Long, Node>()
-
-    fun insert(fid: Long, vector: FloatArray) {
-        val node = Node(fid, vector)
-        nodes[fid] = node
-
-        // Only link to M nearest neighbors — not all existing nodes
-        if (nodes.size > 1) {
-            val nearest = nodes.values
-                .filter { it.fid != fid }
-                .sortedByDescending { cosineSimilarity(vector, it.vector) }
-                .take(M)
-
-            for (neighbor in nearest) {
-                node.friends.add(neighbor.fid)
-                // Bidirectional link: prune neighbor's friends if over capacity
-                if (neighbor.friends.size < M) {
-                    neighbor.friends.add(fid)
-                }
-            }
-        }
-    }
-
-    fun searchCosine(queryVector: FloatArray, limit: Int): List<Long> {
-        return nodes.values.map { node ->
-            val score = cosineSimilarity(queryVector, node.vector)
-            node.fid to score
-        }.sortedByDescending { it.second }.take(limit).map { it.first }
-    }
-
-    private fun cosineSimilarity(v1: FloatArray, v2: FloatArray): Float {
-        val len = minOf(v1.size, v2.size)
-        var dot = 0f
-        var norm1 = 0f
-        var norm2 = 0f
-        for (i in 0 until len) {
-            dot += v1[i] * v2[i]
-            norm1 += v1[i] * v1[i]
-            norm2 += v2[i] * v2[i]
-        }
-        return if (norm1 > 0 && norm2 > 0) dot / (Math.sqrt(norm1.toDouble()) * Math.sqrt(norm2.toDouble())).toFloat() else 0f
-    }
 
     private fun syncDirectoryPhysically(parentFid: Long, parentFile: File) {
         val physicalFiles = parentFile.listFiles() ?: return
@@ -2289,6 +2217,78 @@ class HNSWProximityGraph {
                 saveToCache()
             }
         }
+    }
+}
+
+/**
+ * Custom range index simulating Van Emde Boas range lookup characteristics in O(log log U).
+ */
+class VanEmdeBoasIndex {
+    private val index = java.util.TreeMap<Long, BitSet>()
+
+    fun insert(key: Long, fid: Long) {
+        index.getOrPut(key) { BitSet() }.set(fid.toInt())
+    }
+
+    fun clear() {
+        index.clear()
+    }
+
+    fun getRange(min: Long, max: Long): BitSet {
+        val result = BitSet()
+        index.subMap(min, true, max, true).values.forEach { result.or(it) }
+        return result
+    }
+}
+
+/**
+ * Index 9: HNSW Proximity Graph — O(N * M) memory where M = max neighbors per node.
+ * Capped at M=16 neighbors per node to prevent O(N²) OOM with large file sets.
+ */
+class HNSWProximityGraph {
+    private val M = 16 // Max neighbors per node (standard HNSW param)
+    class Node(val fid: Long, val vector: FloatArray, val friends: MutableList<Long> = mutableListOf())
+    private val nodes = java.util.concurrent.ConcurrentHashMap<Long, Node>()
+
+    fun insert(fid: Long, vector: FloatArray) {
+        val node = Node(fid, vector)
+        nodes[fid] = node
+
+        // Only link to M nearest neighbors — not all existing nodes
+        if (nodes.size > 1) {
+            val nearest = nodes.values
+                .filter { it.fid != fid }
+                .sortedByDescending { cosineSimilarity(vector, it.vector) }
+                .take(M)
+
+            for (neighbor in nearest) {
+                node.friends.add(neighbor.fid)
+                // Bidirectional link: prune neighbor's friends if over capacity
+                if (neighbor.friends.size < M) {
+                    neighbor.friends.add(fid)
+                }
+            }
+        }
+    }
+
+    fun searchCosine(queryVector: FloatArray, limit: Int): List<Long> {
+        return nodes.values.map { node ->
+            val score = cosineSimilarity(queryVector, node.vector)
+            node.fid to score
+        }.sortedByDescending { it.second }.take(limit).map { it.first }
+    }
+
+    private fun cosineSimilarity(v1: FloatArray, v2: FloatArray): Float {
+        val len = minOf(v1.size, v2.size)
+        var dot = 0f
+        var norm1 = 0f
+        var norm2 = 0f
+        for (i in 0 until len) {
+            dot += v1[i] * v2[i]
+            norm1 += v1[i] * v1[i]
+            norm2 += v2[i] * v2[i]
+        }
+        return if (norm1 > 0 && norm2 > 0) dot / (Math.sqrt(norm1.toDouble()) * Math.sqrt(norm2.toDouble())).toFloat() else 0f
     }
 }
 
