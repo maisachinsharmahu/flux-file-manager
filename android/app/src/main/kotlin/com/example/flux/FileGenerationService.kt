@@ -119,6 +119,9 @@ class FileGenerationService : Service() {
                 Log.d(TAG, "=== Success: Generated $filesCreated files (${bytesWritten / (1024*1024)} MB) in ${String.format("%.1f", totalDuration)}s ===")
                 
                 showCompletionNotification("FLUX Generator", "Successfully generated $filesCreated files ($totalDuration s)")
+                
+                // Rescan index to include all newly generated test files
+                FluxIndex.instance?.initialize(force = true)
             } catch (e: Exception) {
                 Log.e(TAG, "Generation failed: ${e.message}")
             } finally {

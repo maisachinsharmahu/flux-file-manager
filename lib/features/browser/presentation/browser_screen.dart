@@ -44,6 +44,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
   bool _isSelectionMode = false;
   final Set<int> _selectedFids = {};
   double? _dragStartHeight;
+  StreamSubscription<void>? _indexChangeSubscription;
 
   void _toggleSelection(int fid) {
     setState(() {
@@ -626,6 +627,12 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
 
     _controller.forward();
     _loadDirectoryContents();
+
+    _indexChangeSubscription = FluxBridge.onIndexChanged.listen((_) {
+      if (mounted) {
+        _loadDirectoryContents();
+      }
+    });
   }
 
   void _showCreateFolderDialog() {
@@ -795,6 +802,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
 
   @override
   void dispose() {
+    _indexChangeSubscription?.cancel();
     _controller.dispose();
     _searchController.dispose();
     Future.microtask(() {

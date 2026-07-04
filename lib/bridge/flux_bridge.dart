@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -6,6 +7,17 @@ class FluxBridge {
   static const EventChannel _searchChannel = EventChannel('com.flux.channel/search_stream');
   // Kotlin pushes copy progress (0.0→1.0) via invokeMethod('onProgress', value).
   static const MethodChannel _copyProgressChannel = MethodChannel('com.flux.channel/copy_progress');
+
+  static final _indexChangeController = StreamController<void>.broadcast();
+  static Stream<void> get onIndexChanged => _indexChangeController.stream;
+
+  static void initializeMethodCallHandler() {
+    _methodChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onIndexChanged') {
+        _indexChangeController.add(null);
+      }
+    });
+  }
 
   static Future<bool> initializeIndex({bool force = false}) async {
     try {

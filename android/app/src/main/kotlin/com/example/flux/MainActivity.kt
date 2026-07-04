@@ -16,6 +16,7 @@ class MainActivity : FlutterActivity() {
     private lateinit var fluxIndex: FluxIndex
     private var downloadProgressSink: EventChannel.EventSink? = null
     private var copyProgressChannel: MethodChannel? = null
+    private var bridgeChannel: MethodChannel? = null
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,7 +120,16 @@ class MainActivity : FlutterActivity() {
         copyProgressChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, COPY_PROGRESS_CHANNEL)
 
         // Set up MethodChannel
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
+        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL)
+        bridgeChannel = channel
+        
+        fluxIndex.onIndexChanged = {
+            runOnUiThread {
+                bridgeChannel?.invokeMethod("onIndexChanged", null)
+            }
+        }
+
+        channel.setMethodCallHandler { call, result ->
             java.util.concurrent.ForkJoinPool.commonPool().execute {
                 try {
                     when (call.method) {
@@ -315,6 +325,7 @@ class MainActivity : FlutterActivity() {
                                          }
                                      }
                                      Log.d("FLUX_TEST", "=== Success: Deleted $countDeleted test files ===")
+                                     fluxIndex.initialize(force = true)
                                      runOnUiThread { result.success(countDeleted) }
                                  } catch (e: Exception) {
                                      Log.e("FLUX_TEST", "Failed clearing test files: ${e.message}")

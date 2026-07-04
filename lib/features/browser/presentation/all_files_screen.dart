@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -37,6 +38,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
   bool _isSelectionMode = false;
   final Set<int> _selectedFids = {};
   double? _dragStartHeight;
+  StreamSubscription<void>? _indexChangeSubscription;
 
   void _toggleSelection(int fid) {
     setState(() {
@@ -547,10 +549,18 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
         }
       });
     }
+
+    _indexChangeSubscription = FluxBridge.onIndexChanged.listen((_) {
+      if (mounted) {
+        ref.read(allFilesProvider.notifier).refreshFiles();
+        ref.read(trashProvider.notifier).refreshTrash();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _indexChangeSubscription?.cancel();
     _searchController.dispose();
     Future.microtask(() {
       _filterNotifier.reset();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../bridge/flux_bridge.dart';
@@ -42,11 +43,24 @@ class _FolderPickerSheetState extends State<FolderPickerSheet> {
   final List<String> _pathHistory = [];
   List<dynamic> _folders = [];
   bool _isLoading = true;
+  StreamSubscription<void>? _indexChangeSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadFolders(_currentPath);
+
+    _indexChangeSubscription = FluxBridge.onIndexChanged.listen((_) {
+      if (mounted) {
+        _loadFolders(_currentPath);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _indexChangeSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadFolders(String path) async {

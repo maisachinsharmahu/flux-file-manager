@@ -158,11 +158,17 @@ class FluxIndex(private val context: Context) {
 
     // File Observer Hub for Linux inotify updates (Section 5.2)
     val fileObserverHub = FileObserverHub(this)
+    var onIndexChanged: (() -> Unit)? = null
 
     // Root directory FID definition
     val rootFid = 1L
 
+    companion object {
+        @Volatile var instance: FluxIndex? = null
+    }
+
     init {
+        instance = this
         // Pre-reserve FID 1 for Root Directory "/"
         val rootDir = FileRecord.create(
             fid = rootFid,
@@ -269,7 +275,8 @@ class FluxIndex(private val context: Context) {
                 // 4. Update duplicate flags
                 detectDuplicates()
 
-                // 5. Register observer hub for downloads watching
+                // 5. Register observer hub for public and private storage watching
+                fileObserverHub.register("/storage/emulated/0")
                 val extDir = context.getExternalFilesDir(null)
                 if (extDir != null) {
                     fileObserverHub.register(extDir.absolutePath)
@@ -1066,6 +1073,7 @@ class FluxIndex(private val context: Context) {
 
     fun getDirectoryContents(parentPath: String): List<Map<String, Any>> {
         val normalized = normalizePath(parentPath)
+        fileObserverHub.register(normalized)
         val parentFid = pathMap[xxHash64(normalized.lowercase())] ?: return emptyList()
         
         // Check if parent directory exists physically
@@ -2028,20 +2036,24 @@ class FluxIndex(private val context: Context) {
         java.util.concurrent.ForkJoinPool.commonPool().execute {
             val f = File(path)
             if (!f.exists() || f.isDirectory) return@execute
+            val parentPath = f.parent ?: "/"
+            val parentFid = pathMap[xxHash64(normalizePath(parentPath).lowercase())] ?: rootFid
             val now = System.currentTimeMillis() / 1000L
             val record = FileRecord.create(
                 fid = nextFid.getAndIncrement(),
-                parentDirFid = rootFid,
+                parentDirFid = parentFid,
                 name = f.name,
                 path = f.absolutePath,
                 size = f.length(),
                 mtime = now,
                 atime = now,
                 ctime = now,
-                mimeType = "application/octet-stream",
+                mimeType = getMimeType(f),
                 flags = FileRecord.FLAG_INDEXED
             )
             insertRecordToIndexes(record)
+            saveToCache()
+            onIndexChanged?.invoke()
         }
     }
 

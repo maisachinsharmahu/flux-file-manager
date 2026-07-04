@@ -27,6 +27,9 @@ void main() async {
   // Pre-initialize SharedPreferences for synchronous state access in providers
   final sharedPreferences = await SharedPreferences.getInstance();
 
+  // Initialize the bridge method channel handler to listen to events from Kotlin
+  FluxBridge.initializeMethodCallHandler();
+
   // Trigger background initialization of the native indices asynchronously
   FluxBridge.initializeIndex();
 

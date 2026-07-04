@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../bridge/flux_bridge.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/file_filter_provider.dart';
@@ -21,6 +23,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
   late AnimationController _controller;
   late Animation<double> _progressAnimation;
   bool _isExpanded = false;
+  StreamSubscription<void>? _indexChangeSubscription;
 
   @override
   void initState() {
@@ -36,10 +39,18 @@ class _StorageBarState extends ConsumerState<StorageBar>
     );
 
     _controller.forward();
+
+    _indexChangeSubscription = FluxBridge.onIndexChanged.listen((_) {
+      if (mounted) {
+        ref.invalidate(storageStatusProvider);
+        _controller.forward(from: 0.0);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _indexChangeSubscription?.cancel();
     _controller.dispose();
     super.dispose();
   }
