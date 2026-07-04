@@ -340,7 +340,7 @@ class FluxIndex(private val context: Context) {
                 java.io.BufferedInputStream(fis).use { bis ->
                     java.io.DataInputStream(bis).use { dis ->
                         val magic = dis.readInt()
-                        if (magic != 20260702) return false
+                        if (magic != 20260704) return false
                         
                         fileCount = dis.readInt()
                         val nextFidVal = dis.readLong()
@@ -356,24 +356,44 @@ class FluxIndex(private val context: Context) {
                             }
                             
                             for (i in 0 until activeLimit) {
+                                val fidVal = dis.readLong()
+                                val parentDirFidVal = dis.readLong()
+                                val nameOffsetVal = dis.readInt()
+                                val nameLenVal = dis.readShort()
+                                val pathOffsetVal = dis.readInt()
+                                val pathLenVal = dis.readShort()
+                                val sizeVal = dis.readLong()
+                                val mtimeVal = dis.readInt()
+                                val atimeVal = dis.readInt()
+                                val ctimeVal = dis.readInt()
+                                val mimeTypeIdxVal = dis.readShort()
+                                val flagsVal = dis.readInt()
+                                val vectorSlotVal = dis.readInt()
+                                val accessCountVal = dis.readShort()
+                                val checksumVal = dis.readLong()
+
+                                if (fidVal == 0L && i > 0) {
+                                    continue
+                                }
+
                                 val record = FileRecord(
-                                    fid = dis.readLong(),
-                                    parentDirFid = dis.readLong(),
-                                    nameOffset = dis.readInt(),
-                                    nameLen = dis.readShort(),
-                                    pathOffset = dis.readInt(),
-                                    pathLen = dis.readShort(),
-                                    size = dis.readLong(),
-                                    mtime = dis.readInt(),
-                                    atime = dis.readInt(),
-                                    ctime = dis.readInt(),
-                                    mimeTypeIdx = dis.readShort(),
-                                    flags = dis.readInt(),
-                                    vectorSlot = dis.readInt(),
-                                    accessCount = dis.readShort(),
-                                    checksum = dis.readLong()
+                                    fid = fidVal,
+                                    parentDirFid = parentDirFidVal,
+                                    nameOffset = nameOffsetVal,
+                                    nameLen = nameLenVal,
+                                    pathOffset = pathOffsetVal,
+                                    pathLen = pathLenVal,
+                                    size = sizeVal,
+                                    mtime = mtimeVal,
+                                    atime = atimeVal,
+                                    ctime = ctimeVal,
+                                    mimeTypeIdx = mimeTypeIdxVal,
+                                    flags = flagsVal,
+                                    vectorSlot = vectorSlotVal,
+                                    accessCount = accessCountVal,
+                                    checksum = checksumVal
                                 )
-                                masterIndex[i] = record
+                                masterIndex[record.fid.toInt()] = record
                             }
                         }
                         
@@ -442,7 +462,7 @@ class FluxIndex(private val context: Context) {
             java.io.FileOutputStream(cacheFile).use { fos ->
                 java.io.BufferedOutputStream(fos).use { bos ->
                     java.io.DataOutputStream(bos).use { dos ->
-                        dos.writeInt(20260702) // Magic version
+                        dos.writeInt(20260704) // Magic version
                         dos.writeInt(fileCount)
                         dos.writeLong(nextFid.get())
                         
