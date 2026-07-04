@@ -27,7 +27,7 @@ class AllFilesScreen extends ConsumerStatefulWidget {
   ConsumerState<AllFilesScreen> createState() => _AllFilesScreenState();
 }
 
-class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
+class _AllFilesScreenState extends ConsumerState<AllFilesScreen> with WidgetsBindingObserver {
   bool _isSearching = false;
   String _searchQuery = '';
   String _searchScope = 'all'; // 'all', 'local', 'cloud'
@@ -549,6 +549,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
         }
       });
     }
+    WidgetsBinding.instance.addObserver(this);
 
     _indexChangeSubscription = FluxBridge.onIndexChanged.listen((_) {
       if (mounted) {
@@ -560,12 +561,21 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _indexChangeSubscription?.cancel();
     _searchController.dispose();
     Future.microtask(() {
       _filterNotifier.reset();
     });
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(allFilesProvider.notifier).refreshFiles();
+      ref.read(trashProvider.notifier).refreshTrash();
+    }
   }
 
   @override

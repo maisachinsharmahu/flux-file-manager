@@ -240,6 +240,12 @@ class FluxIndex(private val context: Context) {
                 if (!force && loadFromCache()) {
                     if (!isCacheIncomplete()) {
                         Log.d(TAG, "[PERFORMANCE] initializeIndex: Loaded valid cache with $fileCount entries.")
+                        // Register observer hub for public and private storage watching
+                        fileObserverHub.register("/storage/emulated/0")
+                        val extDir = context.getExternalFilesDir(null)
+                        if (extDir != null) {
+                            fileObserverHub.register(extDir.absolutePath)
+                        }
                         return
                     } else {
                         Log.d(TAG, "[PERFORMANCE] Cache is incomplete/stale compared to disk contents. Proceeding with full scan.")
@@ -306,7 +312,7 @@ class FluxIndex(private val context: Context) {
         var actualCount = files.size
 
         // Also check Tier 1 directories' first-level contents
-        val tier1Names = setOf("DCIM", "Download", "Downloads", "Documents", "Pictures", "Movies", "Music")
+        val tier1Names = setOf("DCIM", "Download", "Downloads", "Documents", "Pictures", "Movies", "Music", "flux_test_files")
         for (f in files) {
             if (f.isDirectory && tier1Names.contains(f.name)) {
                 val subFiles = f.listFiles()
@@ -546,7 +552,7 @@ class FluxIndex(private val context: Context) {
                 val allFiles = rootStorage.listFiles() ?: emptyArray()
                 
                 // Tier 1 User Folders
-                val tier1Names = setOf("DCIM", "Download", "Downloads", "Documents", "Pictures", "Movies", "Music")
+                val tier1Names = setOf("DCIM", "Download", "Downloads", "Documents", "Pictures", "Movies", "Music", "flux_test_files")
                 val tier1Dirs = allFiles.filter { it.isDirectory && tier1Names.contains(it.name) }
                 
                 // Tier 3 Android Folder
@@ -700,18 +706,20 @@ class FluxIndex(private val context: Context) {
     private fun insertRecordToIndexes(record: FileRecord) {
         val idx = record.fid.toInt()
 
-        // Safety: only resize if still within sane bounds
-        if (idx >= masterIndex.size) {
-            val newSize = minOf(masterIndex.size * 2, MAX_SCAN_FILES + 1024)
-            val newArray = Array<FileRecord>(newSize) { FileRecord.EMPTY }
-            System.arraycopy(masterIndex, 0, newArray, 0, masterIndex.size)
-            masterIndex = newArray
-        }
+        synchronized(masterIndexLock) {
+            // Safety: only resize if still within sane bounds
+            if (idx >= masterIndex.size) {
+                val newSize = minOf(masterIndex.size * 2, MAX_SCAN_FILES + 1024)
+                val newArray = Array<FileRecord>(newSize) { FileRecord.EMPTY }
+                System.arraycopy(masterIndex, 0, newArray, 0, masterIndex.size)
+                masterIndex = newArray
+            }
 
-        if (masterIndex[idx] == FileRecord.EMPTY) {
-            fileCount++
+            if (masterIndex[idx] == FileRecord.EMPTY) {
+                fileCount++
+            }
+            masterIndex[idx] = record
         }
-        masterIndex[idx] = record
 
         pathMap[xxHash64(record.path)] = record.fid
         pathMap[xxHash64(record.path.lowercase())] = record.fid
@@ -1104,6 +1112,9 @@ class FluxIndex(private val context: Context) {
             }
             return emptyList()
         }
+
+        // Sync directory physically with disk to pick up any changes from other apps
+        syncDirectoryPhysically(parentFid, parentFile)
 
         val childrenFids = directoryIndex[parentFid] ?: return emptyList()
         val results = mutableListOf<Map<String, Any>>()
@@ -2197,6 +2208,87 @@ class HNSWProximityGraph {
             norm2 += v2[i] * v2[i]
         }
         return if (norm1 > 0 && norm2 > 0) dot / (Math.sqrt(norm1.toDouble()) * Math.sqrt(norm2.toDouble())).toFloat() else 0f
+    }
+
+    private fun syncDirectoryPhysically(parentFid: Long, parentFile: File) {
+        val physicalFiles = parentFile.listFiles() ?: return
+        val childrenFids = directoryIndex.getOrPut(parentFid) { java.util.Collections.synchronizedList(mutableListOf()) }
+
+        val physicalNames = physicalFiles.map { it.name }.toSet()
+        val cachedFids = synchronized(childrenFids) { childrenFids.toList() }
+
+        var indexChanged = false
+
+        // 1. Mark cached children that no longer exist physically as deleted
+        for (fid in cachedFids) {
+            val record = getRecord(fid) ?: continue
+            if (isDeleted(fid)) continue
+            if (!physicalNames.contains(record.name)) {
+                setDeleted(fid)
+                synchronized(record) {
+                    record.flags = record.flags or FileRecord.FLAG_DELETED
+                }
+                // Write tombstone to WAL
+                try {
+                    walLock.withLock {
+                        java.io.FileOutputStream(walFile, true).use { out ->
+                            val entry = WalEntry(
+                                sequence = nextFid.getAndIncrement(),
+                                timestamp = System.currentTimeMillis(),
+                                opCode = 2,
+                                fid = fid.toInt()
+                            )
+                            out.write(entry.toBytes())
+                        }
+                    }
+                } catch (e: Exception) {}
+                indexChanged = true
+            }
+        }
+
+        // 2. Index physical files that are not in the cached children
+        val cachedNames = cachedFids.mapNotNull {
+            val r = getRecord(it)
+            if (r != null && !isDeleted(it)) r.name else null
+        }.toSet()
+
+        for (f in physicalFiles) {
+            if (!cachedNames.contains(f.name)) {
+                val isDir = f.isDirectory
+                val size = if (isDir) 0L else f.length()
+                val now = f.lastModified() / 1000L
+                val fid = nextFid.getAndIncrement()
+
+                val mimeType = if (isDir) "directory" else MimeTable.getMimeTypeForPath(f.name)
+
+                val record = FileRecord.create(
+                    fid = fid,
+                    parentDirFid = parentFid,
+                    name = f.name,
+                    path = f.absolutePath,
+                    size = size,
+                    mtime = now,
+                    atime = now,
+                    ctime = now,
+                    mimeType = mimeType,
+                    flags = FileRecord.FLAG_INDEXED
+                )
+                insertRecordToIndexes(record)
+
+                synchronized(childrenFids) {
+                    if (!childrenFids.contains(fid)) {
+                        childrenFids.add(fid)
+                    }
+                }
+                indexChanged = true
+            }
+        }
+
+        if (indexChanged) {
+            java.util.concurrent.ForkJoinPool.commonPool().execute {
+                saveToCache()
+            }
+        }
     }
 }
 

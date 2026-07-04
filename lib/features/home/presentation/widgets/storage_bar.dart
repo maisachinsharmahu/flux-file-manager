@@ -19,7 +19,7 @@ class StorageBar extends ConsumerStatefulWidget {
 }
 
 class _StorageBarState extends ConsumerState<StorageBar>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _controller;
   late Animation<double> _progressAnimation;
   bool _isExpanded = false;
@@ -39,6 +39,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
     );
 
     _controller.forward();
+    WidgetsBinding.instance.addObserver(this);
 
     _indexChangeSubscription = FluxBridge.onIndexChanged.listen((_) {
       if (mounted) {
@@ -50,9 +51,18 @@ class _StorageBarState extends ConsumerState<StorageBar>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _indexChangeSubscription?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(storageStatusProvider);
+      _controller.forward(from: 0.0);
+    }
   }
 
   double _getSegmentProgress(
