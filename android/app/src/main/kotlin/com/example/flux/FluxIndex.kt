@@ -780,7 +780,9 @@ class FluxIndex(private val context: Context) {
         // Index 4: Directory Index
         val list = directoryIndex.getOrPut(record.parentDirFid) { java.util.Collections.synchronizedList(mutableListOf()) }
         synchronized(list) {
-            list.add(record.fid)
+            if (!list.contains(record.fid)) {
+                list.add(record.fid)
+            }
         }
 
         // Index 5: Type Buckets
@@ -1237,7 +1239,7 @@ class FluxIndex(private val context: Context) {
         val childrenFids = directoryIndex[parentFid] ?: return emptyList()
         val results = mutableListOf<Map<String, Any>>()
         val localCopy = synchronized(childrenFids) {
-            childrenFids.toList()
+            childrenFids.distinct()
         }
         var indexChanged = false
         for (fid in localCopy) {
@@ -2336,6 +2338,30 @@ class FluxIndex(private val context: Context) {
         }.toSet()
 
         for (f in physicalFiles) {
+            val normalizedPath = normalizePath(f.absolutePath)
+            val pathHash = xxHash64(normalizedPath.lowercase())
+            val existingFid = pathMap[pathHash]
+
+            if (existingFid != null) {
+                // File/folder already exists in the system under this path!
+                val record = getRecord(existingFid)
+                if (record != null) {
+                    // Update parent and remove deleted flags if necessary
+                    if (isDeleted(existingFid)) {
+                        clearDeleted(existingFid)
+                        synchronized(record) {
+                            record.flags = record.flags and FileRecord.FLAG_DELETED.inv()
+                        }
+                    }
+                    synchronized(childrenFids) {
+                        if (!childrenFids.contains(existingFid)) {
+                            childrenFids.add(existingFid)
+                        }
+                    }
+                    continue
+                }
+            }
+
             if (!cachedNames.contains(f.name)) {
                 val isDir = f.isDirectory
                 val size = if (isDir) 0L else f.length()
@@ -2357,12 +2383,6 @@ class FluxIndex(private val context: Context) {
                     flags = FileRecord.FLAG_INDEXED
                 )
                 insertRecordToIndexes(record)
-
-                synchronized(childrenFids) {
-                    if (!childrenFids.contains(fid)) {
-                        childrenFids.add(fid)
-                    }
-                }
                 indexChanged = true
             }
         }
