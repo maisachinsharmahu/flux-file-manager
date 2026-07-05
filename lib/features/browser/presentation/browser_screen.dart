@@ -526,8 +526,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
         debugPrint(
           '[PERFORMANCE] Paste(Move): ${fids.length} items → $destPath in ${sw.elapsedMilliseconds} ms',
         );
-        // Permanently delete originals from source (cut = destructive)
-        await FluxBridge.deletePermanentlyWithProgress(fids, (_) {});
       } else {
         ref.read(copyTaskProvider.notifier).failTask(taskId);
       }

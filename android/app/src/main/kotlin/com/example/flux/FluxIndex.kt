@@ -2336,7 +2336,7 @@ class VanEmdeBoasIndex {
     @Synchronized
     fun getRange(min: Long, max: Long): RoaringBitmap {
         val result = RoaringBitmap()
-        index.subMap(min, true, max, true).values.forEach { RoaringBitmap.or(result, it) }
+        index.subMap(min, true, max, true).values.forEach { result.or(it) }
         return result
     }
 }

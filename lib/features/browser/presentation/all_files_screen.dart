@@ -333,7 +333,6 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> with WidgetsBin
         debugPrint(
           '[PERFORMANCE] Paste(Move): ${fids.length} items → $destPath in ${sw.elapsedMilliseconds} ms',
         );
-        await FluxBridge.deletePermanentlyWithProgress(fids, (_) {});
       } else {
         ref.read(copyTaskProvider.notifier).failTask(taskId);
       }
