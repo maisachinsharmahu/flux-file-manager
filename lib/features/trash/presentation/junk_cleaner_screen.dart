@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../bridge/flux_bridge.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../home/providers/copy_task_provider.dart';
-import '../../../../core/utils/byte_formatter.dart';
+import 'package:flux/bridge/flux_bridge.dart';
+import 'package:flux/core/theme/app_colors.dart';
+import 'package:flux/features/home/providers/copy_task_provider.dart';
+import 'package:flux/core/utils/byte_formatter.dart';
 
 class JunkCleanerScreen extends ConsumerStatefulWidget {
   const JunkCleanerScreen({Key? key}) : super(key: key);
@@ -196,7 +196,7 @@ class _JunkCleanerScreenState extends ConsumerState<JunkCleanerScreen> with Sing
         : Colors.black.withValues(alpha: 0.05);
 
     final totalSelectedBytes = _calculateTotalSelectedBytes();
-    final formattedBytes = formatSize(totalSelectedBytes.toDouble());
+    final formattedBytes = ByteFormatter.format(totalSelectedBytes);
 
     // Define details for categories
     final List<Map<String, dynamic>> categoryMetadata = [
@@ -351,7 +351,7 @@ class _JunkCleanerScreenState extends ConsumerState<JunkCleanerScreen> with Sing
                   if (items.isEmpty) return const SizedBox.shrink();
 
                   final catSize = _getCategorySize(key);
-                  final formattedCatSize = formatSize(catSize.toDouble());
+                  final formattedCatSize = ByteFormatter.format(catSize);
                   final isSelected = _selectedCategories[key] ?? false;
                   final isExpanded = _expandedCategories[key] ?? false;
 
@@ -464,14 +464,14 @@ class _JunkCleanerScreenState extends ConsumerState<JunkCleanerScreen> with Sing
 
                         if (isExpanded)
                           Container(
-                            maxHeight: 200.h,
+                            constraints: BoxConstraints(maxHeight: 200.h),
                             color: Colors.black26,
                             child: ListView.builder(
                               shrinkWrap: true,
                               itemCount: items.length,
                               itemBuilder: (context, i) {
                                 final item = items[i];
-                                final size = (item['size'] as num).toDouble();
+                                final size = (item['size'] as num).toInt();
                                 return ListTile(
                                   dense: true,
                                   title: Text(
@@ -485,7 +485,7 @@ class _JunkCleanerScreenState extends ConsumerState<JunkCleanerScreen> with Sing
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   trailing: Text(
-                                    formatSize(size),
+                                    ByteFormatter.format(size),
                                     style: TextStyle(fontSize: 12.sp, color: headerColor),
                                   ),
                                 );

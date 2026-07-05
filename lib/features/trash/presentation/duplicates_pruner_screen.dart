@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../bridge/flux_bridge.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../home/providers/copy_task_provider.dart';
-import '../../../../core/utils/byte_formatter.dart';
-import '../../../../core/utils/date_formatter.dart';
-import '../../../../core/widgets/file_type_icon.dart';
+import 'package:flux/bridge/flux_bridge.dart';
+import 'package:flux/core/theme/app_colors.dart';
+import 'package:flux/features/home/providers/copy_task_provider.dart';
+import 'package:flux/core/utils/byte_formatter.dart';
+import 'package:flux/core/utils/date_formatter.dart';
+import 'package:flux/core/widgets/file_type_icon.dart';
 
 class DuplicatesPrunerScreen extends ConsumerStatefulWidget {
   const DuplicatesPrunerScreen({Key? key}) : super(key: key);
@@ -188,7 +188,7 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
         : Colors.black.withValues(alpha: 0.05);
 
     final recoverableBytes = _calculateRecoverableBytes();
-    final formattedBytes = formatSize(recoverableBytes.toDouble());
+    final formattedBytes = ByteFormatter.format(recoverableBytes);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.neutral950 : AppColors.neutral50,
@@ -270,7 +270,10 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
                 final group = _duplicateGroups[index];
                 final firstItem = group.first;
                 final totalGroupSize = group.fold<int>(0, (sum, item) => sum + (item['size'] as num).toInt());
-                final formattedGroupSize = formatSize(totalGroupSize.toDouble());
+                final formattedGroupSize = ByteFormatter.format(totalGroupSize);
+
+                final name = firstItem['name']?.toString() ?? '';
+                final ext = name.contains('.') ? name.split('.').last : 'other';
 
                 return Container(
                   margin: EdgeInsets.only(bottom: 16.h),
@@ -288,7 +291,8 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
                         child: Row(
                           children: [
                             FileTypeIcon(
-                              category: firstItem['category'] as String? ?? 'Other',
+                              extension: ext,
+                              path: firstItem['path']?.toString(),
                               size: 32.r,
                             ),
                             SizedBox(width: 12.w),
@@ -297,7 +301,7 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    firstItem['name'] as String? ?? '',
+                                    name,
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 14.sp,
@@ -403,7 +407,7 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
                                               SizedBox(width: 6.w),
                                             ],
                                             Text(
-                                              'Modified: ${formatDate(DateTime.fromMillisecondsSinceEpoch((item['mtime'] as num).toInt() * 1000))}',
+                                              'Modified: ${DateFormatter.formatFriendly(DateTime.fromMillisecondsSinceEpoch((item['mtime'] as num).toInt() * 1000))}',
                                               style: TextStyle(
                                                 fontFamily: 'Inter',
                                                 fontSize: 10.sp,
