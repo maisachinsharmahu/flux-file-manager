@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class SmartCardsList extends StatelessWidget {
@@ -71,93 +72,104 @@ class SmartCardsList extends StatelessWidget {
                 final desc = card['desc'] as String;
                 final btnLabel = card['btn'] as String;
 
-                return Container(
-                  width: 250.0.w,
-                  margin: EdgeInsets.only(right: 14.0.w),
-                  padding: EdgeInsets.all(16.0.r),
-                  decoration: BoxDecoration(
-                    color: cardBgColor,
-                    borderRadius: BorderRadius.circular(20.0.r),
-                    border: Border.all(color: borderColor, width: 1.2.r),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 28.0.r,
-                            height: 28.0.r,
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.06)
-                                  : Colors.black.withValues(alpha: 0.04),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Icon(
-                                icon,
-                                size: 15.0.r,
-                                color: isDark ? Colors.white : Colors.black,
+                return GestureDetector(
+                  onTap: () {
+                    if (title == 'AI Cleanup Suggestion') {
+                      context.push('/cleaner');
+                    } else if (title == 'Duplicate Files Detected') {
+                      context.push('/duplicates');
+                    } else if (title == 'Large Files Review') {
+                      context.push('/all_files?title=Large Files');
+                    }
+                  },
+                  child: Container(
+                    width: 250.0.w,
+                    margin: EdgeInsets.only(right: 14.0.w),
+                    padding: EdgeInsets.all(16.0.r),
+                    decoration: BoxDecoration(
+                      color: cardBgColor,
+                      borderRadius: BorderRadius.circular(20.0.r),
+                      border: Border.all(color: borderColor, width: 1.2.r),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 28.0.r,
+                              height: 28.0.r,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.black.withValues(alpha: 0.04),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  icon,
+                                  size: 15.0.r,
+                                  color: isDark ? Colors.white : Colors.black,
+                                ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: 10.0.w),
-                          Expanded(
-                            child: Text(
-                              title,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13.0.sp,
-                                fontWeight: FontWeight.w700,
-                                color: titleColor,
+                            SizedBox(width: 10.0.w),
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13.0.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: titleColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8.0.h),
-                      Text(
-                        desc,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11.5.sp,
-                          fontWeight: FontWeight.w500,
-                          color: descriptionColor,
+                          ],
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const Spacer(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.0.w,
-                              vertical: 6.0.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.neutral900,
-                              borderRadius: BorderRadius.circular(12.0.r),
-                            ),
-                            child: Text(
-                              btnLabel,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 11.0.sp,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.black : Colors.white,
+                        SizedBox(height: 8.0.h),
+                        Text(
+                          desc,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11.5.sp,
+                            fontWeight: FontWeight.w500,
+                            color: descriptionColor,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const Spacer(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12.0.w,
+                                vertical: 6.0.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.neutral900,
+                                borderRadius: BorderRadius.circular(12.0.r),
+                              ),
+                              child: Text(
+                                btnLabel,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11.0.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.black : Colors.white,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }).toList(),

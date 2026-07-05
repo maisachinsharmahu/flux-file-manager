@@ -1727,6 +1727,30 @@ class FluxIndex(private val context: Context) {
     }
 
     /**
+     * Group all active duplicate files by their content xxHash64 checksum.
+     * Returns a list of duplicate groups, where each group contains the maps of the duplicate records.
+     */
+    fun getDuplicateGroups(): List<List<Map<String, Any>>> {
+        val groups = mutableListOf<List<Map<String, Any>>>()
+        for ((_, fids) in checksumMap) {
+            val activeFids = synchronized(fids) { fids.toList() }
+                .filter { !isDeleted(it) }
+            
+            if (activeFids.size > 1) {
+                val groupList = mutableListOf<Map<String, Any>>()
+                for (fid in activeFids) {
+                    val record = getRecord(fid) ?: continue
+                    groupList.add(record.toMap())
+                }
+                if (groupList.size > 1) {
+                    groups.add(groupList)
+                }
+            }
+        }
+        return groups
+    }
+
+    /**
      * Complexity: O(N) [masterIndex stats scan]
      * Computes storage statistics grouped by category.
      */

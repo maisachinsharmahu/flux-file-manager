@@ -337,6 +337,10 @@ class MainActivity : FlutterActivity() {
                             val junk = fluxIndex.scanJunkFiles()
                             runOnUiThread { result.success(junk) }
                         }
+                        "getDuplicateGroups" -> {
+                            val groups = fluxIndex.getDuplicateGroups()
+                            runOnUiThread { result.success(groups) }
+                        }
                         "startModelDownload" -> {
                             // Start foreground download service — survives app minimize
                             val intent = Intent(this@MainActivity, ModelDownloadService::class.java).apply {

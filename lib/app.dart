@@ -12,6 +12,8 @@ import 'features/analytics/presentation/analytics_screen.dart';
 import 'features/browser/presentation/browser_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'features/trash/presentation/trash_screen.dart';
+import 'features/trash/presentation/junk_cleaner_screen.dart';
+import 'features/trash/presentation/duplicates_pruner_screen.dart';
 import 'features/navigation/presentation/main_navigation_shell.dart';
 import 'features/home/presentation/widgets/copy_progress_overlay.dart';
 
@@ -82,6 +84,18 @@ final GoRouter _router = GoRouter(
       path: '/trash',
       builder: (BuildContext context, GoRouterState state) {
         return const TrashScreen();
+      },
+    ),
+    GoRoute(
+      path: '/cleaner',
+      builder: (BuildContext context, GoRouterState state) {
+        return const JunkCleanerScreen();
+      },
+    ),
+    GoRoute(
+      path: '/duplicates',
+      builder: (BuildContext context, GoRouterState state) {
+        return const DuplicatesPrunerScreen();
       },
     ),
   ],

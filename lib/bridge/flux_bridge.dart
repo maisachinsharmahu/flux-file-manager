@@ -423,6 +423,29 @@ class FluxBridge {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> scanJunkFiles() async {
+    try {
+      final List<dynamic> result = await _methodChannel.invokeMethod('scanJunkFiles');
+      return result.map((item) => Map<String, dynamic>.from(item)).toList();
+    } catch (e) {
+      debugPrint('[FluxBridge] Error: scanJunkFiles() -> $e');
+      return [];
+    }
+  }
+
+  static Future<List<List<Map<String, dynamic>>>> getDuplicateGroups() async {
+    try {
+      final List<dynamic> result = await _methodChannel.invokeMethod('getDuplicateGroups');
+      return result.map((group) {
+        final List<dynamic> g = group as List<dynamic>;
+        return g.map((item) => Map<String, dynamic>.from(item)).toList();
+      }).toList();
+    } catch (e) {
+      debugPrint('[FluxBridge] Error: getDuplicateGroups() -> $e');
+      return [];
+    }
+  }
+
   static Future<bool> createDirectory(String parentPath, String name) async {
     try {
       final bool result = await _methodChannel.invokeMethod('createDirectory', {
