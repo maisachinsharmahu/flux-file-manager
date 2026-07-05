@@ -39,6 +39,10 @@ kotlin {
 dependencies {
     // WorkManager: guarantees physical delete survives app kill / device reboot.
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+    // Index 3 (Token) + Index 5 (Type Buckets) + Deletion Set:
+    // RoaringBitmap uses 25x less RAM than plain BitSet for sparse sets (rare tokens)
+    // and skips empty 16-bit containers automatically during AND intersections.
+    implementation("org.roaringbitmap:RoaringBitmap:0.9.49")
 }
 
 flutter {

@@ -4,7 +4,7 @@ import android.content.Context
 import android.os.Environment
 import android.util.Log
 import java.io.File
-import java.util.BitSet
+import org.roaringbitmap.RoaringBitmap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
@@ -72,14 +72,16 @@ class FluxIndex(private val context: Context) {
     // Dual-trie setup: tokenTrie (prefix searching on tokens)
     val tokenTrie = RadixTrie()
 
-    // Index 3: Token Index
-    val tokenIndex = ConcurrentHashMap<String, BitSet>()
+    // Index 3: Token Index (HashMap + RoaringBitmap per spec §3.6)
+    // RoaringBitmap: ArrayContainer for sparse tokens (<4096 entries) = ~5 KB each
+    // vs plain BitSet which always allocates 125 KB for 1M-file universe
+    val tokenIndex = ConcurrentHashMap<String, RoaringBitmap>()
 
     // Index 4: Directory Index (parent FID -> children FIDs)
     val directoryIndex = ConcurrentHashMap<Long, MutableList<Long>>()
 
-    // Index 5: Type Buckets
-    val typeBuckets = ConcurrentHashMap<String, BitSet>()
+    // Index 5: Type Buckets (HashMap + RoaringBitmap per spec §3.9)
+    val typeBuckets = ConcurrentHashMap<String, RoaringBitmap>()
 
     // Index 8: Checksum Map (Checksum -> list of matching FIDs)
     val checksumMap = ConcurrentHashMap<Long, MutableList<Long>>()
@@ -93,8 +95,9 @@ class FluxIndex(private val context: Context) {
     // Index 9: HNSW Vector Proximity Graph
     val hnswGraph = HNSWProximityGraph()
 
-    // The Deletion BitSet (O(1) logical deletion)
-    val deletionSet = BitSet()
+    // The Deletion RoaringBitmap (O(1) logical deletion per spec §3.4)
+    // andNot() on query results gives O(N/64) filtered result without per-item loop
+    val deletionSet = RoaringBitmap()
 
     val walLock = ReentrantLock()
     val masterIndexLock = Any()
@@ -131,15 +134,15 @@ class FluxIndex(private val context: Context) {
     }
 
     fun isDeleted(fid: Long): Boolean = synchronized(deletionSet) {
-        deletionSet.get(fid.toInt())
+        deletionSet.contains(fid.toInt())
     }
 
     fun setDeleted(fid: Long) = synchronized(deletionSet) {
-        deletionSet.set(fid.toInt())
+        deletionSet.add(fid.toInt())
     }
 
     fun clearDeleted(fid: Long) = synchronized(deletionSet) {
-        deletionSet.clear(fid.toInt())
+        deletionSet.remove(fid.toInt())
     }
 
     fun clearAllDeleted() = synchronized(deletionSet) {
@@ -147,7 +150,7 @@ class FluxIndex(private val context: Context) {
     }
 
     fun getDeletedCardinality(): Int = synchronized(deletionSet) {
-        deletionSet.cardinality()
+        deletionSet.cardinality
     }
 
     // Ring Buffer for O(1) Recent Files List
@@ -438,15 +441,16 @@ class FluxIndex(private val context: Context) {
                                 }
                             }
                             
-                            typeBuckets.getOrPut(record.mimeType) { BitSet() }.set(record.fid.toInt())
-                            
+                            val tb = typeBuckets.getOrPut(record.mimeType) { RoaringBitmap() }
+                            synchronized(tb) { tb.add(record.fid.toInt()) }
+
                             val isTestFile = record.path.contains("flux_test_files")
                             if (!isTestFile && !record.isDeleted && !record.isDirectory) {
                                 nameTrie.insert(record.name, record.fid)
                                 val tokens = tokenize(record.name)
                                 for (token in tokens) {
-                                    val matches = tokenIndex.getOrPut(token) { BitSet(1024) }
-                                    matches.set(record.fid.toInt())
+                                    val bm = tokenIndex.getOrPut(token) { RoaringBitmap() }
+                                    synchronized(bm) { bm.add(record.fid.toInt()) }
                                     tokenTrie.insert(token, record.fid)
                                 }
                             }
@@ -766,7 +770,8 @@ class FluxIndex(private val context: Context) {
             // Index 3: Token Index & Token Trie
             val tokens = tokenize(record.name)
             for (token in tokens) {
-                tokenIndex.getOrPut(token) { BitSet() }.set(record.fid.toInt())
+                val bitmap = tokenIndex.getOrPut(token) { RoaringBitmap() }
+                synchronized(bitmap) { bitmap.add(record.fid.toInt()) }
                 tokenTrie.insert(token, record.fid)
             }
         }
@@ -778,7 +783,8 @@ class FluxIndex(private val context: Context) {
         }
 
         // Index 5: Type Buckets
-        typeBuckets.getOrPut(record.mimeType) { BitSet() }.set(record.fid.toInt())
+        val typeBucket = typeBuckets.getOrPut(record.mimeType) { RoaringBitmap() }
+        synchronized(typeBucket) { typeBucket.add(record.fid.toInt()) }
 
         if (!isTestFile) {
             // Index 6: Size Index (Van Emde Boas range index)
@@ -1745,7 +1751,7 @@ class FluxIndex(private val context: Context) {
 
         // Live calculation if permission stats query is granted
         if (hasStatsQueryWorked) {
-            binSize = deletionSet.cardinality() * 200 * 1024L // estimated trash size based on deleted items count
+            binSize = deletionSet.cardinality * 200 * 1024L // estimated trash size based on deleted items count
             if (binSize == 0L) {
                 binSize = 705 * 1_000_000L
             }
@@ -1840,40 +1846,38 @@ class FluxIndex(private val context: Context) {
     ): List<Map<String, Any>> {
         val startTime = System.nanoTime()
         val queryLower = query.lowercase().trim()
-        val matchingFids = mutableSetOf<Long>()
+        val matchingFidsBitmap = RoaringBitmap()
         val hasQuery = queryLower.isNotEmpty()
 
         if (hasQuery) {
             // 1. Exact/prefix matches from RadixTrie
             val nameMatches = nameTrie.searchPrefix(queryLower)
-            matchingFids.addAll(nameMatches)
+            nameMatches.forEach { matchingFidsBitmap.add(it.toInt()) }
 
             // 2. Mid-word/token prefix matches from tokenTrie
             val tokenTrieMatches = tokenTrie.searchPrefix(queryLower)
-            matchingFids.addAll(tokenTrieMatches)
+            tokenTrieMatches.forEach { matchingFidsBitmap.add(it.toInt()) }
 
-            // 2. Tokenized matches from tokenIndex
+            // 3. Tokenized AND-intersection from tokenIndex (RoaringBitmap — O(N/64) with zero-skip)
             val queryTokens = tokenize(queryLower)
             if (queryTokens.isNotEmpty()) {
-                var tokenMatches: BitSet? = null
+                var tokenMatches: RoaringBitmap? = null
                 for (token in queryTokens) {
-                    val matches = tokenIndex[token]
-                    if (matches != null) {
-                        if (tokenMatches == null) {
-                            tokenMatches = matches.clone() as BitSet
-                        } else {
-                            tokenMatches.and(matches)
-                        }
+                    val matches = tokenIndex[token] ?: continue
+                    if (tokenMatches == null) {
+                        tokenMatches = synchronized(matches) { matches.clone() }
+                    } else {
+                        val snap = synchronized(matches) { matches.clone() }
+                        tokenMatches = RoaringBitmap.and(tokenMatches, snap)
                     }
                 }
-                if (tokenMatches != null) {
-                    var idx = tokenMatches.nextSetBit(0)
-                    while (idx >= 0) {
-                        matchingFids.add(idx.toLong())
-                        idx = tokenMatches.nextSetBit(idx + 1)
-                    }
-                }
+                tokenMatches?.let { matchingFidsBitmap.or(it) }
             }
+        }
+
+        // Apply O(N/64) deletion filter instantly
+        synchronized(deletionSet) {
+            matchingFidsBitmap.andNot(deletionSet)
         }
 
         val filteredRecords = mutableListOf<FileRecord>()
@@ -1883,10 +1887,13 @@ class FluxIndex(private val context: Context) {
         // Iterate active records
         for (i in 0 until masterIndex.size) {
             val record = masterIndex[i]
-            if (record == FileRecord.EMPTY || record.isDeleted || record.isDirectory) continue
+            if (record == FileRecord.EMPTY || record.isDirectory) continue
+            
+            // O(1) logical deletion check
+            if (synchronized(deletionSet) { deletionSet.contains(i) }) continue
 
             // Query check
-            if (hasQuery && !matchingFids.contains(record.fid)) {
+            if (hasQuery && !matchingFidsBitmap.contains(record.fid.toInt())) {
                 // Fail-safe substring check for partial name matches
                 if (!record.name.lowercase().contains(queryLower)) {
                     continue
@@ -1971,51 +1978,50 @@ class FluxIndex(private val context: Context) {
         val queryLower = query.lowercase().trim()
         if (queryLower.isEmpty()) return emptyList()
 
-        val matchingFids = mutableSetOf<Long>()
+        val matchingFidsBitmap = RoaringBitmap()
 
         // 1. Try exact/prefix matches from RadixTrie
         val nameMatches = nameTrie.searchPrefix(queryLower)
-        matchingFids.addAll(nameMatches)
+        nameMatches.forEach { matchingFidsBitmap.add(it.toInt()) }
 
         // 2. Try mid-word/token prefix matches from tokenTrie
         val tokenTrieMatches = tokenTrie.searchPrefix(queryLower)
-        matchingFids.addAll(tokenTrieMatches)
+        tokenTrieMatches.forEach { matchingFidsBitmap.add(it.toInt()) }
 
-        // 2. Try tokenized matches
+        // 3. Try tokenized AND-intersection (RoaringBitmap — O(N/64) with zero-skip)
         val queryTokens = tokenize(queryLower)
         if (queryTokens.isNotEmpty()) {
-            var tokenMatches: BitSet? = null
+            var tokenMatches: RoaringBitmap? = null
             for (token in queryTokens) {
-                val matches = tokenIndex[token]
-                if (matches != null) {
-                    if (tokenMatches == null) {
-                        tokenMatches = matches.clone() as BitSet
-                    } else {
-                        tokenMatches.and(matches)
-                    }
+                val matches = tokenIndex[token] ?: continue
+                if (tokenMatches == null) {
+                    tokenMatches = synchronized(matches) { matches.clone() }
+                } else {
+                    val snap = synchronized(matches) { matches.clone() }
+                    tokenMatches = RoaringBitmap.and(tokenMatches, snap)
                 }
             }
-            if (tokenMatches != null) {
-                var idx = tokenMatches.nextSetBit(0)
-                while (idx >= 0) {
-                    matchingFids.add(idx.toLong())
-                    idx = tokenMatches.nextSetBit(idx + 1)
-                }
+            tokenMatches?.let { matchingFidsBitmap.or(it) }
+        }
+
+        // Apply O(N/64) deletion filter instantly
+        synchronized(deletionSet) {
+            matchingFidsBitmap.andNot(deletionSet)
+        }
+
+        // Filter out directory records and map to DTOs
+        val results = mutableListOf<Map<String, Any>>()
+        matchingFidsBitmap.forEach { fid ->
+            val record = getRecord(fid.toLong())
+            if (record != null && !record.isDirectory) {
+                results.add(record.toMap())
             }
         }
 
-        // Filter out deleted/directory records and map to DTOs
-        val results = mutableListOf<Map<String, Any>>()
-        for (fid in matchingFids) {
-            if (deletionSet.get(fid.toInt())) continue
-            val record = getRecord(fid) ?: continue
-            if (record.isDirectory) continue
-            results.add(record.toMap())
-            if (results.size >= limit) break
-        }
+        val limitedResults = if (results.size > limit) results.subList(0, limit) else results
         val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
-        Log.d(TAG, "[PERFORMANCE] search: Autocomplete query \"$query\" -> found ${results.size} matches in ${String.format("%.3f", durationMs)} ms")
-        return results
+        Log.d(TAG, "[PERFORMANCE] search: Autocomplete query \"$query\" -> found ${limitedResults.size} matches in ${String.format("%.3f", durationMs)} ms")
+        return limitedResults
     }
 
     fun getAllFiles(): List<Map<String, Any>> {
@@ -2313,19 +2319,24 @@ class FluxIndex(private val context: Context) {
  * Custom range index simulating Van Emde Boas range lookup characteristics in O(log log U).
  */
 class VanEmdeBoasIndex {
-    private val index = java.util.TreeMap<Long, BitSet>()
+    // TreeMap provides O(log n) range queries via subMap().
+    // Each bucket is a RoaringBitmap for memory-efficient FID storage.
+    private val index = java.util.TreeMap<Long, RoaringBitmap>()
 
+    @Synchronized
     fun insert(key: Long, fid: Long) {
-        index.getOrPut(key) { BitSet() }.set(fid.toInt())
+        index.getOrPut(key) { RoaringBitmap() }.add(fid.toInt())
     }
 
+    @Synchronized
     fun clear() {
         index.clear()
     }
 
-    fun getRange(min: Long, max: Long): BitSet {
-        val result = BitSet()
-        index.subMap(min, true, max, true).values.forEach { result.or(it) }
+    @Synchronized
+    fun getRange(min: Long, max: Long): RoaringBitmap {
+        val result = RoaringBitmap()
+        index.subMap(min, true, max, true).values.forEach { RoaringBitmap.or(result, it) }
         return result
     }
 }
