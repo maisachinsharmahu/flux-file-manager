@@ -250,6 +250,36 @@ class FluxBridge {
     }
   }
 
+  /// Moves [fids] into [destinationPath] in chunks, streaming progress updates.
+  static Future<bool> moveFilesWithProgress(
+    List<int> fids,
+    String destinationPath,
+    void Function(double progress) onProgress,
+  ) async {
+    if (fids.isEmpty) return true;
+    
+    // Chunking the FIDs list allows driving smooth UI progress bar updates.
+    // 250 items chunk size keeps MethodChannel communication low while giving fast updates.
+    const chunkSize = 250;
+    var done = 0;
+    var allSuccess = true;
+    
+    for (var i = 0; i < fids.length; i += chunkSize) {
+      final end = (i + chunkSize < fids.length) ? i + chunkSize : fids.length;
+      final chunk = fids.sublist(i, end);
+      final success = await moveFiles(chunk, destinationPath);
+      if (success) {
+        done += chunk.length;
+        onProgress(done / fids.length);
+      } else {
+        allSuccess = false;
+      }
+      // Yield to let Flutter update the rendering loop
+      await Future.delayed(const Duration(milliseconds: 5));
+    }
+    return allSuccess;
+  }
+
   /// Copies [fids] into [destinationPath], streaming progress to [onProgress].
   /// Registers a MethodChannel handler on the copy_progress channel so Kotlin
   /// can push 0.0→1.0 values from its IO thread, then awaits the final result.

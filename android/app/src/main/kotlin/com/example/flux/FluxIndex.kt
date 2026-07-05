@@ -169,6 +169,7 @@ class FluxIndex(private val context: Context) {
     }
     @Volatile private var _pendingSaveFuture: java.util.concurrent.ScheduledFuture<*>? = null
 
+    @Synchronized
     private fun scheduleSaveToCache(delayMs: Long = 2000) {
         _pendingSaveFuture?.cancel(false)
         _pendingSaveFuture = _saveCacheExecutor.schedule({

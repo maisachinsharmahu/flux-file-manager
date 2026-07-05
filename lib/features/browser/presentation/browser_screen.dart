@@ -517,7 +517,11 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
             isCut: true,
           );
       final sw = Stopwatch()..start();
-      final success = await FluxBridge.moveFiles(fids, destPath);
+      final success = await FluxBridge.moveFilesWithProgress(
+        fids,
+        destPath,
+        (p) => ref.read(copyTaskProvider.notifier).updateProgress(p, taskId),
+      );
       sw.stop();
       if (success) {
         ref
