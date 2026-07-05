@@ -806,6 +806,60 @@ class FluxIndex(private val context: Context) {
         }
     }
 
+    /**
+     * Permanently removes a record from all 9 composite indexes and deletion bitset
+     * when it is physically deleted from the disk.
+     */
+    private fun removeRecordFromIndexes(fid: Long) {
+        val record = getRecord(fid) ?: return
+        val idx = fid.toInt()
+
+        // 1. Remove from masterIndex
+        synchronized(masterIndexLock) {
+            if (idx < masterIndex.size && masterIndex[idx] != FileRecord.EMPTY) {
+                fileCount = maxOf(0, fileCount - 1)
+                masterIndex[idx] = FileRecord.EMPTY
+            }
+        }
+
+        // 2. Remove from pathMap
+        pathMap.remove(xxHash64(record.path))
+        pathMap.remove(xxHash64(record.path.lowercase()))
+
+        // 3. Remove from directoryIndex
+        directoryIndex[record.parentDirFid]?.let { children ->
+            synchronized(children) { children.remove(fid) }
+        }
+        directoryIndex.remove(fid)
+
+        // 4. Remove from tokenIndex
+        val tokens = tokenize(record.name)
+        for (token in tokens) {
+            tokenIndex[token]?.let { bitmap ->
+                synchronized(bitmap) { bitmap.remove(idx) }
+            }
+        }
+
+        // 5. Remove from typeBuckets
+        typeBuckets[record.mimeType]?.let { bitmap ->
+            synchronized(bitmap) { bitmap.remove(idx) }
+        }
+
+        // 6. Remove from deletionSet
+        synchronized(deletionSet) {
+            deletionSet.remove(idx)
+        }
+
+        // 7. Remove from size/time range indexes
+        sizeIndex.remove(record.size, fid)
+        timeIndex.remove(record.mtime.toLong(), fid)
+
+        // 8. Remove from checksumMap (duplicates)
+        checksumMap[record.checksum]?.let { list ->
+            synchronized(list) { list.remove(fid) }
+        }
+    }
+
 
 
     private fun getChildrenRecursive(parentFid: Long, result: MutableList<Long>) {
@@ -1007,10 +1061,10 @@ class FluxIndex(private val context: Context) {
                 ).use { out ->
                     val nowMs = System.currentTimeMillis()
                     for (record in sortedRecords) {
-                        setDeleted(record.fid)
-                        synchronized(record) {
-                            record.flags = record.flags or FileRecord.FLAG_DELETED
-                        }
+                        // Purge permanently from all 9 indexes + deletion set
+                        removeRecordFromIndexes(record.fid)
+                        
+                        // Write WAL entry for DELETE (opCode 2)
                         val entry = WalEntry(
                             sequence = nextFid.getAndIncrement(),
                             timestamp = nowMs,
@@ -1021,6 +1075,9 @@ class FluxIndex(private val context: Context) {
                     }
                 }
             }
+
+            // Persistence: save index updates to disk cache
+            scheduleSaveToCache()
 
             val durationMs = (System.nanoTime() - startTime) / 1_000_000.0
             Log.d(TAG, "[PERFORMANCE] deletePermanently: ${sortedRecords.size} files in ${String.format("%.1f", durationMs)} ms (${ioThreads} IO threads)")
@@ -2327,6 +2384,16 @@ class VanEmdeBoasIndex {
     @Synchronized
     fun insert(key: Long, fid: Long) {
         index.getOrPut(key) { RoaringBitmap() }.add(fid.toInt())
+    }
+
+    @Synchronized
+    fun remove(key: Long, fid: Long) {
+        index[key]?.let { bitmap ->
+            bitmap.remove(fid.toInt())
+            if (bitmap.isEmpty) {
+                index.remove(key)
+            }
+        }
     }
 
     @Synchronized
