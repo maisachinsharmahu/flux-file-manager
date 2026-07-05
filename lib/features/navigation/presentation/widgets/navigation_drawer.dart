@@ -35,6 +35,8 @@ class FluxNavigationDrawer extends ConsumerWidget {
       {'index': 3, 'title': 'Videos', 'category': 'Videos', 'icon': Icons.play_circle_outline},
       {'index': 0, 'title': 'Recent', 'category': null, 'icon': Icons.access_time_rounded},
       {'index': 4, 'title': 'Trash', 'category': null, 'icon': Icons.delete_outline_rounded},
+      {'index': 5, 'title': 'Junk Cleaner', 'category': null, 'icon': Icons.cleaning_services_rounded},
+      {'index': 6, 'title': 'Duplicate Files', 'category': null, 'icon': Icons.file_copy_outlined},
     ];
 
     return Drawer(
@@ -107,6 +109,10 @@ class FluxNavigationDrawer extends ConsumerWidget {
                                 context.push('/all_files?title=Recent Uploads');
                               } else if (title == 'Trash') {
                                 context.push('/trash');
+                              } else if (title == 'Junk Cleaner') {
+                                context.push('/cleaner');
+                              } else if (title == 'Duplicate Files') {
+                                context.push('/duplicates');
                               }
                             },
                             borderRadius: BorderRadius.circular(12.0.r),
