@@ -65,6 +65,20 @@ class ModelDownloadService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    /**
+     * Always call stopForeground BEFORE stopSelf so Android 12+ cannot kill
+     * the process between the two calls while the foreground token is still held.
+     */
+    private fun gracefulStop() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        stopSelf()
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -80,7 +94,7 @@ class ModelDownloadService : Service() {
             ACTION_CANCEL -> {
                 Log.d(TAG, "Cancel command received")
                 downloadJob?.cancel()
-                stopSelf()
+                gracefulStop()
             }
         }
         return START_NOT_STICKY
@@ -109,7 +123,7 @@ class ModelDownloadService : Service() {
                 if (alreadyDownloaded >= totalSize) {
                     Log.d(TAG, "File already complete! Size: $alreadyDownloaded bytes")
                     onComplete?.invoke()
-                    stopSelf()
+                    gracefulStop()
                     return@launch
                 }
 
@@ -129,7 +143,7 @@ class ModelDownloadService : Service() {
                 Log.e(TAG, "Download orchestration error: ${e.message}")
                 onError?.invoke(e.message ?: "Unknown error")
                 updateNotification("Download failed — tap to retry", 0, 0)
-                stopSelf()
+                gracefulStop()
             }
         }
     }
@@ -198,7 +212,7 @@ class ModelDownloadService : Service() {
             Log.d(TAG, "Assembly complete. Final file: ${modelFile.length()} bytes")
             updateNotification("FLUX model downloaded ✓", 100, totalSize)
             onComplete?.invoke()
-            stopSelf()
+            gracefulStop()
 
         } catch (e: Exception) {
             if (e is CancellationException) {
@@ -209,7 +223,7 @@ class ModelDownloadService : Service() {
             Log.e(TAG, "Parallel download error: ${e.message}")
             onError?.invoke(e.message ?: "Chunk download failed")
             updateNotification("Download paused (tap to resume)", 0, 0)
-            stopSelf()
+            gracefulStop()
         } finally {
             // Clean up chunk temp files
             chunkFiles.forEach { if (it.exists()) it.delete() }
@@ -330,7 +344,7 @@ class ModelDownloadService : Service() {
         fos.flush(); fos.close()
         inputStream.close(); connection.disconnect()
         onComplete?.invoke()
-        stopSelf()
+        gracefulStop()
     }
 
     /** HEAD request to get total file size without downloading content */

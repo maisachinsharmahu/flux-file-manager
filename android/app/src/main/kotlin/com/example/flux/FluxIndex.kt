@@ -1112,6 +1112,29 @@ class FluxIndex(private val context: Context) {
         return total
     }
 
+    /**
+     * Fallback directory size computed directly from disk (BFS, capped at [maxEntries]).
+     * Used when the in-memory directoryIndex hasn't been populated yet (e.g. during first-run scan).
+     * Cap prevents this from being slow on huge trees.
+     */
+    private fun computeDirectorySizeFromDisk(dir: File, maxEntries: Int = 2000): Long {
+        var total = 0L
+        var count = 0
+        val queue = ArrayDeque<File>()
+        queue.addLast(dir)
+        while (queue.isNotEmpty() && count < maxEntries) {
+            val current = queue.removeFirst()
+            val children = current.listFiles() ?: continue
+            for (child in children) {
+                count++
+                if (count >= maxEntries) break
+                if (child.isDirectory) queue.addLast(child)
+                else total += child.length()
+            }
+        }
+        return total
+    }
+
     fun getDirectoryContents(parentPath: String): List<Map<String, Any>> {
         val normalized = normalizePath(parentPath)
         fileObserverHub.register(normalized)
@@ -1183,9 +1206,14 @@ class FluxIndex(private val context: Context) {
             }
 
             val map = record.toMap().toMutableMap()
-            // For directories: compute and inject real folder size
+            // For directories: compute and inject real folder size.
+            // Primary: use the in-memory index (fast, O(N_children)).
+            // Fallback: if index returns 0 (scan still in progress), do a capped disk walk.
             if (record.isDirectory) {
-                val folderSize = computeDirectorySize(fid)
+                var folderSize = computeDirectorySize(fid)
+                if (folderSize == 0L) {
+                    folderSize = computeDirectorySizeFromDisk(File(record.path), maxEntries = 2000)
+                }
                 map["size"] = folderSize
                 map["sizeString"] = formatSizeKt(folderSize)
                 map["sizeInMb"] = folderSize.toDouble() / (1024.0 * 1024.0)
