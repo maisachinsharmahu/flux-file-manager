@@ -192,6 +192,10 @@ class MainActivity : FlutterActivity() {
             "com.flux/pdf_page_view",
             com.example.flux.viewer.pdf.FluxPdfPageViewFactory()
         )
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "com.flux/web_view",
+            com.example.flux.viewer.web.FluxWebViewFactory()
+        )
 
         channel.setMethodCallHandler { call, result ->
             java.util.concurrent.ForkJoinPool.commonPool().execute {
@@ -591,6 +595,26 @@ class MainActivity : FlutterActivity() {
                                 runOnUiThread { result.success(json) }
                             } catch (e: Exception) {
                                 runOnUiThread { result.error("CSV_ERROR", e.message, null) }
+                            }
+                        }
+                        "getArchiveEntries" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.archive.ArchiveParser.getArchiveEntries(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("ARCHIVE_ERROR", e.message, null) }
+                            }
+                        }
+                        "extractArchiveEntry" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            val entryName = call.argument<String>("entry") ?: ""
+                            val destPath = call.argument<String>("dest") ?: ""
+                            try {
+                                val ok = com.example.flux.viewer.archive.ArchiveParser.extractArchiveEntry(filePath, entryName, destPath)
+                                runOnUiThread { result.success(ok) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("ARCHIVE_ERROR", e.message, null) }
                             }
                         }
                         "playAudio" -> {

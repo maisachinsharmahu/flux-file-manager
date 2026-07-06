@@ -797,4 +797,32 @@ class FluxBridge {
       return '[]';
     }
   }
+
+  /// Get list of all entries inside ZIP/EPUB/APK archive.
+  static Future<String> getArchiveEntries(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('getArchiveEntries', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getArchiveEntries() -> $e');
+      return '[]';
+    }
+  }
+
+  /// Extract single entry inside ZIP/EPUB/APK archive to a destination file.
+  static Future<bool> extractArchiveEntry(String filePath, String entryName, String destPath) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('extractArchiveEntry', {
+        'path': filePath,
+        'entry': entryName,
+        'dest': destPath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: extractArchiveEntry() -> $e');
+      return false;
+    }
+  }
 }
