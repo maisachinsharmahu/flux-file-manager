@@ -64,6 +64,36 @@ object ArchiveParser {
         }
     }
 
+    fun unzipArchive(filePath: String, destDirPath: String): Boolean {
+        val file = File(filePath)
+        if (!file.exists()) return false
+
+        var zip: ZipFile? = null
+        try {
+            zip = ZipFile(file)
+            val entries = zip.entries()
+            while (entries.hasMoreElements()) {
+                val entry = entries.nextElement()
+                val destFile = File(destDirPath, entry.name)
+                if (entry.isDirectory) {
+                    destFile.mkdirs()
+                } else {
+                    destFile.parentFile?.mkdirs()
+                    zip.getInputStream(entry).use { input ->
+                        FileOutputStream(destFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+            }
+            return true
+        } catch (e: Exception) {
+            return false
+        } finally {
+            zip?.close()
+        }
+    }
+
     private fun escapeJson(str: String): String {
         return str.replace("\\", "\\\\")
             .replace("\"", "\\\"")

@@ -625,6 +625,16 @@ class MainActivity : FlutterActivity() {
                                 runOnUiThread { result.error("ARCHIVE_ERROR", e.message, null) }
                             }
                         }
+                        "unzipArchive" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            val destDirPath = call.argument<String>("dest") ?: ""
+                            try {
+                                val ok = com.example.flux.viewer.archive.ArchiveParser.unzipArchive(filePath, destDirPath)
+                                runOnUiThread { result.success(ok) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("ARCHIVE_ERROR", e.message, null) }
+                            }
+                        }
                         "getApkMetadata" -> {
                             val filePath = call.argument<String>("path") ?: ""
                             try {

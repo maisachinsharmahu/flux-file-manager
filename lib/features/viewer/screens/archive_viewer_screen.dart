@@ -113,6 +113,67 @@ class _ArchiveViewerScreenState extends State<ArchiveViewerScreen> {
     }
   }
 
+  Future<void> _extractAll() async {
+    final parentDir = File(widget.path).parent.path;
+    final baseName = widget.title.split('.').first;
+    final destDirPath = "$parentDir/${baseName}_extracted";
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161616),
+        title: const Text('Extract Archive', style: TextStyle(color: Colors.white, fontSize: 16)),
+        content: Text('Extract all files to:\n$destDirPath?', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white30)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00BCD4)),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Extract', style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    if (!mounted) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFF00BCD4))),
+      ),
+    );
+
+    try {
+      final success = await FluxBridge.unzipArchive(widget.path, destDirPath);
+      if (!mounted) return;
+      Navigator.pop(context); // Pop loading
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Successfully extracted all files to $destDirPath')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to extract files')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error during extraction: $e')),
+      );
+    }
+  }
+
   String _formatBytes(int bytes) {
     if (bytes <= 0) return "0 B";
     const suffixes = ["B", "KB", "MB", "GB"];
@@ -140,6 +201,13 @@ class _ArchiveViewerScreenState extends State<ArchiveViewerScreen> {
           widget.title,
           style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.unarchive_rounded, color: Color(0xFF00BCD4)),
+            tooltip: 'Extract All',
+            onPressed: _extractAll,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFF00BCD4))))

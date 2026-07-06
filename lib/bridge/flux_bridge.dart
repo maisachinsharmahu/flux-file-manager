@@ -826,6 +826,20 @@ class FluxBridge {
     }
   }
 
+  /// Decompress entire ZIP archive to a destination folder.
+  static Future<bool> unzipArchive(String filePath, String destDirPath) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('unzipArchive', {
+        'path': filePath,
+        'dest': destDirPath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: unzipArchive() -> $e');
+      return false;
+    }
+  }
+
   /// Query metadata structures for an offline APK package.
   static Future<String> getApkMetadata(String filePath) async {
     try {
