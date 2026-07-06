@@ -825,4 +825,30 @@ class FluxBridge {
       return false;
     }
   }
+
+  /// Query metadata structures for an offline APK package.
+  static Future<String> getApkMetadata(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('getApkMetadata', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getApkMetadata() -> $e');
+      return '{}';
+    }
+  }
+
+  /// Walk spine and manifest components from EPUB to get ordered chapters.
+  static Future<String> getEpubChapters(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('getEpubChapters', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getEpubChapters() -> $e');
+      return '[]';
+    }
+  }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'file_format.dart';
 import 'screens/unknown_file_screen.dart';
-import 'screens/unsupported_file_screen.dart';
 import 'screens/image_viewer_screen.dart';
 import 'screens/video_player_screen.dart';
 import 'screens/audio_player_screen.dart';
@@ -15,6 +14,11 @@ import 'screens/data_viewer_screens.dart';
 import 'screens/html_viewer_screen.dart';
 import 'screens/archive_viewer_screen.dart';
 import 'screens/hex_viewer_screen.dart';
+import 'screens/svg_viewer_screen.dart';
+import 'screens/font_viewer_screen.dart';
+import 'screens/apk_info_screen.dart';
+import 'screens/epub_viewer_screen.dart';
+import 'screens/markdown_viewer_screen.dart';
 import 'widgets/error_boundary.dart';
 
 export 'file_format.dart';
@@ -68,7 +72,7 @@ class ViewerRouter extends StatelessWidget {
         FileFormat.dng =>
           ImageViewerScreen(path: path, title: title),
         FileFormat.svg =>
-          UnknownFileScreen(path: path, format: format, title: title, phase: 'V8'),
+          SvgViewerScreen(path: path, title: title),
 
         // ── Video ─────────────────────────────────────────────────────────────
         FileFormat.videoMp4 || FileFormat.videoMkv || FileFormat.videoAvi ||
@@ -85,7 +89,7 @@ class ViewerRouter extends StatelessWidget {
         FileFormat.plainText || FileFormat.log =>
           TextViewerScreen(path: path, format: format.name, title: title),
         FileFormat.markdown =>
-          UnknownFileScreen(path: path, format: format, title: title, phase: 'V8'),
+          MarkdownViewerScreen(path: path, title: title),
         FileFormat.html =>
           HtmlViewerScreen(path: path, title: title),
         _ when format.isCode =>
@@ -109,16 +113,16 @@ class ViewerRouter extends StatelessWidget {
         FileFormat.zip || FileFormat.jar || FileFormat.aar =>
           ArchiveViewerScreen(path: path, title: title),
         FileFormat.apk =>
-          ArchiveViewerScreen(path: path, title: title),
+          ApkInfoScreen(path: path, title: title),
         FileFormat.epub =>
-          ArchiveViewerScreen(path: path, title: title),
+          EpubViewerScreen(path: path, title: title),
         FileFormat.rar || FileFormat.sevenZip =>
           ArchiveViewerScreen(path: path, title: title),
 
         // ── Fonts ─────────────────────────────────────────────────────────────
         FileFormat.fontTtf || FileFormat.fontOtf ||
         FileFormat.fontWoff || FileFormat.fontWoff2 =>
-          UnknownFileScreen(path: path, format: format, title: title, phase: 'V8'),
+          FontViewerScreen(path: path, title: title),
 
         // ── Unknown / Binary (Hex Fallback) ───────────────────────────────────
         _ => HexViewerScreen(path: path, title: title),

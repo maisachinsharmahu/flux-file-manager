@@ -196,6 +196,14 @@ class MainActivity : FlutterActivity() {
             "com.flux/web_view",
             com.example.flux.viewer.web.FluxWebViewFactory()
         )
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "com.flux/svg_view",
+            com.example.flux.viewer.svg.FluxSvgViewFactory()
+        )
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "com.flux/font_view",
+            com.example.flux.viewer.font.FluxFontViewFactory()
+        )
 
         channel.setMethodCallHandler { call, result ->
             java.util.concurrent.ForkJoinPool.commonPool().execute {
@@ -615,6 +623,24 @@ class MainActivity : FlutterActivity() {
                                 runOnUiThread { result.success(ok) }
                             } catch (e: Exception) {
                                 runOnUiThread { result.error("ARCHIVE_ERROR", e.message, null) }
+                            }
+                        }
+                        "getApkMetadata" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.archive.ApkInfoReader.getApkMetadata(applicationContext, filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("APK_ERROR", e.message, null) }
+                            }
+                        }
+                        "getEpubChapters" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.archive.EpubManifestParser.getEpubChapters(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("EPUB_ERROR", e.message, null) }
                             }
                         }
                         "playAudio" -> {
