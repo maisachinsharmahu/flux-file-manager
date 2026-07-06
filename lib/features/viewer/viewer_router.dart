@@ -11,6 +11,7 @@ import 'screens/text_viewer_screen.dart';
 import 'screens/pdf_viewer_screen.dart';
 
 import 'screens/office_viewer_screens.dart';
+import 'screens/data_viewer_screens.dart';
 
 export 'file_format.dart';
 
@@ -87,17 +88,17 @@ class ViewerRouter extends StatelessWidget {
 
       // ── Data formats ──────────────────────────────────────────────────────
       FileFormat.json =>
-        UnknownFileScreen(path: path, format: format, title: title, phase: 'V6'),
+        JsonTreeViewerScreen(path: path, title: title),
       FileFormat.xml =>
-        UnknownFileScreen(path: path, format: format, title: title, phase: 'V6'),
+        TextViewerScreen(path: path, format: format.name, title: title),
       FileFormat.yaml || FileFormat.toml || FileFormat.ini || FileFormat.env =>
-        UnknownFileScreen(path: path, format: format, title: title, phase: 'V6'),
+        TextViewerScreen(path: path, format: format.name, title: title),
       FileFormat.csv || FileFormat.tsv =>
-        UnknownFileScreen(path: path, format: format, title: title, phase: 'V6'),
+        CsvViewerScreen(path: path, title: title),
       FileFormat.sql =>
-        UnknownFileScreen(path: path, format: format, title: title, phase: 'V6'),
+        TextViewerScreen(path: path, format: format.name, title: title),
       FileFormat.sqlite =>
-        UnknownFileScreen(path: path, format: format, title: title, phase: 'V6'),
+        SqliteViewerScreen(path: path, title: title),
 
       // ── Archives ──────────────────────────────────────────────────────────
       FileFormat.zip || FileFormat.jar || FileFormat.aar =>

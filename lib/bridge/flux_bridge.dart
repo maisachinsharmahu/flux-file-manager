@@ -713,4 +713,88 @@ class FluxBridge {
       return '[]';
     }
   }
+
+  /// Get list of SQLite tables in database file.
+  static Future<String> getSqliteTables(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('getSqliteTables', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getSqliteTables() -> $e');
+      return '[]';
+    }
+  }
+
+  /// Get SQLite table schema columns list.
+  static Future<String> getSqliteTableSchema(String filePath, String tableName) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('getSqliteTableSchema', {
+        'path': filePath,
+        'table': tableName,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getSqliteTableSchema() -> $e');
+      return '[]';
+    }
+  }
+
+  /// Get page of database rows.
+  static Future<String> getSqliteTableRows(String filePath, String tableName, int offset, int limit) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('getSqliteTableRows', {
+        'path': filePath,
+        'table': tableName,
+        'offset': offset,
+        'limit': limit,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getSqliteTableRows() -> $e');
+      return '[]';
+    }
+  }
+
+  /// Clear CSV cache offsets.
+  static Future<bool> closeCsv(String filePath) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('closeCsv', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: closeCsv() -> $e');
+      return false;
+    }
+  }
+
+  /// Get CSV row count and header column names.
+  static Future<String> getCsvMetadata(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('getCsvMetadata', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getCsvMetadata() -> $e');
+      return '{}';
+    }
+  }
+
+  /// Fetch page of CSV rows.
+  static Future<String> getCsvRows(String filePath, int offset, int limit) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('getCsvRows', {
+        'path': filePath,
+        'offset': offset,
+        'limit': limit,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getCsvRows() -> $e');
+      return '[]';
+    }
+  }
 }

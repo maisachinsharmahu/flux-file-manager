@@ -533,6 +533,66 @@ class MainActivity : FlutterActivity() {
                                 runOnUiThread { result.error("OFFICE_ERROR", e.message, null) }
                             }
                         }
+                        "getSqliteTables" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.data.SqliteParser.getSqliteTables(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("SQLITE_ERROR", e.message, null) }
+                            }
+                        }
+                        "getSqliteTableSchema" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            val tableName = call.argument<String>("table") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.data.SqliteParser.getSqliteTableSchema(filePath, tableName)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("SQLITE_ERROR", e.message, null) }
+                            }
+                        }
+                        "getSqliteTableRows" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            val tableName = call.argument<String>("table") ?: ""
+                            val offset = call.argument<Int>("offset") ?: 0
+                            val limit = call.argument<Int>("limit") ?: 50
+                            try {
+                                val json = com.example.flux.viewer.data.SqliteParser.getSqliteTableRows(filePath, tableName, offset, limit)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("SQLITE_ERROR", e.message, null) }
+                            }
+                        }
+                        "closeCsv" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                com.example.flux.viewer.data.CsvParser.closeCsv(filePath)
+                                runOnUiThread { result.success(true) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("CSV_ERROR", e.message, null) }
+                            }
+                        }
+                        "getCsvMetadata" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.data.CsvParser.getCsvMetadata(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("CSV_ERROR", e.message, null) }
+                            }
+                        }
+                        "getCsvRows" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            val offset = call.argument<Int>("offset") ?: 0
+                            val limit = call.argument<Int>("limit") ?: 50
+                            try {
+                                val json = com.example.flux.viewer.data.CsvParser.getCsvRows(filePath, offset, limit)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("CSV_ERROR", e.message, null) }
+                            }
+                        }
                         "playAudio" -> {
                             val filePath = call.argument<String>("path") ?: ""
                             try {
