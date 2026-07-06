@@ -291,45 +291,35 @@ class _JunkCleanerScreenState extends ConsumerState<JunkCleanerScreen> with Sing
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Row Actions
+                  // Top Row Actions (Back button only, no PRO button)
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        GestureDetector(
-                          onTap: () => context.push('/settings'),
-                          child: Icon(
-                            Icons.settings_outlined,
-                            size: 24.r,
-                            color: isDark ? Colors.white70 : Colors.black87,
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: Colors.amber.withValues(alpha: 0.3), width: 1.r),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.auto_awesome_outlined, color: Colors.amber, size: 12.r),
-                              SizedBox(width: 4.w),
-                              Text(
-                                'PRO',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.amber,
-                                ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: GestureDetector(
+                        onTap: () => context.pop(),
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 20.r,
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
+                            SizedBox(width: 6.w),
+                            Text(
+                              'Back',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white70 : Colors.black87,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
 
@@ -546,71 +536,104 @@ class _JunkCleanerScreenState extends ConsumerState<JunkCleanerScreen> with Sing
                             borderRadius: BorderRadius.circular(20.r),
                             border: Border.all(color: borderColor, width: 1.2.r),
                           ),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                          child: GestureDetector(
                             onTap: () {
                               if (route != null) {
                                 context.push(route);
                               } else {
-                                // Toggle category selection state
                                 setState(() {
                                   _selectedCategories[key] = !isSelected;
                                 });
                               }
                             },
-                            leading: Container(
-                              width: 40.r,
-                              height: 40.r,
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                              child: Icon(icon, color: color, size: 20.r),
-                            ),
-                            title: Text(
-                              title,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.bold,
-                                color: headerColor,
-                              ),
-                            ),
-                            subtitle: Text(
-                              desc,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 10.sp,
-                                color: isDark ? Colors.white38 : Colors.black38,
-                              ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  ByteFormatter.format(size),
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w900,
-                                    color: AppColors.mintAccent,
+                            behavior: HitTestBehavior.opaque,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40.r,
+                                    height: 40.r,
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12.r),
+                                    ),
+                                    child: Icon(icon, color: color, size: 20.r),
                                   ),
-                                ),
-                                SizedBox(width: 8.w),
-                                if (route != null)
-                                  Icon(Icons.arrow_forward_ios_rounded, size: 12.r, color: isDark ? Colors.white24 : Colors.black26)
-                                else
-                                  Checkbox(
-                                    activeColor: AppColors.mintAccent,
-                                    checkColor: Colors.black,
-                                    value: isSelected,
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _selectedCategories[key] = val ?? false;
-                                      });
-                                    },
+                                  SizedBox(width: 14.w),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          title,
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 13.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: headerColor,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2.h),
+                                        Text(
+                                          desc,
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 10.sp,
+                                            color: isDark ? Colors.white38 : Colors.black38,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                              ],
+                                  SizedBox(width: 12.w),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        ByteFormatter.format(size),
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 13.sp,
+                                          fontWeight: FontWeight.w900,
+                                          color: AppColors.mintAccent,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      if (route != null)
+                                        Icon(Icons.arrow_forward_ios_rounded, size: 12.r, color: isDark ? Colors.white24 : Colors.black26)
+                                      else
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedCategories[key] = !isSelected;
+                                            });
+                                          },
+                                          child: Container(
+                                            width: 20.r,
+                                            height: 20.r,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: isSelected ? AppColors.mintAccent : Colors.transparent,
+                                              border: Border.all(
+                                                color: isSelected ? AppColors.mintAccent : (isDark ? Colors.white24 : Colors.black26),
+                                                width: 1.5.r,
+                                              ),
+                                            ),
+                                            child: isSelected
+                                                ? Icon(
+                                                    Icons.check,
+                                                    size: 12.r,
+                                                    color: Colors.black,
+                                                  )
+                                                : null,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );
