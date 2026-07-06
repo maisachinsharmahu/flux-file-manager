@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -5,8 +6,8 @@ import 'package:flux/bridge/flux_bridge.dart';
 import 'package:flux/core/theme/app_colors.dart';
 import 'package:flux/features/home/providers/copy_task_provider.dart';
 import 'package:flux/core/utils/byte_formatter.dart';
-import 'package:flux/core/utils/date_formatter.dart';
 import 'package:flux/core/widgets/file_type_icon.dart';
+import 'package:go_router/go_router.dart';
 
 class DuplicatesPrunerScreen extends ConsumerStatefulWidget {
   const DuplicatesPrunerScreen({Key? key}) : super(key: key);
@@ -31,7 +32,7 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
     setState(() => _isLoading = true);
     final groups = await FluxBridge.getDuplicateGroups();
     
-    // Sort groups so that the largest total group size is shown first
+    // Sort groups by total size
     groups.sort((a, b) {
       final aSize = a.fold<int>(0, (sum, item) => sum + (item['size'] as num).toInt());
       final bSize = b.fold<int>(0, (sum, item) => sum + (item['size'] as num).toInt());
@@ -44,7 +45,6 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
         _selectedFids.clear();
         _isLoading = false;
       });
-      // Automatically apply CCleaner auto-select on start
       _autoSelectDuplicates();
     }
   }
@@ -54,12 +54,51 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
       _selectedFids.clear();
       for (final group in _duplicateGroups) {
         if (group.length > 1) {
-          // Keep the first copy (original/oldest) unchecked
-          // Check all subsequent copies (duplicates) for pruning
+          // Keep first copy unchecked (Original)
+          // Select all other copies for pruning
           for (var i = 1; i < group.length; i++) {
             final fid = (group[i]['fid'] as num).toInt();
             _selectedFids.add(fid);
           }
+        }
+      }
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      for (final group in _duplicateGroups) {
+        for (final item in group) {
+          final fid = (item['fid'] as num).toInt();
+          _selectedFids.add(fid);
+        }
+      }
+    });
+  }
+
+  void _deselectAll() {
+    setState(() {
+      _selectedFids.clear();
+    });
+  }
+
+  void _toggleGroupSelection(List<Map<String, dynamic>> group) {
+    // Check if all items in this group are already selected (except the original)
+    final fids = group.map((item) => (item['fid'] as num).toInt()).toList();
+    final duplicateFids = fids.sublist(1);
+    
+    final allDuplicatesSelected = duplicateFids.every((fid) => _selectedFids.contains(fid));
+    
+    setState(() {
+      if (allDuplicatesSelected) {
+        // Deselect all duplicates in this group
+        for (final fid in duplicateFids) {
+          _selectedFids.remove(fid);
+        }
+      } else {
+        // Select all duplicates in this group
+        for (final fid in duplicateFids) {
+          _selectedFids.add(fid);
         }
       }
     });
@@ -75,7 +114,7 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
     });
   }
 
-  int _calculateRecoverableBytes() {
+  int _calculateSelectedSize() {
     var totalBytes = 0;
     for (final group in _duplicateGroups) {
       for (final item in group) {
@@ -162,7 +201,6 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
 
     if (success) {
       ref.read(copyTaskProvider.notifier).completeTask(taskId);
-      // Wait briefly for progress overlay completion animation
       await Future.delayed(const Duration(milliseconds: 300));
       await _loadDuplicates();
     } else {
@@ -172,6 +210,108 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
     if (mounted) {
       setState(() => _isProcessing = false);
     }
+  }
+
+  Widget _buildFileThumbnail(Map<String, dynamic> item, bool isOriginal, bool isSelected) {
+    final name = item['name']?.toString() ?? '';
+    final path = item['path']?.toString() ?? '';
+    final ext = name.contains('.') ? name.split('.').last.toLowerCase().trim() : 'other';
+    final isImage = const ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].contains(ext);
+
+    Widget innerWidget;
+    if (isImage && path.isNotEmpty) {
+      final file = File(path);
+      innerWidget = Image.file(
+        file,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        cacheWidth: 256,
+        cacheHeight: 256,
+        errorBuilder: (context, error, stackTrace) {
+          return Center(
+            child: FileTypeIcon(extension: ext, path: path, size: 40.r),
+          );
+        },
+      );
+    } else {
+      innerWidget = Center(
+        child: FileTypeIcon(extension: ext, path: path, size: 40.r),
+      );
+    }
+
+    return AspectRatio(
+      aspectRatio: 1.0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black26,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isSelected ? AppColors.mintAccent : Colors.transparent,
+            width: 1.5.r,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            // Thumbnail image/icon
+            Positioned.fill(child: innerWidget),
+
+            // Top-left "✓ Original" label if it's the original file
+            if (isOriginal)
+              Positioned(
+                top: 8.h,
+                left: 8.w,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.mintAccent,
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check, size: 10.r, color: Colors.black),
+                      SizedBox(width: 2.w),
+                      Text(
+                        'Best',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 9.sp,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Bottom-right checkbox overlay (only checkable for duplicates)
+            if (!isOriginal)
+              Positioned(
+                bottom: 8.h,
+                right: 8.w,
+                child: Container(
+                  width: 20.r,
+                  height: 20.r,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? AppColors.mintAccent : Colors.black45,
+                    border: Border.all(
+                      color: isSelected ? AppColors.mintAccent : Colors.white70,
+                      width: 1.5.r,
+                    ),
+                  ),
+                  child: isSelected
+                      ? Icon(Icons.check, size: 12.r, color: Colors.black)
+                      : null,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -187,287 +327,266 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
 
-    final recoverableBytes = _calculateRecoverableBytes();
-    final formattedBytes = ByteFormatter.format(recoverableBytes);
+    // Deselect all vs Select all state
+    final allSelected = _duplicateGroups.isNotEmpty &&
+        _duplicateGroups.every((g) => g.sublist(1).every((item) => _selectedFids.contains((item['fid'] as num).toInt())));
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.neutral950 : AppColors.neutral50,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: headerColor, size: 20.r),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Duplicate Files',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w700,
-            color: headerColor,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          if (!_isLoading && _duplicateGroups.isNotEmpty)
-            TextButton(
-              onPressed: _autoSelectDuplicates,
-              child: Text(
-                'Auto-Select',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.mintAccent,
-                ),
-              ),
-            ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: AppColors.mintAccent))
-          else if (_duplicateGroups.isEmpty)
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Nav Header Row
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(
-                    Icons.check_circle_outline_rounded,
-                    size: 64.r,
-                    color: AppColors.mintAccent.withValues(alpha: 0.5),
-                  ),
-                  SizedBox(height: 16.h),
-                  Text(
-                    'No duplicates found!',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
-                      color: headerColor,
+                  GestureDetector(
+                    onTap: () => context.pop(),
+                    behavior: HitTestBehavior.opaque,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.mintAccent, size: 18.r),
+                        SizedBox(width: 4.w),
+                        Text(
+                          'Photo...',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.mintAccent,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    'Your storage is fully optimized.',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13.sp,
-                      color: isDark ? Colors.white54 : Colors.black54,
+                  GestureDetector(
+                    onTap: allSelected ? _deselectAll : _selectAll,
+                    child: Text(
+                      allSelected ? 'Deselect all' : 'Select all',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mintAccent,
+                      ),
                     ),
                   ),
                 ],
               ),
-            )
-          else
-            ListView.builder(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 100.h),
-              physics: const BouncingScrollPhysics(),
-              itemCount: _duplicateGroups.length,
-              itemBuilder: (context, index) {
-                final group = _duplicateGroups[index];
-                final firstItem = group.first;
-                final totalGroupSize = group.fold<int>(0, (sum, item) => sum + (item['size'] as num).toInt());
-                final formattedGroupSize = ByteFormatter.format(totalGroupSize);
-
-                final name = firstItem['name']?.toString() ?? '';
-                final ext = name.contains('.') ? name.split('.').last : 'other';
-
-                return Container(
-                  margin: EdgeInsets.only(bottom: 16.h),
-                  decoration: BoxDecoration(
-                    color: cardBgColor,
-                    borderRadius: BorderRadius.circular(16.r),
-                    border: Border.all(color: borderColor, width: 1.2.r),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Group Header
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 12.h),
-                        child: Row(
-                          children: [
-                            FileTypeIcon(
-                              extension: ext,
-                              path: firstItem['path']?.toString(),
-                              size: 32.r,
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    name,
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w700,
-                                      color: headerColor,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  SizedBox(height: 2.h),
-                                  Text(
-                                    '${group.length} duplicates • Total: $formattedGroupSize',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 11.sp,
-                                      color: isDark ? Colors.white54 : Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1, color: Colors.white10),
-                      // Duplicate Instances
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: group.length,
-                        itemBuilder: (context, itemIndex) {
-                          final item = group[itemIndex];
-                          final fid = (item['fid'] as num).toInt();
-                          final isSelected = _selectedFids.contains(fid);
-                          final path = item['path'] as String? ?? '';
-                          final isOriginal = itemIndex == 0;
-
-                          return InkWell(
-                            onTap: () => _toggleSelection(fid),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                              child: Row(
-                                children: [
-                                  // Custom modern checkbox
-                                  Container(
-                                    width: 20.r,
-                                    height: 20.r,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? AppColors.mintAccent
-                                            : (isDark ? Colors.white24 : Colors.black26),
-                                        width: 1.5.r,
-                                      ),
-                                      color: isSelected
-                                          ? AppColors.mintAccent
-                                          : Colors.transparent,
-                                    ),
-                                    child: isSelected
-                                        ? Icon(
-                                            Icons.check,
-                                            size: 12.r,
-                                            color: Colors.black,
-                                          )
-                                        : null,
-                                  ),
-                                  SizedBox(width: 14.w),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          path,
-                                          style: TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 12.sp,
-                                            color: isDark ? Colors.white70 : Colors.black87,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        SizedBox(height: 4.h),
-                                        Row(
-                                          children: [
-                                            if (isOriginal) ...[
-                                              Container(
-                                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.mintAccent.withValues(alpha: 0.15),
-                                                  borderRadius: BorderRadius.circular(4.r),
-                                                ),
-                                                child: const Text(
-                                                  'Original',
-                                                  style: TextStyle(
-                                                    fontFamily: 'Inter',
-                                                    fontSize: 9,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: AppColors.mintAccent,
-                                                  ),
-                                                ),
-                                              ),
-                                              SizedBox(width: 6.w),
-                                            ],
-                                            Text(
-                                              'Modified: ${DateFormatter.formatFriendly(DateTime.fromMillisecondsSinceEpoch((item['mtime'] as num).toInt() * 1000))}',
-                                              style: TextStyle(
-                                                fontFamily: 'Inter',
-                                                fontSize: 10.sp,
-                                                color: isDark ? Colors.white38 : Colors.black38,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
             ),
-          
-          // Bottom action button overlay
-          if (!_isLoading && _selectedFids.isNotEmpty)
-            Positioned(
-              left: 16.w,
-              right: 16.w,
-              bottom: 16.h,
-              child: SafeArea(
-                child: GestureDetector(
-                  onTap: _pruneSelected,
-                  child: Container(
-                    height: 52.h,
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      borderRadius: BorderRadius.circular(26.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.redAccent.withValues(alpha: 0.3),
-                          blurRadius: 16.r,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Prune Selected ($formattedBytes)',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
+
+            // Large Title
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
+              child: Text(
+                'Similar',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 32.sp,
+                  fontWeight: FontWeight.w800,
+                  color: headerColor,
+                  letterSpacing: -0.5,
                 ),
               ),
             ),
-        ],
+
+            // Main duplicates content area
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.mintAccent))
+                  : _duplicateGroups.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline_rounded,
+                                size: 64.r,
+                                color: AppColors.mintAccent.withValues(alpha: 0.5),
+                              ),
+                              SizedBox(height: 16.h),
+                              Text(
+                                'No duplicate photos found!',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: headerColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: _duplicateGroups.length,
+                          itemBuilder: (context, index) {
+                            final group = _duplicateGroups[index];
+                            final totalGroupSize = group.fold<int>(0, (sum, item) => sum + (item['size'] as num).toInt());
+                            
+                            // Check if all duplicates in this group are selected
+                            final duplicateFids = group.sublist(1).map((item) => (item['fid'] as num).toInt());
+                            final allGroupDuplicatesSelected = duplicateFids.every((fid) => _selectedFids.contains(fid));
+
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 20.h),
+                              padding: EdgeInsets.all(16.r),
+                              decoration: BoxDecoration(
+                                color: cardBgColor,
+                                borderRadius: BorderRadius.circular(24.r),
+                                border: Border.all(color: borderColor, width: 1.2.r),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Card Top info row
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // Circle item count badge
+                                      Container(
+                                        width: 28.r,
+                                        height: 28.r,
+                                        decoration: BoxDecoration(
+                                          color: isDark ? Colors.white10 : Colors.black12,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          '${group.length}',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 13.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: headerColor,
+                                          ),
+                                        ),
+                                      ),
+                                      // Select All/Deselect group duplicates button
+                                      GestureDetector(
+                                        onTap: () => _toggleGroupSelection(group),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? Colors.white10 : Colors.black12,
+                                            borderRadius: BorderRadius.circular(12.r),
+                                          ),
+                                          child: Text(
+                                            allGroupDuplicatesSelected ? 'Deselect all' : 'Select all',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 11.sp,
+                                              fontWeight: FontWeight.w700,
+                                              color: headerColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 14.h),
+
+                                  // Grid layout for thumbnails
+                                  GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 10.w,
+                                      mainAxisSpacing: 10.h,
+                                    ),
+                                    itemCount: group.length,
+                                    itemBuilder: (context, itemIndex) {
+                                      final item = group[itemIndex];
+                                      final fid = (item['fid'] as num).toInt();
+                                      final isOriginal = itemIndex == 0;
+                                      final isSelected = _selectedFids.contains(fid);
+
+                                      return GestureDetector(
+                                        onTap: () {
+                                          if (!isOriginal) {
+                                            _toggleSelection(fid);
+                                          }
+                                        },
+                                        child: _buildFileThumbnail(item, isOriginal, isSelected),
+                                      );
+                                    },
+                                  ),
+                                  SizedBox(height: 10.h),
+                                  Text(
+                                    'Group Size: ${ByteFormatter.format(totalGroupSize)}',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 11.sp,
+                                      color: isDark ? Colors.white38 : Colors.black38,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+            ),
+
+            // Bottom action layout
+            if (!_isLoading && _duplicateGroups.isNotEmpty)
+              Container(
+                padding: EdgeInsets.all(20.r),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.neutral950 : AppColors.neutral50,
+                  border: Border(
+                    top: BorderSide(color: borderColor, width: 1.0.r),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '${_selectedFids.length} photos ${ByteFormatter.format(_calculateSelectedSize())}',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white54 : Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    GestureDetector(
+                      onTap: _pruneSelected,
+                      child: Container(
+                        height: 54.h,
+                        decoration: BoxDecoration(
+                          color: AppColors.mintAccent,
+                          borderRadius: BorderRadius.circular(27.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.mintAccent.withValues(alpha: 0.25),
+                              blurRadius: 16.r,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Delete Selected',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
