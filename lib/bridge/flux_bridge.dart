@@ -688,6 +688,45 @@ class FluxBridge {
     }
   }
 
+  /// Parse ODT paragraphs and headings.
+  static Future<String> parseOdt(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('parseOdt', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: parseOdt() -> $e');
+      return '[]';
+    }
+  }
+
+  /// Parse ODS spreadsheet grid content.
+  static Future<String> parseOds(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('parseOds', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: parseOds() -> $e');
+      return '{}';
+    }
+  }
+
+  /// Parse RTF documents.
+  static Future<String> parseRtf(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('parseRtf', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: parseRtf() -> $e');
+      return '[]';
+    }
+  }
+
   /// Parse XLSX sheet cells into structured JSON cell coordinates mapping.
   static Future<String> parseXlsx(String filePath) async {
     try {

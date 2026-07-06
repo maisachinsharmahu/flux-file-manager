@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'file_format.dart';
-import 'screens/unknown_file_screen.dart';
 import 'screens/image_viewer_screen.dart';
 import 'screens/video_player_screen.dart';
 import 'screens/audio_player_screen.dart';
@@ -61,10 +60,12 @@ class ViewerRouter extends StatelessWidget {
           XlsxViewerScreen(path: path, title: title),
         FileFormat.pptx || FileFormat.ppt =>
           PptxViewerScreen(path: path, title: title),
-        FileFormat.odt || FileFormat.ods =>
-          UnknownFileScreen(path: path, format: format, title: title, phase: 'V5'),
+        FileFormat.odt =>
+          OdtViewerScreen(path: path, title: title),
+        FileFormat.ods =>
+          OdsViewerScreen(path: path, title: title),
         FileFormat.rtf =>
-          UnknownFileScreen(path: path, format: format, title: title, phase: 'V5'),
+          RtfViewerScreen(path: path, title: title),
 
         // ── Images ────────────────────────────────────────────────────────────
         FileFormat.jpeg || FileFormat.png || FileFormat.webp || FileFormat.gif ||

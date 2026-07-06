@@ -545,6 +545,33 @@ class MainActivity : FlutterActivity() {
                                 runOnUiThread { result.error("OFFICE_ERROR", e.message, null) }
                             }
                         }
+                        "parseOdt" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.office.OfficeParser.parseOdt(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("OFFICE_ERROR", e.message, null) }
+                            }
+                        }
+                        "parseOds" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.office.OfficeParser.parseOds(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("OFFICE_ERROR", e.message, null) }
+                            }
+                        }
+                        "parseRtf" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.office.OfficeParser.parseRtf(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("OFFICE_ERROR", e.message, null) }
+                            }
+                        }
                         "getSqliteTables" -> {
                             val filePath = call.argument<String>("path") ?: ""
                             try {

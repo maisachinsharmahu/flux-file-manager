@@ -240,7 +240,212 @@ object OfficeParser {
         return "[${slidesList.joinToString(",")}]"
     }
 
+    /**
+     * Parse ODT (OpenDocument Text) paragraphs and headings.
+     * Maps to the DOCX schema so we can reuse DocxViewerScreen directly.
+     */
+    fun parseOdt(filePath: String): String {
+        val zip = ZipFile(filePath)
+        val entry = zip.getEntry("content.xml") ?: return "[]"
+        
+        val list = ArrayList<String>()
+        val parser = Xml.newPullParser()
+        parser.setInput(zip.getInputStream(entry), "UTF-8")
+
+        var eventType = parser.eventType
+        var inParagraph = false
+        val currentParagraphRuns = ArrayList<String>()
+
+        while (eventType != XmlPullParser.END_DOCUMENT) {
+            val name = parser.name
+            when (eventType) {
+                XmlPullParser.START_TAG -> {
+                    if (name == "text:p" || name == "text:h") {
+                        inParagraph = true
+                        currentParagraphRuns.clear()
+                    }
+                }
+                XmlPullParser.TEXT -> {
+                    if (inParagraph) {
+                        val text = parser.text ?: ""
+                        if (text.trim().isNotEmpty()) {
+                            val cleanText = escapeJson(text)
+                            val runJson = """{"text":"$cleanText","b":false,"i":false,"u":false,"color":null}"""
+                            currentParagraphRuns.add(runJson)
+                        }
+                    }
+                }
+                XmlPullParser.END_TAG -> {
+                    if (name == "text:p" || name == "text:h") {
+                        inParagraph = false
+                        val runsStr = currentParagraphRuns.joinToString(",")
+                        val pJson = """{"type":"p","align":null,"runs":[$runsStr]}"""
+                        list.add(pJson)
+                        currentParagraphRuns.clear()
+                    }
+                }
+            }
+            eventType = parser.next()
+        }
+
+        zip.close()
+        return "[${list.joinToString(",")}]"
+    }
+
+    /**
+     * Parse ODS (OpenDocument Spreadsheet) grids.
+     * Maps to the XLSX schema so we can reuse XlsxViewerScreen directly.
+     */
+    fun parseOds(filePath: String): String {
+        val zip = ZipFile(filePath)
+        val entry = zip.getEntry("content.xml") ?: return "{}"
+        
+        val cellsList = ArrayList<String>()
+        val parser = Xml.newPullParser()
+        parser.setInput(zip.getInputStream(entry), "UTF-8")
+
+        var eventType = parser.eventType
+        var currentRow = 0
+        var currentCol = 0
+        var maxRow = 0
+        var maxCol = 0
+        var inCell = false
+        var cellText = java.lang.StringBuilder()
+        var cellRepeated = 1
+
+        while (eventType != XmlPullParser.END_DOCUMENT) {
+            val name = parser.name
+            when (eventType) {
+                XmlPullParser.START_TAG -> {
+                    when (name) {
+                        "table:table-row" -> {
+                            currentCol = 0
+                        }
+                        "table:table-cell" -> {
+                            inCell = true
+                            cellText.setLength(0)
+                            
+                            val repeatedStr = parser.getAttributeValue("urn:oasis:names:tc:opendocument:xmlns:table:1.0", "number-columns-repeated")
+                                ?: parser.getAttributeValue(null, "number-columns-repeated")
+                            cellRepeated = repeatedStr?.toIntOrNull() ?: 1
+                            
+                            if (currentRow > maxRow) maxRow = currentRow
+                            if (currentCol > maxCol) maxCol = currentCol
+                        }
+                    }
+                }
+                XmlPullParser.TEXT -> {
+                    if (inCell) {
+                        cellText.append(parser.text ?: "")
+                    }
+                }
+                XmlPullParser.END_TAG -> {
+                    when (name) {
+                        "table:table-cell" -> {
+                            inCell = false
+                            val value = cellText.toString().trim()
+                            if (value.isNotEmpty()) {
+                                val ref = getCellRef(currentCol, currentRow)
+                                val cleanValue = escapeJson(value)
+                                cellsList.add("\"$ref\":\"$cleanValue\"")
+                            }
+                            currentCol += cellRepeated
+                        }
+                        "table:table-row" -> {
+                            currentRow++
+                        }
+                    }
+                }
+            }
+            eventType = parser.next()
+        }
+
+        zip.close()
+        val cellsStr = cellsList.joinToString(",")
+        return """{"maxRow":$maxRow,"maxCol":$maxCol,"cells":{$cellsStr}}"""
+    }
+
+    /**
+     * Parse RTF (Rich Text Format) documents.
+     * Decodes and parses simple text structure matching the DOCX view format.
+     */
+    fun parseRtf(filePath: String): String {
+        val file = java.io.File(filePath)
+        if (!file.exists()) return "[]"
+        
+        val content = file.readText(Charsets.UTF_8)
+        val list = ArrayList<String>()
+        val sb = java.lang.StringBuilder()
+        var i = 0
+        val n = content.length
+        
+        while (i < n) {
+            val char = content[i]
+            if (char == '\\') {
+                i++
+                if (i < n) {
+                    val nextChar = content[i]
+                    if (nextChar == '\\' || nextChar == '{' || nextChar == '}') {
+                        sb.append(nextChar)
+                        i++
+                    } else if (nextChar.isLetter()) {
+                        val word = java.lang.StringBuilder()
+                        while (i < n && content[i].isLetter()) {
+                            word.append(content[i])
+                            i++
+                        }
+                        if (i < n && (content[i].isDigit() || content[i] == '-')) {
+                            while (i < n && (content[i].isDigit() || content[i] == '-')) {
+                                i++
+                            }
+                        }
+                        if (i < n && content[i] == ' ') {
+                            i++
+                        }
+                        
+                        val control = word.toString()
+                        if (control == "par" || control == "line") {
+                            val text = sb.toString().trim()
+                            if (text.isNotEmpty()) {
+                                val cleanText = escapeJson(text)
+                                list.add("""{"type":"p","runs":[{"text":"$cleanText","b":false,"i":false,"u":false,"color":null}]}""")
+                            }
+                            sb.setLength(0)
+                        }
+                    } else {
+                        i++
+                    }
+                }
+            } else if (char == '{' || char == '}') {
+                i++
+            } else if (char == '\n' || char == '\r') {
+                i++
+            } else {
+                sb.append(char)
+                i++
+            }
+        }
+        
+        val remainingText = sb.toString().trim()
+        if (remainingText.isNotEmpty()) {
+            val cleanText = escapeJson(remainingText)
+            list.add("""{"type":"p","runs":[{"text":"$cleanText","b":false,"i":false,"u":false,"color":null}]}""")
+        }
+        
+        return "[${list.joinToString(",")}]"
+    }
+
     // ── Helper parsing methods ───────────────────────────────────────────────
+
+    private fun getCellRef(col: Int, row: Int): String {
+        var c = col
+        val colLabel = java.lang.StringBuilder()
+        while (c >= 0) {
+            colLabel.insert(0, ('A'.code + (c % 26)).toChar())
+            c = (c / 26) - 1
+        }
+        return "$colLabel${row + 1}"
+    }
 
     private fun parseCellRef(ref: String): Pair<Int, Int> {
         var col = 0
