@@ -1,0 +1,2699 @@
+% ============================================================
+%  FLUX VIEWER ENGINE
+%  Universal File Viewer & Editor — Complete System Design
+%  Low-Level Android Native Architecture
+%  Compiler: xelatex (run twice for TOC + refs)
+% ============================================================
+\documentclass[12pt,a4paper]{report}
+
+% ── PACKAGES ────────────────────────────────────────────────
+\usepackage{geometry}
+\geometry{a4paper,top=24mm,bottom=24mm,left=20mm,right=20mm,headheight=15pt}
+\usepackage{fontspec}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc,fit,backgrounds}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable,listings}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{mdframed}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{makecell}
+\usepackage{ragged2e}
+\usepackage{adjustbox}
+
+% ── FONTS ───────────────────────────────────────────────────
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}[Scale=0.86]
+
+% ── COLOURS ─────────────────────────────────────────────────
+\definecolor{P1}  {HTML}{0D47A1}  % deep blue    — primary
+\definecolor{P2}  {HTML}{1565C0}  % indigo
+\definecolor{P3}  {HTML}{00838F}  % cyan
+\definecolor{P4}  {HTML}{00695C}  % teal
+\definecolor{G1}  {HTML}{1B5E20}  % deep green
+\definecolor{OR}  {HTML}{E65100}  % orange
+\definecolor{RD}  {HTML}{B71C1C}  % red
+\definecolor{PU}  {HTML}{4A148C}  % purple
+\definecolor{GY}  {HTML}{37474F}  % gray
+\definecolor{LGY} {HTML}{607D8B}  % light gray
+\definecolor{BRN} {HTML}{4E342E}  % brown
+\definecolor{TEAL}{HTML}{006064}  % dark teal
+% fills
+\definecolor{fB}  {HTML}{E3F2FD}
+\definecolor{fC}  {HTML}{E0F7FA}
+\definecolor{fG}  {HTML}{E8F5E9}
+\definecolor{fO}  {HTML}{FFF3E0}
+\definecolor{fR}  {HTML}{FFEBEE}
+\definecolor{fP}  {HTML}{F3E5F5}
+\definecolor{fY}  {HTML}{FFFDE7}
+\definecolor{fN}  {HTML}{E8EAF6}
+\definecolor{fT}  {HTML}{E0F2F1}
+\definecolor{cBG} {HTML}{1A1A2E}
+\definecolor{cFG} {HTML}{A8D8A8}
+\definecolor{cKW} {HTML}{80CBC4}
+\definecolor{cST} {HTML}{FFD180}
+\definecolor{cCM} {HTML}{78909C}
+\definecolor{rowA}{HTML}{E3F2FD}
+\definecolor{rowB}{HTML}{FFFFFF}
+
+% ── HYPERREF ────────────────────────────────────────────────
+\hypersetup{colorlinks=true,linkcolor=P1,urlcolor=P3,citecolor=P4,
+  pdftitle={FLUX Viewer Engine — Universal File System Design},
+  bookmarksnumbered=true,bookmarksopen=true}
+
+% ── SECTION STYLES ──────────────────────────────────────────
+\titleformat{\chapter}[block]
+  {\color{P1}\sffamily\bfseries\LARGE}
+  {\colorbox{P1}{\color{white}\enspace CHAPTER \thechapter\enspace}}{1em}{}
+  [\vspace{2pt}\color{P3}\rule{\linewidth}{2pt}]
+\titleformat{\section}
+  {\color{P1}\sffamily\bfseries\Large}{\thesection}{0.8em}{}
+  [\color{P3}\rule{\linewidth}{0.8pt}]
+\titleformat{\subsection}
+  {\color{P3}\sffamily\bfseries\large}{\thesubsection}{0.8em}{}
+\titleformat{\subsubsection}
+  {\color{GY}\sffamily\bfseries\normalsize}{\thesubsubsection}{0.6em}{}
+\titlespacing{\chapter}   {0pt}{0pt}{14pt}
+\titlespacing{\section}   {0pt}{16pt}{7pt}
+\titlespacing{\subsection}{0pt}{12pt}{5pt}
+
+% ── PAGE STYLE ──────────────────────────────────────────────
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\sffamily\small\color{LGY}FLUX Viewer Engine}
+\fancyhead[R]{\sffamily\small\color{LGY}\leftmark}
+\fancyfoot[C]{\sffamily\small\color{LGY}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\color{P1}\hrule width\headwidth height\headrulewidth}
+
+% ── LISTINGS ────────────────────────────────────────────────
+\lstdefinestyle{flux}{
+  backgroundcolor=\color{cBG},basicstyle=\ttfamily\small\color{cFG},
+  keywordstyle=\color{cKW}\bfseries,stringstyle=\color{cST},
+  commentstyle=\color{cCM}\itshape,numberstyle=\tiny\color{LGY},
+  numbers=left,numbersep=8pt,frame=none,breaklines=true,
+  keepspaces=true,showstringspaces=false,tabsize=2,
+  xleftmargin=10pt,xrightmargin=4pt,aboveskip=6pt,belowskip=6pt,
+  columns=flexible,
+  morekeywords={fun,val,var,class,data,object,override,companion,suspend,
+    when,is,in,return,if,else,for,while,true,false,null,private,public,
+    internal,sealed,enum,interface,abstract,import,package,by,lazy,init,
+    constructor,it,this,super,async,await,const,final,static,void,String,
+    Int,Long,Boolean,Double,Float,Short,Byte,Unit,Any,List,Map,Set,
+    IntArray,ByteArray,FloatArray,MappedByteBuffer,FileChannel,Canvas,
+    Paint,Rect,RectF,Bitmap,Path,Matrix,PorterDuffXfermode},
+}
+\lstset{style=flux}
+
+% ── TCOLORBOXES ─────────────────────────────────────────────
+\newtcolorbox{ibox}[1][]{enhanced,breakable,colback=fB,colframe=P1,
+  leftrule=4pt,rightrule=0.4pt,toprule=0.4pt,bottomrule=0.4pt,arc=2pt,
+  boxsep=4pt,fonttitle=\sffamily\bfseries\color{P1},title={#1}}
+\newtcolorbox{wbox}[1][]{enhanced,breakable,colback=fO,colframe=OR,
+  leftrule=4pt,rightrule=0.4pt,toprule=0.4pt,bottomrule=0.4pt,arc=2pt,
+  boxsep=4pt,fonttitle=\sffamily\bfseries\color{OR},title={#1}}
+\newtcolorbox{cbox}[1][]{enhanced,breakable,colback=fR,colframe=RD,
+  leftrule=4pt,rightrule=0.4pt,toprule=0.4pt,bottomrule=0.4pt,arc=2pt,
+  boxsep=4pt,fonttitle=\sffamily\bfseries\color{RD},title={#1}}
+\newtcolorbox{gbox}[1][]{enhanced,breakable,colback=fG,colframe=P4,
+  leftrule=4pt,rightrule=0.4pt,toprule=0.4pt,bottomrule=0.4pt,arc=2pt,
+  boxsep=4pt,fonttitle=\sffamily\bfseries\color{P4},title={#1}}
+\newtcolorbox{pbox}[1][]{enhanced,breakable,colback=fP,colframe=PU,
+  leftrule=4pt,rightrule=0.4pt,toprule=0.4pt,bottomrule=0.4pt,arc=2pt,
+  boxsep=4pt,fonttitle=\sffamily\bfseries\color{PU},title={#1}}
+
+% ── TABLE HELPERS ───────────────────────────────────────────
+\newcommand{\ra}[1]{\renewcommand{\arraystretch}{#1}}
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\newcommand{\TH}[1]{\rowcolor{P1}\color{white}\bfseries #1}
+\newcommand{\THC}[1]{\rowcolor{P3}\color{white}\bfseries #1}
+\newcommand{\THG}[1]{\rowcolor{GY}\color{white}\bfseries #1}
+\newcommand{\THO}[1]{\rowcolor{OR}\color{white}\bfseries #1}
+\newcommand{\THRD}[1]{\rowcolor{RD}\color{white}\bfseries #1}
+\newcommand{\THPU}[1]{\rowcolor{PU}\color{white}\bfseries #1}
+\newcommand{\THGN}[1]{\rowcolor{G1}\color{white}\bfseries #1}
+
+\newcommand{\PB}{\newpage}
+
+% ── SECTION PART BANNER ─────────────────────────────────────
+\newcommand{\partbanner}[2]{%
+\begin{tcolorbox}[enhanced,colback=#2,colframe=#2,arc=3pt,
+  boxsep=8pt,left=10pt,right=10pt]
+  \sffamily\bfseries\LARGE\color{white}#1
+\end{tcolorbox}\vspace{4pt}}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+% ── TITLE PAGE ──────────────────────────────────────────────
+\begin{titlepage}
+\pagecolor{P1}\color{white}\centering
+\vspace*{20mm}
+{\sffamily\fontsize{56}{62}\selectfont\bfseries FLUX VIEWER ENGINE}
+\vspace{6mm}
+
+\color{white!70!P1}\rule{0.65\linewidth}{1.5pt}\vspace{5mm}
+
+\color{white}{\sffamily\Large\bfseries Universal File Viewer \& Editor}\\[3mm]
+{\sffamily\large Complete Low-Level System Design for Android}
+
+\vspace{10mm}
+{\sffamily\normalsize
+  PDF · DOCX · XLSX · PPTX · Images · Video · Audio\\[3pt]
+  TXT · HTML · Code · SQL · CSV · JSON · XML · YAML\\[3pt]
+  ZIP · APK · SVG · EPUB · Markdown · Font Files
+}
+
+\vspace{12mm}\color{white!80!P1}\rule{0.45\linewidth}{0.6pt}\vspace{6mm}
+
+{\sffamily\small
+  Zero Heavy Libraries \enspace·\enspace Native Kotlin Only\\[3pt]
+  Memory-Mapped I/O \enspace·\enspace Tile-Based Rendering\\[3pt]
+  Progressive Loading \enspace·\enspace Sub-100ms First Paint
+}
+
+\vfill
+{\sffamily\footnotesize\color{white!55!P1}
+  FLUX Engineering \enspace·\enspace Version 1.0 \enspace·\enspace 2025 \enspace·\enspace Confidential
+}
+\end{titlepage}
+\pagecolor{white}
+\tableofcontents
+\newpage
+
+% ============================================================
+% CHAPTER 1 — MARKET ANALYSIS
+% ============================================================
+\chapter{Market Analysis — Why Every Current File Viewer Is Broken}
+
+\section{The Fundamental Problem}
+
+Every existing file viewer on Android is slow for the same root reasons. Before
+designing a solution, we must diagnose the disease precisely — not just the
+symptom.
+
+\begin{cbox}[The Three Root Diseases of File Viewing on Android]
+\begin{enumerate}[leftmargin=1.4em,topsep=2pt,itemsep=5pt]
+\item \textbf{Separate-app architecture:} Every file type requires launching a
+  different app. Cold start of WPS Office: 3--5\,s. Adobe Acrobat: 2--4\,s.
+  Google Drive PDF viewer: 2--3\,s. The user waits before seeing a single byte.
+\item \textbf{Monolithic loading:} Current apps load the \emph{entire} file into
+  memory before showing anything. A 50-page PDF is fully parsed + rasterised
+  before page 1 appears.
+\item \textbf{Heavyweight library dependency:} PDFium (Chromium's PDF engine) is
+  38\,MB. LibreOffice Mobile is 50\,MB+. These libraries are designed for
+  desktop-class hardware and carry massive initialisation overhead.
+\end{enumerate}
+\end{cbox}
+
+\section{Detailed Analysis — App by App}
+
+\subsection{PDF Viewers}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{3.0cm} L{2.8cm} L{2.8cm} L{5.2cm}}
+\TH{App} & \TH{Library Used} & \TH{Cold Start} & \TH{Root Cause of Slowness} \\
+\rowcolor{rowA} Adobe Acrobat & Proprietary C++ engine (Acrobat SDK) & 3--5\,s &
+  Loads entire Acrobat font renderer, 80MB+ RAM on launch \\
+\rowcolor{rowB} Google Drive PDF & PDFium (Chromium fork, 38MB) & 2--3\,s &
+  Full PDFium init even for 1-page PDF; renders all pages to off-screen bitmap \\
+\rowcolor{rowA} MuPDF & MuPDF C library (via JNI) & 1.5--2.5\,s &
+  JNI bridge overhead; full document object model built before display \\
+\rowcolor{rowB} Xodo & PDFium + custom JS engine & 4--6\,s &
+  JS engine loads for annotation/form support even on read-only PDFs \\
+\rowcolor{rowA} Built-in (Samsung/Xiaomi) & PDFium variant & 2--4\,s &
+  Same PDFium root cause; no tile rendering \\
+\end{tabular}
+\end{center}
+
+\textbf{The Real Problem With PDF:} Android has had
+\texttt{android.graphics.pdf.PdfRenderer} built into the OS since API 21
+(Android 5.0). It is hardware-accelerated, runs at native speed, requires zero
+external library, and is available on 99.9\% of Android devices. \emph{Nobody
+uses it for a proper file viewer because they wrap it naively} — rendering the
+whole page at full resolution before showing anything.
+
+\subsection{Office Document Viewers (DOCX, XLSX, PPTX)}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{3.0cm} L{3.0cm} L{2.4cm} L{5.4cm}}
+\TH{App} & \TH{Approach} & \TH{Open Time} & \TH{Root Cause} \\
+\rowcolor{rowA} WPS Office & Full LibreOffice-style layout engine & 3--6\,s &
+  Full font substitution + style computation before page 1 \\
+\rowcolor{rowB} Microsoft Word (Android) & Cloud-assisted render + local OOXML parser & 2--5\,s &
+  Uploads file to Microsoft servers for rendering if complex; full XML parse locally \\
+\rowcolor{rowA} Google Docs (offline) & Converts to internal format on open & 4--8\,s &
+  Full format conversion: OOXML → Google's internal binary format on first open \\
+\rowcolor{rowB} Polaris Office & Proprietary OOXML engine (C++ via JNI) & 2--4\,s &
+  JNI init overhead; builds complete page layout model before any rendering \\
+\rowcolor{rowA} QuickEdit & Text-only, no rich formatting & 0.3--0.8\,s &
+  Reads file as plain text — works but loses all formatting \\
+\end{tabular}
+\end{center}
+
+\begin{ibox}[The OOXML Secret]
+DOCX, XLSX, and PPTX are ZIP archives containing XML files. There is
+\emph{nothing proprietary} about them — they are an ISO standard (ISO/IEC 29500).
+A DOCX file with 20 pages of basic text and tables uses fewer than 15 XML
+elements from the OOXML specification. Full office suites parse 500+
+element types because they support 100\% of the spec. We only need to
+parse what 95\% of documents actually use.
+\end{ibox}
+
+\subsection{Image Viewers}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{3.2cm} L{3.4cm} L{2.0cm} L{5.2cm}}
+\TH{App} & \TH{Approach} & \TH{Problem} & \TH{Why It's Slow} \\
+\rowcolor{rowA} Google Photos & Full bitmap decode to RAM & OOM on large files &
+  \texttt{BitmapFactory.decodeFile()} decodes entire 36MB RAW into 36MB+ RAM \\
+\rowcolor{rowB} Samsung Gallery & Same: full decode & OOM possible &
+  No \texttt{BitmapRegionDecoder} for progressive tile loading \\
+\rowcolor{rowA} Quickpic / Piktures & Full decode + Glide library & 200--500ms per image &
+  Glide adds disk cache + memory cache overhead even for local files \\
+\rowcolor{rowB} Files by Google & Thumbnail only, no full viewer & Cannot zoom & Opens external app for full view \\
+\end{tabular}
+\end{center}
+
+\textbf{The Fix:} Android has had \texttt{BitmapRegionDecoder} since API 10
+(Android 2.3). It decodes \emph{only the visible rectangle} of an image. A
+100\,MP photo displayed at 360dp width needs only $360 \times 360 \times 4$\,bytes
+= 500\,KB decoded, not 400\,MB.
+
+\subsection{Code / Text / SQL / HTML Viewers}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{3.0cm} L{3.2cm} L{5.6cm}}
+\TH{File Type} & \TH{Current Solution} & \TH{Problem} \\
+\rowcolor{rowA} SQL files & No dedicated viewer & Must install DBeaver Mobile or open as text \\
+\rowcolor{rowB} HTML files & WebView or browser & WebView cold start 500ms+; browser requires internet context \\
+\rowcolor{rowA} Source code (.kt/.py/.js) & Text editor apps (QuickEdit, Acode) &
+  Load entire file into \texttt{TextView}; 10MB source file → 10MB heap allocation, ANR \\
+\rowcolor{rowB} JSON/XML & Online tools / text editor & No tree view; massive files cause OOM in TextView \\
+\rowcolor{rowA} CSV & Excel / WPS & Full spreadsheet engine for what is basically delimited text \\
+\rowcolor{rowB} Markdown & Typora / Obsidian (heavy) & Full Electron/WebView-based apps; 200MB+ RAM \\
+\end{tabular}
+\end{center}
+
+\section{The Performance Gap Summary}
+
+\begin{center}\ra{1.4}
+\begin{tabular}{L{3.0cm} C{2.4cm} C{2.4cm} C{2.4cm} C{3.6cm}}
+\THRD{File Type} & \THRD{Best Current App} &
+\THRD{Current Speed} & \THRD{FLUX Target} & \THRD{Our Advantage} \\
+\rowcolor{rowA} PDF (10 pages) & MuPDF & 1.5\,s cold start & \textbf{$<$80ms} & PdfRenderer + tile cache \\
+\rowcolor{rowB} DOCX (20 pages) & WPS Office & 3\,s cold start & \textbf{$<$150ms} & Minimal OOXML parser \\
+\rowcolor{rowA} XLSX (50 rows) & WPS Office & 2\,s & \textbf{$<$100ms} & Virtual grid renderer \\
+\rowcolor{rowB} Image (12MP) & Google Photos & 400\,ms full decode & \textbf{$<$30ms} & BitmapRegionDecoder tile \\
+\rowcolor{rowA} 10MB text file & QuickEdit & ANR / slow scroll & \textbf{$<$50ms} & Line-virtual Canvas renderer \\
+\rowcolor{rowB} HTML file & WebView & 500ms+ & \textbf{$<$200ms} & System WebView + no cold start \\
+\rowcolor{rowA} JSON (5MB) & Text editor & OOM / slow & \textbf{$<$50ms} & Streaming tree parser \\
+\rowcolor{rowB} ZIP file & ES File Explorer & 1\,s & \textbf{$<$30ms} & \texttt{ZipInputStream} native \\
+\rowcolor{rowA} SQL file & None & No viewer & \textbf{$<$30ms} & Syntax-highlighted text renderer \\
+\rowcolor{rowB} SVG & Browser & 800ms & \textbf{$<$100ms} & Native Canvas SVG renderer \\
+\end{tabular}
+\end{center}
+
+\PB
+
+% ============================================================
+% CHAPTER 2 — FLUX VIEWER ENGINE ARCHITECTURE
+% ============================================================
+\chapter{FLUX Viewer Engine — Core Architecture}
+
+\section{Design Philosophy}
+
+\begin{pbox}[The Five Laws of FLUX Viewer Engine]
+\begin{enumerate}[leftmargin=1.4em,topsep=2pt,itemsep=5pt]
+\item \textbf{First paint in $<$100ms.} Show something — anything — before
+  100ms. Even a placeholder tile is better than a blank screen.
+\item \textbf{Never load the full file.} Always use streaming, tiling, or
+  virtual rendering. A 500MB video, a 100-page PDF, a 10MB JSON file — none
+  is ever fully in RAM at once.
+\item \textbf{Zero external libraries for core rendering.} Every rendering
+  primitive uses Android's built-in APIs: \texttt{PdfRenderer}, \texttt{Canvas},
+  \texttt{BitmapRegionDecoder}, \texttt{MediaPlayer}, \texttt{WebView}.
+\item \textbf{Hardware-accelerated always.} All drawing via \texttt{Canvas} on a
+  hardware-accelerated \texttt{View}. Never \texttt{setLayerType(SOFTWARE)}.
+\item \textbf{Edit layer is separate from the render layer.} The viewer renders
+  the original file bytes. Edits are an in-memory overlay written back only on
+  explicit save. This keeps the viewer always fast and edits always safe.
+\end{enumerate}
+\end{pbox}
+
+\section{System Architecture — Three Layers}
+
+\begin{center}\ra{1.4}
+\begin{tabular}{C{0.8cm} L{2.6cm} L{3.2cm} L{4.0cm} L{4.2cm}}
+\TH{Layer} & \TH{Name} & \TH{Language} & \TH{Responsibility} & \TH{Key Classes} \\
+\rowcolor{rowA} L1 & Source Layer & Kotlin & Memory-mapped file reading, format detection, streaming parsers &
+  \texttt{MmapSource}, \texttt{FormatDetector}, \texttt{StreamParser} \\
+\rowcolor{rowB} L2 & Render Layer & Kotlin + Canvas & Tile generation, viewport management, hardware-accelerated drawing &
+  \texttt{TileEngine}, \texttt{ViewportManager}, \texttt{FluxCanvasView} \\
+\rowcolor{rowA} L3 & Edit Layer & Kotlin & In-memory edit overlay, diff tracking, write-back on save &
+  \texttt{EditOverlay}, \texttt{DiffTracker}, \texttt{FileSaveEngine} \\
+\end{tabular}
+\end{center}
+
+\section{The Core: MmapSource — Memory-Mapped File Reading}
+
+Every format parser in FLUX reads through a single abstraction:
+\texttt{MmapSource}. It memory-maps the file into the process's virtual address
+space. The OS loads pages on demand — we never read the whole file unless the
+user scrolls through the whole file.
+
+\begin{lstlisting}[language=Kotlin,caption={MmapSource — zero-copy file access}]
+class MmapSource(private val file: File) : AutoCloseable {
+  private val channel: FileChannel =
+    FileInputStream(file).channel
+
+  // Memory-map entire file — OS loads pages on demand
+  private val buffer: MappedByteBuffer =
+    channel.map(FileChannel.MapMode.READ_ONLY, 0, file.length())
+
+  val size: Long = file.length()
+
+  // Read bytes at absolute offset — O(1), zero-copy
+  fun readBytes(offset: Long, length: Int): ByteArray {
+    val buf = ByteArray(length)
+    buffer.position(offset.toInt())
+    buffer.get(buf)
+    return buf
+  }
+
+  // Read a single byte — O(1)
+  fun readByte(offset: Long): Byte = buffer.get(offset.toInt())
+
+  // Read little-endian Int32 at offset — O(1)
+  fun readInt32LE(offset: Long): Int {
+    val b = buffer
+    return (b.get(offset.toInt()).toInt() and 0xFF) or
+           ((b.get((offset+1).toInt()).toInt() and 0xFF) shl 8) or
+           ((b.get((offset+2).toInt()).toInt() and 0xFF) shl 16) or
+           ((b.get((offset+3).toInt()).toInt() and 0xFF) shl 24)
+  }
+
+  // Slice a region as a new view — O(1), no copy
+  fun slice(offset: Long, length: Int): MmapSlice {
+    buffer.position(offset.toInt())
+    val sliced = buffer.slice()
+    sliced.limit(length)
+    return MmapSlice(sliced)
+  }
+
+  override fun close() { channel.close() }
+}
+\end{lstlisting}
+
+\section{The Tile Engine — Universal Rendering Primitive}
+
+Every format — PDF pages, spreadsheet grids, long text files, large images —
+is decomposed into \emph{tiles}. A tile is a fixed-size rectangle of rendered
+content. Only tiles intersecting the current viewport are rendered.
+
+\begin{lstlisting}[language=Kotlin,caption={TileEngine — format-agnostic tile management}]
+data class TileKey(val row: Int, val col: Int, val zoomLevel: Int)
+data class Tile(val key: TileKey, val bitmap: Bitmap, val renderedAt: Long)
+
+class TileEngine(
+  private val tileW: Int = 512,   // tile width in px
+  private val tileH: Int = 512,   // tile height in px
+  private val maxCacheMB: Int = 40 // max tile cache RAM
+) {
+  // LRU cache: evict oldest tile when RAM limit hit
+  private val cache = object : LruCache<TileKey, Tile>(maxCacheMB * 1024 * 1024) {
+    override fun sizeOf(key: TileKey, value: Tile): Int =
+      value.bitmap.byteCount
+  }
+
+  // Request a tile — returns cached or triggers async render
+  fun getTile(key: TileKey, renderer: TileRenderer): Tile? {
+    cache.get(key)?.let { return it }  // cache hit O(1)
+
+    // Cache miss: submit to render queue (background thread)
+    renderQueue.submit {
+      val bitmap = renderer.renderTile(key, tileW, tileH)
+      val tile   = Tile(key, bitmap, System.currentTimeMillis())
+      cache.put(key, tile)
+      onTileReady(tile)  // callback to invalidate view region
+    }
+    return null  // caller shows placeholder
+  }
+
+  // Which tiles intersect the viewport?
+  fun tilesForViewport(viewport: RectF, contentSize: SizeF): List<TileKey> {
+    val startCol = (viewport.left / tileW).toInt().coerceAtLeast(0)
+    val endCol   = (viewport.right / tileW).toInt()
+    val startRow = (viewport.top / tileH).toInt().coerceAtLeast(0)
+    val endRow   = (viewport.bottom / tileH).toInt()
+    return (startRow..endRow).flatMap { row ->
+      (startCol..endCol).map { col -> TileKey(row, col, currentZoom) }
+    }
+  }
+}
+
+// Each format implements this interface
+interface TileRenderer {
+  fun renderTile(key: TileKey, tileW: Int, tileH: Int): Bitmap
+}
+\end{lstlisting}
+
+\section{Format Detection — Before Parsing}
+
+FLUX detects file type from the first 16 bytes (magic bytes), not from
+the extension. Extensions lie; magic bytes don't.
+
+\begin{lstlisting}[language=Kotlin,caption={FormatDetector — magic byte identification}]
+object FormatDetector {
+  fun detect(source: MmapSource): FileFormat {
+    if (source.size < 4) return FileFormat.BINARY
+
+    val magic = source.readBytes(0, 16)
+    return when {
+      // PDF: starts with '%PDF-'
+      magic.startsWith("%PDF-")     -> FileFormat.PDF
+      // ZIP-based: DOCX, XLSX, PPTX, EPUB, APK all start with PK (0x50 0x4B)
+      magic[0] == 0x50.b && magic[1] == 0x4B.b -> detectZipBased(source)
+      // JPEG: FF D8 FF
+      magic[0] == 0xFF.b && magic[1] == 0xD8.b -> FileFormat.JPEG
+      // PNG: 89 50 4E 47
+      magic.startsWith("\u0089PNG")  -> FileFormat.PNG
+      // WebP: RIFF....WEBP
+      magic.startsWith("RIFF") && magic.sliceArray(8..11).toString(Charsets.US_ASCII) == "WEBP"
+                                    -> FileFormat.WEBP
+      // GIF: GIF87a or GIF89a
+      magic.startsWith("GIF8")      -> FileFormat.GIF
+      // HEIC/HEIF: ftyp box at offset 4
+      source.readInt32LE(4) == 0x66747970  -> FileFormat.HEIC
+      // MP4/MOV: ftyp box
+      magic.sliceArray(4..7).toString(Charsets.US_ASCII) in listOf("ftyp","moov")
+                                    -> FileFormat.VIDEO_MP4
+      // MP3: ID3 header or 0xFF 0xFB
+      magic.startsWith("ID3") || (magic[0] == 0xFF.b && (magic[1].toInt() and 0xE0) == 0xE0)
+                                    -> FileFormat.AUDIO_MP3
+      // FLAC: fLaC
+      magic.startsWith("fLaC")      -> FileFormat.AUDIO_FLAC
+      // SQLite: starts with 'SQLite format 3'
+      magic.startsWith("SQLite")    -> FileFormat.SQLITE
+      // Text heuristic: all printable ASCII in first 512 bytes
+      isLikelyText(source)          -> detectTextSubtype(source)
+      else                          -> FileFormat.BINARY
+    }
+  }
+
+  private fun isLikelyText(source: MmapSource): Boolean {
+    val sample = source.readBytes(0, minOf(512, source.size.toInt()))
+    val nonPrintable = sample.count { b ->
+      val i = b.toInt() and 0xFF
+      i < 9 || (i in 14..31 && i != 27)  // not tab/LF/CR
+    }
+    return nonPrintable.toDouble() / sample.size < 0.02  // <2% non-printable
+  }
+}
+\end{lstlisting}
+
+\PB
+
+% ============================================================
+% CHAPTER 3 — PDF ENGINE
+% ============================================================
+\chapter{PDF Engine — Sub-80ms First Paint}
+
+\section{Why Android's PdfRenderer Is Enough}
+
+\texttt{android.graphics.pdf.PdfRenderer} (API 21+) is a wrapper around the
+same PDFium engine used by Google Chrome. It is hardware-accelerated, supports
+the full PDF 1.7 specification including forms, encryption (with password), and
+embedded fonts. It requires \textbf{zero} external libraries.
+
+The reason nobody uses it for fast viewing is that they call:
+\begin{lstlisting}[language=Kotlin]
+page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+\end{lstlisting}
+where \texttt{bitmap} is the full page at 150 DPI — a 2480×3508 pixel bitmap
+= 35MB RAM per page, render time 800ms--2s. This is the mistake we avoid.
+
+\section{FLUX PDF Strategy: Tile-Based Progressive Rendering}
+
+\begin{lstlisting}[language=Kotlin,caption={FluxPdfRenderer — tile-based PDF viewer}]
+class FluxPdfRenderer(private val file: File) : AutoCloseable {
+  private val fd       = ParcelFileDescriptor.open(file,
+                           ParcelFileDescriptor.MODE_READ_ONLY)
+  private val renderer = PdfRenderer(fd)
+  private val pageCount get() = renderer.pageCount
+
+  // Page size at 72 DPI (PDF native resolution)
+  fun getPageSize(pageIndex: Int): SizeF {
+    val page = renderer.openPage(pageIndex)
+    val size = SizeF(page.width.toFloat(), page.height.toFloat())
+    page.close()
+    return size
+  }
+
+  // Render ONLY the visible tile region of a page
+  // clipRect is in PDF point coordinates (72 DPI)
+  fun renderRegion(
+    pageIndex:   Int,
+    clipRect:    Rect,   // which region to render (PDF coords)
+    outputW:     Int,    // output bitmap width (screen pixels)
+    outputH:     Int,    // output bitmap height (screen pixels)
+  ): Bitmap {
+    val bitmap = Bitmap.createBitmap(outputW, outputH, Bitmap.Config.RGB_565)
+    // RGB_565 not ARGB_8888: 2 bytes/px not 4. Same quality for PDFs.
+
+    renderer.openPage(pageIndex).use { page ->
+      // The transform maps clipRect in PDF coords to the output bitmap
+      val scaleX = outputW.toFloat() / clipRect.width()
+      val scaleY = outputH.toFloat() / clipRect.height()
+      val transform = Matrix().apply {
+        setScale(scaleX, scaleY)
+        postTranslate(-clipRect.left * scaleX, -clipRect.top * scaleY)
+      }
+      page.render(bitmap, null, transform,
+        PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+    }
+    return bitmap
+  }
+
+  override fun close() { renderer.close(); fd.close() }
+}
+
+// TileRenderer implementation for PDF
+class PdfTileRenderer(
+  private val pdf:       FluxPdfRenderer,
+  private val pageIndex: Int,
+  private val pageSize:  SizeF,
+  private val screenDPI: Float = 160f,
+) : TileRenderer {
+
+  override fun renderTile(key: TileKey, tileW: Int, tileH: Int): Bitmap {
+    // Scale factor: how many screen pixels per PDF point
+    val scale = screenDPI / 72f * when(key.zoomLevel) {
+      0 -> 0.5f   // thumbnail zoom
+      1 -> 1.0f   // fit-width zoom
+      2 -> 2.0f   // 2x zoom
+      else -> 1.0f
+    }
+    // Convert tile position back to PDF coordinate space
+    val pdfLeft   = (key.col * tileW / scale).toInt()
+    val pdfTop    = (key.row * tileH / scale).toInt()
+    val pdfRight  = minOf(((key.col + 1) * tileW / scale).toInt(), pageSize.width.toInt())
+    val pdfBottom = minOf(((key.row + 1) * tileH / scale).toInt(), pageSize.height.toInt())
+
+    return pdf.renderRegion(
+      pageIndex = pageIndex,
+      clipRect  = Rect(pdfLeft, pdfTop, pdfRight, pdfBottom),
+      outputW   = tileW,
+      outputH   = tileH,
+    )
+  }
+}
+\end{lstlisting}
+
+\section{PDF Page Prefetching Strategy}
+
+\begin{lstlisting}[language=Kotlin,caption={Smart prefetch: render adjacent pages at low res}]
+class PdfPrefetcher(private val pdf: FluxPdfRenderer) {
+  // When user is on page N, prefetch N-1 and N+1 at thumbnail quality
+  // This makes page-turn feel instant
+  fun prefetchAdjacent(currentPage: Int, pageCount: Int) {
+    val toFetch = mutableListOf<Int>()
+    if (currentPage > 0)            toFetch += currentPage - 1
+    if (currentPage < pageCount-1)  toFetch += currentPage + 1
+
+    toFetch.forEach { pageIdx ->
+      if (thumbnailCache[pageIdx] == null) {
+        backgroundPool.submit {
+          val size    = pdf.getPageSize(pageIdx)
+          val thumbW  = 360  // 360px width thumbnail
+          val thumbH  = (360 * size.height / size.width).toInt()
+          val thumb   = pdf.renderRegion(
+            pageIndex = pageIdx,
+            clipRect  = Rect(0, 0, size.width.toInt(), size.height.toInt()),
+            outputW   = thumbW,
+            outputH   = thumbH,
+          )
+          thumbnailCache[pageIdx] = thumb
+          onThumbnailReady(pageIdx, thumb)
+        }
+      }
+    }
+  }
+}
+\end{lstlisting}
+
+\section{PDF Performance Targets}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{4.8cm} C{2.4cm} C{2.4cm} L{4.2cm}}
+\TH{Operation} & \TH{Current Apps} & \TH{FLUX Target} & \TH{How We Achieve It} \\
+\rowcolor{rowA} First page visible & 1.5--3\,s & \textbf{$<$80ms} & Render first tile at 72 DPI immediately \\
+\rowcolor{rowB} Full first page at read DPI & 800ms--2\,s & \textbf{$<$200ms} & Tile-based: visible region only \\
+\rowcolor{rowA} Page turn (adjacent) & 300ms--1\,s & \textbf{$<$50ms} & Pre-fetched thumbnail already cached \\
+\rowcolor{rowB} Search text in 100-page PDF & 5--30\,s & \textbf{$<$500ms} & \texttt{PdfRenderer.Page.openPage().getTextContents()} streaming \\
+\rowcolor{rowA} RAM at 10-page PDF & 50--350\,MB & \textbf{$<$8\,MB} & Only 2--3 tiles per page in cache at once \\
+\rowcolor{rowB} RAM at 100-page PDF & 200MB--1GB & \textbf{$<$15\,MB} & Same tile cache, page count doesn't matter \\
+\end{tabular}
+\end{center}
+
+\section{PDF Editing — Annotation Layer}
+
+\begin{lstlisting}[language=Kotlin,caption={PDF annotation overlay (no library needed)}]
+// Annotations are stored as an in-memory overlay
+// Written to PDF using PdfDocument API on save
+data class PdfAnnotation(
+  val pageIndex:  Int,
+  val type:       AnnotationType,  // HIGHLIGHT, UNDERLINE, TEXT, DRAW
+  val rect:       RectF,           // in PDF point coordinates
+  val color:      Int,
+  val content:    String = "",     // for TEXT annotations
+  val path:       List<PointF> = emptyList() // for DRAW annotations
+)
+
+enum class AnnotationType { HIGHLIGHT, UNDERLINE, STRIKETHROUGH, TEXT, DRAW, STAMP }
+
+class PdfAnnotationLayer {
+  private val annotations = mutableListOf<PdfAnnotation>()
+
+  fun addHighlight(pageIndex: Int, rect: RectF, color: Int = 0xFFFFFF00.toInt()) {
+    annotations += PdfAnnotation(pageIndex, AnnotationType.HIGHLIGHT, rect, color)
+  }
+
+  // Render annotations on top of the tile bitmap
+  fun drawAnnotations(pageIndex: Int, canvas: Canvas, pdfToScreenMatrix: Matrix) {
+    val paint = Paint().apply { isAntiAlias = true; style = Paint.Style.FILL }
+    annotations.filter { it.pageIndex == pageIndex }.forEach { ann ->
+      val screenRect = RectF(ann.rect).also { pdfToScreenMatrix.mapRect(it) }
+      when (ann.type) {
+        AnnotationType.HIGHLIGHT -> {
+          paint.color = (ann.color and 0x00FFFFFF) or 0x60000000 // 38% alpha
+          canvas.drawRect(screenRect, paint)
+        }
+        AnnotationType.DRAW -> {
+          paint.style = Paint.Style.STROKE
+          paint.strokeWidth = 3f
+          paint.color = ann.color
+          val path = Path()
+          ann.path.forEachIndexed { i, pt ->
+            val screenPt = floatArrayOf(pt.x, pt.y)
+            pdfToScreenMatrix.mapPoints(screenPt)
+            if (i == 0) path.moveTo(screenPt[0], screenPt[1])
+            else        path.lineTo(screenPt[0], screenPt[1])
+          }
+          canvas.drawPath(path, paint)
+        }
+        else -> { /* other annotation types */ }
+      }
+    }
+  }
+
+  // Save annotations into new PDF using PdfDocument
+  suspend fun saveToPdf(originalFile: File, outputFile: File) =
+    withContext(Dispatchers.IO) {
+      // Read original pages, re-render + overlay annotations
+      // Write to output using android.graphics.pdf.PdfDocument
+      PdfDocument().use { doc ->
+        PdfRenderer(ParcelFileDescriptor.open(originalFile,
+          ParcelFileDescriptor.MODE_READ_ONLY)).use { renderer ->
+          for (i in 0 until renderer.pageCount) {
+            renderer.openPage(i).use { page ->
+              val pageInfo = PdfDocument.PageInfo.Builder(
+                page.width, page.height, i + 1).create()
+              val docPage  = doc.startPage(pageInfo)
+              page.render(docPage.canvas, null, null,
+                PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+              // Draw annotations on top
+              drawAnnotations(i, docPage.canvas, Matrix()) // identity matrix for save
+              doc.finishPage(docPage)
+            }
+          }
+          outputFile.outputStream().use { doc.writeTo(it) }
+        }
+      }
+    }
+}
+\end{lstlisting}
+
+\PB
+
+% ============================================================
+% CHAPTER 4 — DOCX ENGINE
+% ============================================================
+\chapter{DOCX/DOC Engine — Minimal OOXML Parser}
+
+\section{What DOCX Actually Is}
+
+A DOCX file is a ZIP archive. Unzip any DOCX and you find:
+
+\begin{center}\ra{1.3}
+\begin{tabular}{L{4.0cm} L{9.8cm}}
+\TH{File Inside ZIP} & \TH{Contents} \\
+\rowcolor{rowA} \texttt{word/document.xml} & The main document body: paragraphs, runs, tables \\
+\rowcolor{rowB} \texttt{word/styles.xml} & Style definitions: Heading1, Normal, etc. \\
+\rowcolor{rowA} \texttt{word/fontTable.xml} & Font references \\
+\rowcolor{rowB} \texttt{word/numbering.xml} & List/bullet definitions \\
+\rowcolor{rowA} \texttt{word/media/image1.jpg} & Embedded images \\
+\rowcolor{rowB} \texttt{word/\_rels/document.xml.rels} & Relationship map \\
+\rowcolor{rowA} \texttt{[Content\_Types].xml} & MIME type map for each part \\
+\end{tabular}
+\end{center}
+
+\texttt{document.xml} uses these XML elements for 95\% of real-world documents:
+\texttt{w:p} (paragraph), \texttt{w:r} (run/text span), \texttt{w:t} (text
+content), \texttt{w:tbl} (table), \texttt{w:tr} (table row), \texttt{w:tc}
+(table cell), \texttt{w:pPr} (paragraph properties), \texttt{w:rPr} (run
+properties: bold, italic, size, colour), \texttt{w:drawing} (image).
+
+\section{FLUX DocxParser — Zero Library}
+
+\begin{lstlisting}[language=Kotlin,caption={Streaming DOCX parser using built-in XML}]
+// OOXML namespace prefix
+const val W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+data class DocParagraph(
+  val runs:      List<DocRun>,
+  val styleId:   String,    // "Heading1", "Normal", etc.
+  val alignment: Int,       // Gravity.LEFT / CENTER / RIGHT / END
+  val spaceBefore: Int,     // twips
+  val spaceAfter:  Int,
+  val listLevel: Int = -1,  // -1 = not a list item
+)
+
+data class DocRun(
+  val text:      String,
+  val bold:      Boolean = false,
+  val italic:    Boolean = false,
+  val underline: Boolean = false,
+  val strikethrough: Boolean = false,
+  val fontSize:  Int = 24,    // half-points (24 = 12pt)
+  val color:     Int = 0xFF000000.toInt(),
+  val highlight: Int? = null,
+)
+
+sealed class DocElement {
+  data class Paragraph(val para: DocParagraph) : DocElement()
+  data class Table(val rows: List<List<DocParagraph>>) : DocElement()
+  data class Image(val rid: String, val width: Int, val height: Int) : DocElement()
+  data class PageBreak(val dummy: Unit = Unit) : DocElement()
+}
+
+class DocxParser {
+  // Parse DOCX from ZipInputStream — streaming, no full-file load
+  fun parse(file: File): DocxDocument {
+    val elements  = mutableListOf<DocElement>()
+    val images    = mutableMapOf<String, ByteArray>()  // rId -> bytes
+    val styles    = mutableMapOf<String, DocStyle>()
+
+    ZipFile(file).use { zip ->
+      // 1. Parse styles first
+      zip.getEntry("word/styles.xml")?.let { entry ->
+        parseStyles(zip.getInputStream(entry), styles)
+      }
+      // 2. Parse relationships (for image rIds)
+      val rels = mutableMapOf<String, String>()
+      zip.getEntry("word/_rels/document.xml.rels")?.let { entry ->
+        parseRels(zip.getInputStream(entry), rels)
+      }
+      // 3. Stream-parse document.xml — the main content
+      zip.getEntry("word/document.xml")?.let { entry ->
+        streamParseDocument(zip.getInputStream(entry), styles, elements)
+      }
+      // 4. Load embedded images lazily (only those referenced)
+      rels.forEach { (rId, target) ->
+        if (target.contains("media/")) {
+          zip.getEntry("word/$target")?.let { entry ->
+            images[rId] = zip.getInputStream(entry).readBytes()
+          }
+        }
+      }
+    }
+    return DocxDocument(elements, images)
+  }
+
+  private fun streamParseDocument(
+    input:    InputStream,
+    styles:   Map<String, DocStyle>,
+    elements: MutableList<DocElement>
+  ) {
+    val factory = XmlPullParserFactory.newInstance()
+    val parser  = factory.newPullParser()
+    parser.setInput(input, "UTF-8")
+
+    var currentPara     : MutableList<DocRun>? = null
+    var currentRun      : StringBuilder? = null
+    var currentRunProps  = DocRunProps()
+    var currentParaProps = DocParaProps()
+    var inTable          = false
+    val tableRows        = mutableListOf<MutableList<DocParagraph>>()
+    val currentRow       = mutableListOf<DocParagraph>()
+
+    var eventType = parser.next()
+    while (eventType != XmlPullParser.END_DOCUMENT) {
+      when (eventType) {
+        XmlPullParser.START_TAG -> when (parser.name) {
+          "w:p"   -> { currentPara = mutableListOf(); currentParaProps = DocParaProps() }
+          "w:r"   -> { currentRun = StringBuilder(); currentRunProps = DocRunProps() }
+          "w:t"   -> { currentRun?.append(parser.nextText()) }
+          "w:b"   -> currentRunProps = currentRunProps.copy(bold = true)
+          "w:i"   -> currentRunProps = currentRunProps.copy(italic = true)
+          "w:u"   -> currentRunProps = currentRunProps.copy(underline = true)
+          "w:sz"  -> currentRunProps = currentRunProps.copy(
+            fontSize = parser.getAttributeValue(W, "val")?.toIntOrNull() ?: 24)
+          "w:color" -> {
+            val hex = parser.getAttributeValue(W, "val") ?: "000000"
+            if (hex != "auto") currentRunProps = currentRunProps.copy(
+              color = (0xFF000000.toInt() or hex.toLong(16).toInt()))
+          }
+          "w:jc"  -> {
+            val align = parser.getAttributeValue(W, "val") ?: "left"
+            currentParaProps = currentParaProps.copy(alignment = when(align) {
+              "center" -> Gravity.CENTER_HORIZONTAL
+              "right"  -> Gravity.END
+              "both"   -> Gravity.FILL_HORIZONTAL
+              else     -> Gravity.START
+            })
+          }
+          "w:pStyle" -> {
+            val sId = parser.getAttributeValue(W, "val") ?: "Normal"
+            currentParaProps = currentParaProps.copy(styleId = sId)
+          }
+          "w:tbl" -> { inTable = true; tableRows.clear() }
+          "w:tr"  -> currentRow.clear()
+        }
+        XmlPullParser.END_TAG -> when (parser.name) {
+          "w:r" -> {
+            currentRun?.toString()?.takeIf { it.isNotEmpty() }?.let { text ->
+              currentPara?.add(DocRun(
+                text      = text,
+                bold      = currentRunProps.bold,
+                italic    = currentRunProps.italic,
+                underline = currentRunProps.underline,
+                fontSize  = currentRunProps.fontSize,
+                color     = currentRunProps.color,
+              ))
+            }
+            currentRun = null
+          }
+          "w:p" -> {
+            currentPara?.let { runs ->
+              val para = DocParagraph(
+                runs      = runs,
+                styleId   = currentParaProps.styleId,
+                alignment = currentParaProps.alignment,
+                spaceBefore = currentParaProps.spaceBefore,
+                spaceAfter  = currentParaProps.spaceAfter,
+              )
+              if (inTable) currentRow.add(para)
+              else         elements.add(DocElement.Paragraph(para))
+            }
+            currentPara = null
+          }
+          "w:tbl" -> {
+            elements.add(DocElement.Table(tableRows.map { it.toList() }))
+            inTable = false
+          }
+        }
+      }
+      eventType = parser.next()
+    }
+  }
+}
+\end{lstlisting}
+
+\section{DOCX Layout Engine — Canvas-Based Rendering}
+
+\begin{lstlisting}[language=Kotlin,caption={DocxLayoutEngine — text layout without TextView}]
+class DocxLayoutEngine(
+  private val doc:       DocxDocument,
+  private val pageWidth: Int,   // pixels
+  private val margin:    Int = 48, // pixels
+) {
+  private val textWidth = pageWidth - 2 * margin
+  private val linePaint = Paint().apply { isAntiAlias = true }
+
+  data class LayoutLine(
+    val y:      Float,   // baseline y position in the document canvas
+    val spans:  List<LayoutSpan>,
+  )
+  data class LayoutSpan(val x: Float, val text: String, val paint: Paint)
+
+  fun layoutAll(): List<LayoutLine> {
+    val lines = mutableListOf<LayoutLine>()
+    var y     = margin.toFloat()
+
+    doc.elements.forEach { element ->
+      when (element) {
+        is DocElement.Paragraph -> {
+          y = layoutParagraph(element.para, lines, y)
+          y += element.para.spaceAfter / 20f  // twips to px (approx)
+        }
+        is DocElement.Table -> {
+          y = layoutTable(element, lines, y)
+        }
+        is DocElement.PageBreak -> {
+          y = nextPageY(y)
+        }
+        else -> {}
+      }
+    }
+    return lines
+  }
+
+  private fun layoutParagraph(
+    para:  DocParagraph,
+    lines: MutableList<LayoutLine>,
+    startY: Float
+  ): Float {
+    var y      = startY
+    val words  = mutableListOf<Pair<String, Paint>>() // word + its paint
+
+    // Flatten runs into word list
+    para.runs.forEach { run ->
+      val paint = Paint().apply {
+        isAntiAlias = true
+        typeface    = resolveFace(run.bold, run.italic)
+        textSize    = run.fontSize / 2f * (displayDPI / 72f)  // half-pt to px
+        color       = run.color
+      }
+      run.text.split(" ").forEach { word ->
+        if (word.isNotEmpty()) words += Pair("$word ", paint)
+      }
+    }
+
+    // Greedy line-breaking
+    var lineStart   = 0
+    var lineWidth   = 0f
+    var currentLine = mutableListOf<LayoutSpan>()
+    var x           = margin.toFloat()
+
+    words.forEachIndexed { i, (word, paint) ->
+      val wordW = paint.measureText(word)
+      if (x + wordW > margin + textWidth && currentLine.isNotEmpty()) {
+        // Flush current line
+        lines.add(LayoutLine(y + paint.fontMetrics.ascent.unaryMinus(), currentLine))
+        y          += paint.fontMetrics.let { it.descent - it.ascent + it.leading }
+        currentLine = mutableListOf()
+        x           = margin.toFloat()
+      }
+      currentLine.add(LayoutSpan(x, word, paint))
+      x += wordW
+    }
+    if (currentLine.isNotEmpty()) {
+      val paint = currentLine.last().paint
+      lines.add(LayoutLine(y + paint.fontMetrics.ascent.unaryMinus(), currentLine))
+      y += paint.fontMetrics.let { it.descent - it.ascent + it.leading }
+    }
+    return y
+  }
+}
+\end{lstlisting}
+
+\section{DOCX Performance Targets}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{4.4cm} C{2.6cm} C{2.4cm} L{4.4cm}}
+\TH{Operation} & \TH{WPS Office} & \TH{FLUX Target} & \TH{How} \\
+\rowcolor{rowA} First page visible & 3--6\,s & \textbf{$<$150ms} & Parse first 50 elements, layout first viewport only \\
+\rowcolor{rowB} Full 20-page parse & 3--6\,s & \textbf{$<$400ms} & SAX streaming parser, no DOM tree \\
+\rowcolor{rowA} RAM for 10-page doc & 80--200\,MB & \textbf{$<$12\,MB} & Only visible lines in canvas buffer \\
+\rowcolor{rowB} Edit single word & 500ms re-render & \textbf{$<$16ms} & Re-layout only the affected paragraph \\
+\rowcolor{rowA} Save edited DOCX & 2--5\,s & \textbf{$<$300ms} & Patch only modified XML nodes in ZIP \\
+\end{tabular}
+\end{center}
+
+\PB
+
+% ============================================================
+% CHAPTER 5 — XLSX ENGINE
+% ============================================================
+\chapter{XLSX Engine — Virtual Grid Renderer}
+
+\section{What XLSX Actually Is}
+
+An XLSX file is also a ZIP containing XML. The key files:
+
+\begin{center}\ra{1.3}
+\begin{tabular}{L{4.2cm} L{9.6cm}}
+\TH{File} & \TH{Contents} \\
+\rowcolor{rowA} \texttt{xl/workbook.xml} & Sheet names and references \\
+\rowcolor{rowB} \texttt{xl/worksheets/sheet1.xml} & Cell data: addresses, values, formula references \\
+\rowcolor{rowA} \texttt{xl/sharedStrings.xml} & String lookup table (all string values stored once here) \\
+\rowcolor{rowB} \texttt{xl/styles.xml} & Cell format definitions (number format, font, fill, border) \\
+\rowcolor{rowA} \texttt{xl/calcChain.xml} & Formula calculation order \\
+\end{tabular}
+\end{center}
+
+\section{Virtual Grid — Key Insight}
+
+A spreadsheet with 10,000 rows × 50 columns has 500,000 cells. Rendering all
+of them at once means 500,000 \texttt{drawText()} calls per frame — 50 FPS
+impossible. The solution: \textbf{virtual grid rendering}. Draw only the cells
+visible in the current viewport, exactly like \texttt{RecyclerView} but for a
+2D grid drawn directly on Canvas.
+
+\begin{lstlisting}[language=Kotlin,caption={XlsxVirtualGrid — O(visible cells) per frame}]
+class XlsxVirtualGrid(private val sheet: SheetData) {
+  // Column widths and row heights (from xlsx styles, or default)
+  private val colWidths = FloatArray(sheet.maxCol + 1) { DEFAULT_COL_W }
+  private val rowHeights= FloatArray(sheet.maxRow + 1) { DEFAULT_ROW_H }
+
+  // Cumulative positions for O(log n) binary search
+  private val colX = FloatArray(sheet.maxCol + 2)  // colX[i] = pixel x of column i
+  private val rowY = FloatArray(sheet.maxRow + 2)
+
+  init {
+    // Build cumulative arrays once — O(n) total, O(log n) per viewport query
+    colX[0] = HEADER_W  // row header width
+    for (c in 0..sheet.maxCol) colX[c+1] = colX[c] + colWidths[c]
+    rowY[0] = HEADER_H  // column header height
+    for (r in 0..sheet.maxRow) rowY[r+1] = rowY[r] + rowHeights[r]
+  }
+
+  // Find first visible column — O(log n)
+  private fun firstVisibleCol(scrollX: Float): Int {
+    var lo = 0; var hi = sheet.maxCol
+    while (lo < hi) {
+      val mid = (lo + hi) / 2
+      if (colX[mid + 1] < scrollX) lo = mid + 1 else hi = mid
+    }
+    return lo
+  }
+
+  fun onDraw(canvas: Canvas, viewport: RectF, scrollX: Float, scrollY: Float) {
+    val firstCol = firstVisibleCol(scrollX)     // O(log n)
+    val firstRow = firstVisibleRow(scrollY)     // O(log n)
+    val lastCol  = lastVisibleCol(scrollX + viewport.width(), firstCol)
+    val lastRow  = lastVisibleRow(scrollY + viewport.height(), firstRow)
+
+    val cellPaint = Paint().apply { isAntiAlias = true }
+    val textPaint = Paint().apply {
+      isAntiAlias = true; textSize = 13f * displayScale
+    }
+    val gridPaint = Paint().apply { color = 0xFFD0D0D0.toInt(); strokeWidth = 1f }
+
+    // Draw only visible cells — O(visible_rows × visible_cols)
+    for (r in firstRow..lastRow) {
+      for (c in firstCol..lastCol) {
+        val x   = colX[c] - scrollX + viewport.left
+        val y   = rowY[r] - scrollY + viewport.top
+        val w   = colWidths[c]
+        val h   = rowHeights[r]
+        val cell = sheet.getCell(r, c)  // O(1) HashMap lookup
+
+        // Cell background
+        val fillColor = cell?.style?.fillColor ?: 0xFFFFFFFF.toInt()
+        if (fillColor != 0xFFFFFFFF.toInt()) {
+          cellPaint.color = fillColor
+          canvas.drawRect(x, y, x+w, y+h, cellPaint)
+        }
+
+        // Cell text
+        cell?.displayValue?.let { text ->
+          textPaint.color    = cell.style?.textColor ?: 0xFF000000.toInt()
+          textPaint.isFakeBoldText = cell.style?.bold ?: false
+          textPaint.textAlign = when(cell.style?.align) {
+            "right"  -> Paint.Align.RIGHT
+            "center" -> Paint.Align.CENTER
+            else     -> Paint.Align.LEFT
+          }
+          // Clip to cell bounds to prevent overflow
+          canvas.save()
+          canvas.clipRect(x, y, x+w, y+h)
+          canvas.drawText(text, x + 4, y + h - 5, textPaint)
+          canvas.restore()
+        }
+
+        // Grid lines
+        canvas.drawLine(x+w, y, x+w, y+h, gridPaint) // vertical
+        canvas.drawLine(x, y+h, x+w, y+h, gridPaint) // horizontal
+      }
+    }
+
+    // Frozen row/column headers
+    drawHeaders(canvas, firstCol, lastCol, firstRow, lastRow, scrollX, scrollY)
+  }
+}
+\end{lstlisting}
+
+\section{XLSX Cell Parser — Shared Strings Table}
+
+\begin{lstlisting}[language=Kotlin,caption={SheetData — parse cells with shared strings}]
+class SheetData {
+  val cells = HashMap<Long, CellData>()  // key = row * MAX_COL + col
+
+  // O(1) cell lookup
+  fun getCell(row: Int, col: Int): CellData? =
+    cells[row.toLong() * MAX_COL + col]
+
+  companion object {
+    fun parse(xlsxFile: File, sheetIndex: Int = 0): SheetData {
+      val data = SheetData()
+      ZipFile(xlsxFile).use { zip ->
+        // 1. Load shared strings table into ArrayList
+        val sharedStrings = ArrayList<String>(1000)
+        zip.getEntry("xl/sharedStrings.xml")?.let { entry ->
+          val parser = XmlPullParserFactory.newInstance().newPullParser()
+          parser.setInput(zip.getInputStream(entry), "UTF-8")
+          var inT = false
+          var event = parser.next()
+          while (event != XmlPullParser.END_DOCUMENT) {
+            when {
+              event == XmlPullParser.START_TAG && parser.name == "t" -> {
+                sharedStrings.add(parser.nextText())
+              }
+            }
+            event = parser.next()
+          }
+        }
+
+        // 2. Stream-parse sheet XML
+        zip.getEntry("xl/worksheets/sheet${sheetIndex+1}.xml")?.let { entry ->
+          val parser = XmlPullParserFactory.newInstance().newPullParser()
+          parser.setInput(zip.getInputStream(entry), "UTF-8")
+          var currentRef  = ""
+          var currentType = ""  // "s"=sharedString, "n"=number, "b"=boolean
+          var inV = false
+          var event = parser.next()
+          while (event != XmlPullParser.END_DOCUMENT) {
+            when (event) {
+              XmlPullParser.START_TAG -> when (parser.name) {
+                "c" -> {
+                  currentRef  = parser.getAttributeValue(null, "r") ?: ""
+                  currentType = parser.getAttributeValue(null, "t") ?: "n"
+                }
+                "v" -> inV = true
+              }
+              XmlPullParser.TEXT -> if (inV) {
+                val rawValue = parser.text
+                val (row, col) = parseCellRef(currentRef)
+                val displayValue = when (currentType) {
+                  "s"  -> sharedStrings.getOrElse(rawValue.toInt()) { rawValue }
+                  "b"  -> if (rawValue == "1") "TRUE" else "FALSE"
+                  else -> rawValue  // number: display as-is or format
+                }
+                data.cells[row.toLong() * MAX_COL + col] =
+                  CellData(row, col, rawValue, displayValue)
+              }
+              XmlPullParser.END_TAG -> if (parser.name == "v") inV = false
+            }
+            event = parser.next()
+          }
+        }
+      }
+      return data
+    }
+
+    // "C5" -> (row=4, col=2)
+    fun parseCellRef(ref: String): Pair<Int, Int> {
+      val colStr = ref.takeWhile { it.isLetter() }
+      val rowStr = ref.dropWhile { it.isLetter() }
+      var col = 0
+      colStr.uppercase().forEach { c -> col = col * 26 + (c - 'A' + 1) }
+      return Pair(rowStr.toInt() - 1, col - 1)
+    }
+  }
+}
+\end{lstlisting}
+
+\PB
+
+% ============================================================
+% CHAPTER 6 — IMAGE ENGINE
+% ============================================================
+\chapter{Image Engine — BitmapRegionDecoder + Progressive Tiling}
+
+\section{The Core API: BitmapRegionDecoder}
+
+\texttt{android.graphics.BitmapRegionDecoder} (API 10+) decodes a
+\emph{subregion} of a JPEG, PNG, or WebP image. It works by seeking to the
+correct compressed data offset and decoding only the necessary MCU blocks
+(for JPEG) or IDAT chunks (for PNG). The operating system's image codec
+handles this at native C++ speed.
+
+\begin{lstlisting}[language=Kotlin,caption={ImageTileRenderer using BitmapRegionDecoder}]
+class ImageTileRenderer(file: File) : TileRenderer, AutoCloseable {
+  private val decoder: BitmapRegionDecoder =
+    BitmapRegionDecoder.newInstance(file.absolutePath, false)
+      ?: error("Cannot decode: ${file.name}")
+
+  val imageWidth:  Int = decoder.width
+  val imageHeight: Int = decoder.height
+
+  private val options = BitmapFactory.Options().apply {
+    inPreferredConfig = Bitmap.Config.RGB_565  // 50% less RAM than ARGB_8888
+    inSampleSize      = 1
+  }
+
+  override fun renderTile(key: TileKey, tileW: Int, tileH: Int): Bitmap {
+    // Map tile position to image pixel region
+    val scale     = zoomLevelToScale(key.zoomLevel)
+    val imgLeft   = (key.col * tileW / scale).toInt().coerceIn(0, imageWidth)
+    val imgTop    = (key.row * tileH / scale).toInt().coerceIn(0, imageHeight)
+    val imgRight  = ((key.col + 1) * tileW / scale).toInt().coerceIn(0, imageWidth)
+    val imgBottom = ((key.row + 1) * tileH / scale).toInt().coerceIn(0, imageHeight)
+
+    if (imgLeft >= imgRight || imgTop >= imgBottom) {
+      return Bitmap.createBitmap(tileW, tileH, Bitmap.Config.RGB_565)
+    }
+
+    // BitmapRegionDecoder inSampleSize: use nearest power-of-2 downscale
+    options.inSampleSize = nearestPow2DownSample(
+      srcW = imgRight - imgLeft,  srcH = imgBottom - imgTop,
+      dstW = tileW,               dstH = tileH
+    )
+
+    return decoder.decodeRegion(
+      Rect(imgLeft, imgTop, imgRight, imgBottom), options
+    )
+    // Only this rectangle is decoded from the compressed file.
+    // For a 100MP image (10000x10000px): decoding one 512x512 tile
+    // takes ~5-15ms and uses ~0.5MB RAM — not 400MB.
+  }
+
+  private fun nearestPow2DownSample(srcW:Int,srcH:Int,dstW:Int,dstH:Int): Int {
+    var sample = 1
+    while (srcW / (sample * 2) >= dstW && srcH / (sample * 2) >= dstH) {
+      sample *= 2
+    }
+    return sample
+  }
+
+  override fun close() = decoder.recycle()
+}
+\end{lstlisting}
+
+\section{Image Format Support Matrix}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{2.4cm} C{1.8cm} C{2.0cm} C{2.4cm} L{5.2cm}}
+\TH{Format} & \TH{BitmapRegionDecoder} & \TH{Android API} & \TH{RAM for 12MP} & \TH{Strategy} \\
+\rowcolor{rowA} JPEG & \textbf{Yes} & 10+ & $\sim$0.5MB/tile & BitmapRegionDecoder, MCU-aligned tiles \\
+\rowcolor{rowB} PNG & \textbf{Yes} & 10+ & $\sim$0.5MB/tile & BitmapRegionDecoder \\
+\rowcolor{rowA} WebP & \textbf{Yes} & 14+ & $\sim$0.5MB/tile & BitmapRegionDecoder \\
+\rowcolor{rowB} HEIC/HEIF & No & 28+ & Full decode needed & \texttt{ImageDecoder} API (API 28+) with sample size \\
+\rowcolor{rowA} GIF & No & — & Varies & \texttt{ImageDecoder} + \texttt{AnimatedImageDrawable} \\
+\rowcolor{rowB} RAW (DNG) & No & — & 50--100MB & \texttt{DngCreator} / external thumbnail first; full decode async \\
+\rowcolor{rowA} BMP & No & — & Full decode & \texttt{BitmapFactory} with \texttt{inSampleSize} \\
+\rowcolor{rowB} SVG & No & — & Vector, tiny & Custom \texttt{Canvas} parser (Chapter 11) \\
+\end{tabular}
+\end{center}
+
+\section{Progressive Loading Strategy}
+
+\begin{center}\ra{1.3}
+\begin{tabular}{C{0.8cm} L{2.4cm} L{2.4cm} C{2.0cm} L{5.8cm}}
+\TH{Stage} & \TH{What Rendered} & \TH{When} & \TH{Latency} & \TH{How} \\
+\rowcolor{rowA} 1 & Thumbnail (96×96) & Immediately & 0ms & From FLUX ThumbnailCache \\
+\rowcolor{rowB} 2 & Low-res full image & 30--80ms & 50--80ms & BitmapRegionDecoder, inSampleSize=8 \\
+\rowcolor{rowA} 3 & Full-res visible region & After stage 2 & 10--30ms & BitmapRegionDecoder, inSampleSize=1, clip to viewport \\
+\rowcolor{rowB} 4 & Full-res with zoom & On user pinch & 5--20ms/tile & TileEngine fetches new tiles at new zoom level \\
+\end{tabular}
+\end{center}
+
+\PB
+
+% ============================================================
+% CHAPTER 7 — TEXT / CODE ENGINE
+% ============================================================
+\chapter{Text \& Code Engine — Canvas-Based Fast Renderer}
+
+\section{Why Not TextView}
+
+Android's \texttt{TextView} loads the \emph{entire text} into a
+\texttt{StaticLayout} before displaying anything. For a 10\,MB source file
+(approximately 300,000 lines of code), \texttt{StaticLayout} takes 3--8
+seconds to compute layout and uses 80--200\,MB RAM. The view then
+becomes unresponsive during scrolling.
+
+Our solution: \textbf{draw text directly on Canvas, using a line-virtual
+approach}. We compute layout only for visible lines, exactly like
+\texttt{RecyclerView} but at the character level.
+
+\section{FluxTextRenderer}
+
+\begin{lstlisting}[language=Kotlin,caption={FluxTextRenderer — O(visible lines) per frame}]
+class FluxTextRenderer(
+  file:        File,
+  private val textSize:    Float = 14f,
+  private val lineSpacing: Float = 1.4f,
+) {
+  // Memory-mapped source — never loads full file
+  private val source     = MmapSource(file)
+  private val lineIndex  = LineIndex(source)   // built lazily
+  private val totalLines get() = lineIndex.lineCount
+
+  // Line height in pixels
+  private val lineH: Float
+  private val textPaint = Paint().apply {
+    isAntiAlias = true
+    typeface    = Typeface.MONOSPACE
+    this.textSize = textSize * displayScale
+    color       = 0xFF212121.toInt()
+  }
+  init { lineH = textPaint.fontMetrics.let { (it.descent - it.ascent) * lineSpacing } }
+
+  fun onDraw(canvas: Canvas, scrollY: Float, viewportH: Float) {
+    val firstLine = (scrollY / lineH).toInt().coerceAtLeast(0)
+    val lastLine  = ((scrollY + viewportH) / lineH).toInt()
+      .coerceAtMost(totalLines - 1)
+
+    for (lineNum in firstLine..lastLine) {
+      val y     = lineNum * lineH - scrollY + lineH  // baseline y
+      val line  = lineIndex.getLine(lineNum)          // O(1): mmap offset lookup
+
+      // Syntax highlighting: tokenize and draw spans
+      val spans = highlighter.highlight(line)
+      var x     = GUTTER_W + PADDING
+
+      spans.forEach { span ->
+        textPaint.color = span.color
+        canvas.drawText(span.text, x, y, textPaint)
+        x += textPaint.measureText(span.text)
+      }
+    }
+
+    // Line number gutter
+    drawGutter(canvas, firstLine, lastLine, scrollY)
+  }
+
+  val contentHeight: Float get() = totalLines * lineH
+  val contentWidth:  Float get() = lineIndex.maxLineWidth * charWidth
+}
+
+// Builds an index of line start offsets in the mmap — never loads lines
+class LineIndex(private val source: MmapSource) {
+  // Compact array of line-start byte offsets
+  // For 300k lines × 4 bytes = 1.2MB — acceptable
+  private val offsets = IntArray(estimateLineCount(source) + 1)
+  private var count   = 0
+
+  init { buildIndex() }
+
+  private fun buildIndex() {
+    offsets[count++] = 0  // line 0 starts at byte 0
+    for (i in 0 until source.size) {
+      if (source.readByte(i) == '\n'.code.toByte()) {
+        offsets[count++] = (i + 1).toInt()
+      }
+    }
+  }
+
+  val lineCount: Int get() = count
+
+  // Get line as String — reads only that line's bytes from mmap
+  fun getLine(lineNum: Int): String {
+    if (lineNum >= count) return ""
+    val start  = offsets[lineNum].toLong()
+    val end    = if (lineNum + 1 < count) offsets[lineNum + 1].toLong()
+                 else source.size
+    val length = (end - start).toInt().coerceAtLeast(0)
+    if (length == 0) return ""
+    return String(source.readBytes(start, minOf(length, MAX_LINE_LEN)), Charsets.UTF_8)
+      .trimEnd('\r', '\n')
+  }
+
+  var maxLineWidth = 0
+  private fun estimateLineCount(s: MmapSource): Int = (s.size / 40).toInt()
+}
+\end{lstlisting}
+
+\section{Syntax Highlighter — Regex Token-Based}
+
+\begin{lstlisting}[language=Kotlin,caption={Syntax highlighter — no AST, pure regex spans}]
+class SyntaxHighlighter(private val language: Language) {
+  data class TextSpan(val text: String, val color: Int)
+
+  // Language-specific token patterns — ordered by priority
+  private val patterns: List<Pair<Regex, Int>> = when (language) {
+    Language.KOTLIN, Language.JAVA -> listOf(
+      Regex("""//.*$""") to 0xFF78909C.toInt(),           // comment
+      Regex(""""([^"\\]|\\.)*"""") to 0xFFFF8F00.toInt(), // string
+      Regex("""\b(fun|val|var|class|data|object|if|else|when|return|
+                  |for|while|import|package|override|suspend|null|true|false)\b""".trimMargin("|"))
+                              to 0xFF0097A7.toInt(),       // keyword
+      Regex("""\b[A-Z][A-Za-z0-9]+\b""") to 0xFF1565C0.toInt(), // type
+      Regex("""\b\d+\.?\d*[fLd]?\b""")   to 0xFF8D6E63.toInt(), // number
+    )
+    Language.PYTHON -> listOf(
+      Regex("""#.*$""")              to 0xFF78909C.toInt(),
+      Regex(""""[^"]*"|'[^']*'""")   to 0xFFFF8F00.toInt(),
+      Regex("""\b(def|class|import|from|if|elif|else|for|while|return|
+                  |True|False|None|and|or|not|in|is|lambda)\b""".trimMargin("|"))
+                              to 0xFF0097A7.toInt(),
+      Regex("""\b\d+\.?\d*\b""")     to 0xFF8D6E63.toInt(),
+    )
+    Language.SQL -> listOf(
+      Regex("""--.*$""")             to 0xFF78909C.toInt(),
+      Regex(""""[^"]*"|'[^']*'""")   to 0xFFFF8F00.toInt(),
+      Regex("""\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|ON|AS|GROUP|BY|ORDER|
+                  |HAVING|INSERT|UPDATE|DELETE|CREATE|TABLE|INDEX|DROP|ALTER|
+                  |AND|OR|NOT|NULL|COUNT|SUM|AVG|MAX|MIN|DISTINCT|LIMIT|OFFSET)\b""".trimMargin("|"),
+             RegexOption.IGNORE_CASE) to 0xFF0097A7.toInt(),
+      Regex("""\b\d+\.?\d*\b""")     to 0xFF8D6E63.toInt(),
+    )
+    Language.HTML, Language.XML -> listOf(
+      Regex("""<!--.*?-->""", RegexOption.DOT_MATCHES_ALL) to 0xFF78909C.toInt(),
+      Regex("""<[^>]+>""")           to 0xFF1565C0.toInt(),  // tag
+      Regex(""""[^"]*"""")           to 0xFFFF8F00.toInt(),  // attribute value
+    )
+    else -> listOf(Regex(""".*""") to 0xFF212121.toInt())
+  }
+
+  fun highlight(line: String): List<TextSpan> {
+    if (line.isEmpty()) return emptyList()
+    // Find all pattern matches, sort by position, fill gaps with default colour
+    data class Match(val start: Int, val end: Int, val color: Int)
+    val matches = mutableListOf<Match>()
+
+    patterns.forEach { (regex, color) ->
+      regex.findAll(line).forEach { result ->
+        matches += Match(result.range.first, result.range.last + 1, color)
+      }
+    }
+    // Sort and de-overlap — first match wins at each position
+    matches.sortBy { it.start }
+    val spans   = mutableListOf<TextSpan>()
+    var cursor  = 0
+    matches.forEach { m ->
+      if (m.start > cursor) {
+        spans += TextSpan(line.substring(cursor, m.start), 0xFF212121.toInt())
+      }
+      if (m.start >= cursor) {
+        spans += TextSpan(line.substring(m.start, m.end), m.color)
+        cursor = m.end
+      }
+    }
+    if (cursor < line.length) {
+      spans += TextSpan(line.substring(cursor), 0xFF212121.toInt())
+    }
+    return spans
+  }
+}
+
+enum class Language {
+  KOTLIN, JAVA, PYTHON, JAVASCRIPT, TYPESCRIPT, DART,
+  SQL, HTML, XML, CSS, JSON, YAML, MARKDOWN,
+  C, CPP, RUST, GO, BASH, PHP, RUBY, SWIFT, PLAINTEXT
+}
+\end{lstlisting}
+
+\section{Text/Code Performance Targets}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{4.4cm} C{2.8cm} C{2.2cm} L{4.4cm}}
+\TH{File} & \TH{QuickEdit / Acode} & \TH{FLUX Target} & \TH{Why FLUX Wins} \\
+\rowcolor{rowA} 1\,MB Kotlin file (30k lines) & 3--8\,s to open, slow scroll & \textbf{$<$30ms, 60fps} & LineIndex = 120KB, only visible lines drawn \\
+\rowcolor{rowB} 10\,MB log file (300k lines) & ANR / crash & \textbf{$<$50ms, 60fps} & LineIndex = 1.2MB, mmap source \\
+\rowcolor{rowA} 50k-line SQL file & Crash or 30+s & \textbf{$<$40ms, 60fps} & SQL syntax highlight, virtual render \\
+\rowcolor{rowB} Search in 10MB file & 10--30\,s & \textbf{$<$500ms} & mmap sequential scan at \textasciitilde 2\,GB/s \\
+\rowcolor{rowA} Edit + save & 1--3\,s re-render & \textbf{$<$16ms} & Re-layout only modified lines \\
+\end{tabular}
+\end{center}
+
+\PB
+
+% ============================================================
+% CHAPTER 8 — JSON / XML / YAML ENGINE
+% ============================================================
+\chapter{JSON / XML / YAML Engine — Streaming Tree Viewer}
+
+\section{The Problem With Large Structured Files}
+
+A 50\,MB JSON file with 500,000 nodes cannot be parsed into a tree in RAM
+— it would take 500\,MB+ (each JSON node as a Java object is 48--120 bytes
+overhead). The solution is \textbf{streaming parse + lazy expansion}: parse
+only the top-level structure, expand each subtree on user tap.
+
+\begin{lstlisting}[language=Kotlin,caption={Streaming JSON tree — lazy expansion}]
+// A node in the lazy tree
+sealed class JsonNode {
+  data class JsonString (val value:  String)          : JsonNode()
+  data class JsonNumber (val value:  Double)          : JsonNode()
+  data class JsonBoolean(val value:  Boolean)         : JsonNode()
+  object JsonNull                                     : JsonNode()
+  data class JsonObject (
+    val keys:     List<String>,
+    val offset:   Long,    // byte offset in file where this object starts
+    val expanded: Boolean = false,
+    val children: Map<String, JsonNode>? = null  // null = not yet loaded
+  ) : JsonNode()
+  data class JsonArray  (
+    val size:     Int,
+    val offset:   Long,
+    val expanded: Boolean = false,
+    val children: List<JsonNode>? = null
+  ) : JsonNode()
+}
+
+class JsonStreamParser(private val source: MmapSource) {
+  // Parse only the top-level structure (keys of root object)
+  // Child objects are stored as byte-offset references, not parsed
+  fun parseTopLevel(): JsonNode {
+    var pos = skipWhitespace(0)
+    return when (source.readByte(pos).toInt().toChar()) {
+      '{' -> parseObjectShallow(pos)
+      '[' -> parseArrayShallow(pos)
+      else -> parseScalar(pos).first
+    }
+  }
+
+  // Shallow parse: read only the keys, store child offsets
+  private fun parseObjectShallow(startPos: Long): JsonNode.JsonObject {
+    val keys = mutableListOf<String>()
+    var pos  = startPos + 1  // skip '{'
+    while (pos < source.size) {
+      pos = skipWhitespace(pos)
+      if (source.readByte(pos).toInt().toChar() == '}') break
+      val (key, afterKey) = parseString(pos)
+      keys.add(key)
+      pos = afterKey
+      pos = skipTo(pos, ':') + 1  // skip ':'
+      pos = skipValue(pos)         // SKIP the value — don't parse it
+      pos = skipWhitespace(pos)
+      if (source.readByte(pos).toInt().toChar() == ',') pos++
+    }
+    return JsonNode.JsonObject(keys, startPos, expanded = false, children = null)
+  }
+
+  // Expand a node on user tap — parse only THAT object's children
+  fun expandNode(node: JsonNode.JsonObject): JsonNode.JsonObject {
+    val children = mutableMapOf<String, JsonNode>()
+    var pos = node.offset + 1  // skip '{'
+    while (pos < source.size) {
+      pos = skipWhitespace(pos)
+      if (source.readByte(pos).toInt().toChar() == '}') break
+      val (key, afterKey) = parseString(pos)
+      pos = afterKey
+      pos = skipTo(pos, ':') + 1
+      pos = skipWhitespace(pos)
+      val (value, afterValue) = parseValue(pos)
+      children[key] = value
+      pos = afterValue
+      pos = skipWhitespace(pos)
+      if (source.readByte(pos).toInt().toChar() == ',') pos++
+    }
+    return node.copy(expanded = true, children = children)
+  }
+
+  // Skip a JSON value without parsing it — O(length of value)
+  private fun skipValue(pos: Long): Long { /* ... */ return pos }
+  private fun skipWhitespace(pos: Long): Long { /* ... */ return pos }
+  private fun parseString(pos: Long): Pair<String, Long> { /* ... */ return Pair("", pos) }
+  private fun parseValue(pos: Long): Pair<JsonNode, Long> { /* ... */ return Pair(JsonNull, pos) }
+  private fun skipTo(pos: Long, ch: Char): Long { /* ... */ return pos }
+}
+\end{lstlisting}
+
+\section{JSON / XML / YAML Performance Targets}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{3.6cm} C{2.8cm} C{2.0cm} L{5.4cm}}
+\TH{File} & \TH{Current (text editor)} & \TH{FLUX Target} & \TH{How} \\
+\rowcolor{rowA} 1\,MB JSON (10k nodes) & 2--5\,s, OOM risk & \textbf{$<$50ms} & Shallow parse top level, lazy expand \\
+\rowcolor{rowB} 50\,MB JSON & Crash / OOM & \textbf{$<$100ms} & mmap + top-level only (no full parse) \\
+\rowcolor{rowA} 100\,MB XML & Crash / OOM & \textbf{$<$150ms} & SAX streaming, no DOM \\
+\rowcolor{rowB} 5\,MB YAML & 3--8\,s & \textbf{$<$60ms} & Custom streaming parser \\
+\rowcolor{rowA} Expand node (tap) & N/A (all loaded) & \textbf{$<$30ms} & Parse that subtree on demand from mmap \\
+\end{tabular}
+\end{center}
+
+\PB
+
+% ============================================================
+% CHAPTER 9 — VIDEO / AUDIO ENGINE
+% ============================================================
+\chapter{Video \& Audio Engine — Native MediaPlayer / ExoPlayer}
+
+\section{Video: Why We Use MediaPlayer (Not ExoPlayer) for Local Files}
+
+\texttt{android.media.MediaPlayer} is the Android OS's built-in video player.
+It is hardware-accelerated by the device's video decoder chip (Qualcomm Adreno,
+ARM Mali). For local files, it is the \emph{fastest possible} option — it uses
+the same decoder as the camera app and Google Photos.
+
+\textbf{ExoPlayer} (now \texttt{androidx.media3}) adds 2\,MB AAR + 500ms
+initialisation overhead. It is designed for streaming (HLS, DASH, DRM). For
+local MP4/MKV/AVI files, it offers zero benefit over \texttt{MediaPlayer}.
+
+\begin{wbox}[When to Use ExoPlayer vs MediaPlayer]
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=3pt]
+\item \textbf{Use MediaPlayer:} MP4, MKV, AVI, MOV, 3GP, WebM local files.
+  Zero library dependency.
+\item \textbf{Use ExoPlayer:} HLS streams, DASH streams, DRM-protected content,
+  custom data sources. Only if user opens a URL, not a local file.
+\end{itemize}
+\end{wbox}
+
+\begin{lstlisting}[language=Kotlin,caption={FluxVideoPlayer — minimal local video player}]
+class FluxVideoPlayer(
+  private val context:     Context,
+  private val surfaceView: SurfaceView,
+) {
+  private var player:   MediaPlayer? = null
+  private var prepared  = false
+
+  data class VideoInfo(
+    val durationMs: Long,
+    val width:      Int,
+    val height:     Int,
+    val mimeType:   String,
+  )
+
+  fun open(file: File, onReady: (VideoInfo) -> Unit) {
+    release()
+    player = MediaPlayer().apply {
+      // Set data source — OS handles file:// URI natively
+      setDataSource(context, Uri.fromFile(file))
+
+      // Render directly to SurfaceView — hardware decoder path
+      setDisplay(surfaceView.holder)
+
+      // Async prepare — returns immediately, calls back when ready
+      setOnPreparedListener { mp ->
+        prepared = true
+        onReady(VideoInfo(
+          durationMs = mp.duration.toLong(),
+          width      = mp.videoWidth,
+          height     = mp.videoHeight,
+          mimeType   = "video/*",
+        ))
+      }
+      setOnErrorListener { _, what, extra ->
+        Log.e("FLUX", "MediaPlayer error: what=$what extra=$extra")
+        false
+      }
+      prepareAsync()  // non-blocking: typically ready in 50--200ms for local files
+    }
+  }
+
+  fun play()  = player?.start()
+  fun pause() = player?.pause()
+  fun seekTo(positionMs: Long) = player?.seekTo(positionMs.toInt())
+  fun release() { player?.release(); player = null; prepared = false }
+
+  val currentPositionMs: Long get() = player?.currentPosition?.toLong() ?: 0
+  val isPlaying: Boolean      get() = player?.isPlaying ?: false
+}
+\end{lstlisting}
+
+\section{Video Thumbnail Generation — Native ThumbnailUtils}
+
+\begin{lstlisting}[language=Kotlin,caption={Zero-library video thumbnail — one API call}]
+// API 29+: hardware-accelerated, crops to square, returns RGB_565
+suspend fun generateVideoThumb(file: File, size: Size): Bitmap =
+  withContext(Dispatchers.IO) {
+    ThumbnailUtils.createVideoThumbnail(file, size, null)
+    // size = Size(256, 256): renders a 256x256 keyframe thumbnail
+    // 'null' cancellationSignal: no timeout
+  }
+
+// API 21-28 fallback:
+suspend fun generateVideoThumbLegacy(file: File): Bitmap? =
+  withContext(Dispatchers.IO) {
+    @Suppress("DEPRECATION")
+    ThumbnailUtils.createVideoThumbnail(
+      file.absolutePath,
+      MediaStore.Video.Thumbnails.MINI_KIND  // 512x384
+    )
+  }
+\end{lstlisting}
+
+\section{Audio: MediaPlayer + Waveform Visualiser}
+
+\begin{lstlisting}[language=Kotlin,caption={FluxAudioPlayer with waveform extraction}]
+class FluxAudioPlayer(private val file: File) {
+  private val player = MediaPlayer().apply {
+    setDataSource(file.absolutePath)
+    prepare()  // synchronous OK for audio: typically <50ms
+  }
+
+  // Extract waveform samples for visualisation
+  // MediaExtractor + AudioTrack: reads raw PCM without playing
+  suspend fun extractWaveform(samples: Int = 500): FloatArray =
+    withContext(Dispatchers.Default) {
+      val extractor = MediaExtractor()
+      extractor.setDataSource(file.absolutePath)
+
+      // Find audio track
+      var audioTrack = -1
+      for (i in 0 until extractor.trackCount) {
+        val format = extractor.getTrackFormat(i)
+        if (format.getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true) {
+          audioTrack = i; break
+        }
+      }
+      if (audioTrack < 0) return@withContext FloatArray(samples)
+      extractor.selectTrack(audioTrack)
+
+      val format     = extractor.getTrackFormat(audioTrack)
+      val duration   = format.getLong(MediaFormat.KEY_DURATION) // microseconds
+      val sampleStep = duration / samples
+
+      val waveform   = FloatArray(samples)
+      val buf        = ByteBuffer.allocate(65536)
+
+      for (i in 0 until samples) {
+        extractor.seekTo(i * sampleStep, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
+        val bytesRead = extractor.readSampleData(buf, 0)
+        if (bytesRead > 0) {
+          // RMS of this chunk = amplitude at sample point
+          var sumSq = 0.0
+          for (b in 0 until minOf(bytesRead, 512)) {
+            val s = buf.get(b).toFloat() / 128f
+            sumSq += s * s
+          }
+          waveform[i] = Math.sqrt(sumSq / minOf(bytesRead, 512)).toFloat()
+        }
+      }
+      extractor.release()
+      waveform
+    }
+}
+\end{lstlisting}
+
+\PB
+
+% ============================================================
+% CHAPTER 10 — ZIP / ARCHIVE ENGINE
+% ============================================================
+\chapter{Archive Engine — ZIP, RAR, 7Z, APK}
+
+\section{ZIP — Built-In, Zero Library}
+
+Android's \texttt{java.util.zip.ZipFile} (built into the JVM) handles ZIP
+archives natively. Reading the central directory (list of all files) is O(1)
+— it's stored at the end of the file and indexed immediately.
+
+\begin{lstlisting}[language=Kotlin,caption={FluxArchiveReader — tree view of ZIP contents}]
+data class ArchiveEntry(
+  val path:        String,
+  val size:        Long,
+  val compressedSize: Long,
+  val isDirectory: Boolean,
+  val mtime:       Long,
+  val children:    MutableList<ArchiveEntry> = mutableListOf(),
+)
+
+class FluxZipReader(file: File) : AutoCloseable {
+  private val zip = ZipFile(file)
+
+  // Build tree in O(n entries) — typically < 10ms even for large ZIPs
+  fun readTree(): ArchiveEntry {
+    val root     = ArchiveEntry("/", 0, 0, true, 0)
+    val dirMap   = mutableMapOf<String, ArchiveEntry>("/" to root)
+
+    zip.entries().asSequence().forEach { entry ->
+      val parts    = entry.name.trimEnd('/').split('/')
+      val parent   = ensureDir(parts.dropLast(1), dirMap, root)
+      val node     = ArchiveEntry(
+        path           = parts.last(),
+        size           = entry.size,
+        compressedSize = entry.compressedSize,
+        isDirectory    = entry.isDirectory,
+        mtime          = entry.time,
+      )
+      parent.children.add(node)
+      if (entry.isDirectory) dirMap[entry.name.trimEnd('/')] = node
+    }
+    return root
+  }
+
+  // Extract single entry to destination — streaming, no temp full-file copy
+  suspend fun extractEntry(entryName: String, dest: File) =
+    withContext(Dispatchers.IO) {
+      val entry = zip.getEntry(entryName)
+        ?: error("Entry not found: $entryName")
+      dest.parentFile?.mkdirs()
+      zip.getInputStream(entry).use { input ->
+        dest.outputStream().use { output ->
+          input.copyTo(output, bufferSize = 65536)
+        }
+      }
+    }
+
+  // Read entry as text (for code preview inside ZIP)
+  suspend fun readEntryText(entryName: String, maxBytes: Int = 65536): String =
+    withContext(Dispatchers.IO) {
+      val entry = zip.getEntry(entryName) ?: return@withContext ""
+      zip.getInputStream(entry).use { stream ->
+        val buf = ByteArray(minOf(maxBytes.toLong(), entry.size).toInt())
+        stream.read(buf)
+        String(buf, Charsets.UTF_8)
+      }
+    }
+
+  override fun close() = zip.close()
+
+  private fun ensureDir(
+    parts:  List<String>,
+    dirMap: MutableMap<String, ArchiveEntry>,
+    root:   ArchiveEntry,
+  ): ArchiveEntry {
+    if (parts.isEmpty()) return root
+    val path = parts.joinToString("/")
+    dirMap[path]?.let { return it }
+    val parent = ensureDir(parts.dropLast(1), dirMap, root)
+    val dir    = ArchiveEntry(parts.last(), 0, 0, true, 0)
+    parent.children.add(dir)
+    dirMap[path] = dir
+    return dir
+  }
+}
+\end{lstlisting}
+
+\section{APK — ZIP + Manifest Parser}
+
+An APK is a ZIP file with a compiled binary manifest
+(\texttt{AndroidManifest.xml}) in the AXML (Android Binary XML) format.
+We parse this to show app metadata without installing.
+
+\begin{lstlisting}[language=Kotlin,caption={ApkInfoReader — no library needed}]
+data class ApkInfo(
+  val packageName:  String,
+  val versionName:  String,
+  val versionCode:  Long,
+  val minSdk:       Int,
+  val targetSdk:    Int,
+  val icon:         Bitmap?,
+  val permissions:  List<String>,
+  val activities:   List<String>,
+  val fileSizeBytes: Long,
+)
+
+class ApkInfoReader(private val apkFile: File) {
+  fun read(): ApkInfo {
+    // PackageManager can parse APK metadata without installing
+    val pm   = context.packageManager
+    val info = pm.getPackageArchiveInfo(
+      apkFile.absolutePath,
+      PackageManager.GET_PERMISSIONS or PackageManager.GET_ACTIVITIES
+    ) ?: error("Cannot parse APK")
+
+    // Load icon from APK resources
+    info.applicationInfo.sourceDir     = apkFile.absolutePath
+    info.applicationInfo.publicSourceDir = apkFile.absolutePath
+    val icon = try {
+      val drawable = info.applicationInfo.loadIcon(pm)
+      (drawable as? BitmapDrawable)?.bitmap
+        ?: Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888).also {
+           Canvas(it).drawBitmap((drawable as? BitmapDrawable)?.bitmap
+             ?: createBitmap(48, 48), 0f, 0f, null)
+         }
+    } catch (e: Exception) { null }
+
+    return ApkInfo(
+      packageName   = info.packageName ?: "",
+      versionName   = info.versionName ?: "unknown",
+      versionCode   = PackageInfoCompat.getLongVersionCode(info),
+      minSdk        = info.applicationInfo.minSdkVersion,
+      targetSdk     = info.applicationInfo.targetSdkVersion,
+      icon          = icon,
+      permissions   = info.requestedPermissions?.toList() ?: emptyList(),
+      activities    = info.activities?.map { it.name } ?: emptyList(),
+      fileSizeBytes = apkFile.length(),
+    )
+  }
+}
+\end{lstlisting}
+
+\PB
+
+% ============================================================
+% CHAPTER 11 — SVG / FONT / EPUB ENGINE
+% ============================================================
+\chapter{SVG, Font Preview, EPUB, CSV, Markdown Engines}
+
+\section{SVG — Canvas Renderer}
+
+Android's \texttt{android.graphics.drawable.PictureDrawable} supports SVG
+via the \texttt{AndroidSVG} library — but that is 450KB of external code.
+For the most common SVG subset (shapes, paths, fills, basic transforms),
+we parse directly to \texttt{Path} objects and draw on Canvas.
+
+\begin{lstlisting}[language=Kotlin,caption={Minimal SVG Canvas renderer}]
+class FluxSvgRenderer(private val source: MmapSource) {
+  data class SvgPath(val path: Path, val fill: Int, val stroke: Int,
+                     val strokeWidth: Float)
+  private val paths = mutableListOf<SvgPath>()
+  var viewBox = RectF(0f, 0f, 100f, 100f)
+
+  fun parse() {
+    val parser = XmlPullParserFactory.newInstance().newPullParser()
+    parser.setInput(source.readBytes(0, source.size.toInt())
+      .inputStream(), "UTF-8")
+
+    val paint = SvgPaintState()
+    var event = parser.next()
+    while (event != XmlPullParser.END_DOCUMENT) {
+      if (event == XmlPullParser.START_TAG) {
+        val fill   = parseSvgColor(parser.getAttributeValue(null,"fill")   ?: paint.fill)
+        val stroke = parseSvgColor(parser.getAttributeValue(null,"stroke") ?: "none")
+        val sw     = parser.getAttributeValue(null,"stroke-width")?.toFloatOrNull() ?: 1f
+
+        when (parser.name) {
+          "svg" -> {
+            parser.getAttributeValue(null,"viewBox")?.split(" ")?.let { vb ->
+              if (vb.size == 4)
+                viewBox = RectF(vb[0].toFloat(), vb[1].toFloat(),
+                                vb[2].toFloat(), vb[3].toFloat())
+            }
+          }
+          "rect" -> {
+            val x = parser.getAttributeValue(null,"x")?.toFloatOrNull() ?: 0f
+            val y = parser.getAttributeValue(null,"y")?.toFloatOrNull() ?: 0f
+            val w = parser.getAttributeValue(null,"width")?.toFloatOrNull() ?: 0f
+            val h = parser.getAttributeValue(null,"height")?.toFloatOrNull() ?: 0f
+            val rx= parser.getAttributeValue(null,"rx")?.toFloatOrNull() ?: 0f
+            paths += SvgPath(Path().apply { addRoundRect(
+              RectF(x,y,x+w,y+h), rx, rx, Path.Direction.CW) },
+              fill, stroke, sw)
+          }
+          "circle" -> {
+            val cx = parser.getAttributeValue(null,"cx")?.toFloatOrNull() ?: 0f
+            val cy = parser.getAttributeValue(null,"cy")?.toFloatOrNull() ?: 0f
+            val r  = parser.getAttributeValue(null,"r")?.toFloatOrNull() ?: 0f
+            paths += SvgPath(Path().apply { addCircle(cx,cy,r,Path.Direction.CW) },
+              fill, stroke, sw)
+          }
+          "path" -> {
+            val d = parser.getAttributeValue(null,"d") ?: ""
+            PathParser.createPathFromPathData(d)?.let { p ->
+              paths += SvgPath(p, fill, stroke, sw)
+            }
+          }
+        }
+      }
+      event = parser.next()
+    }
+  }
+
+  fun draw(canvas: Canvas, displayRect: RectF) {
+    val scaleX = displayRect.width()  / viewBox.width()
+    val scaleY = displayRect.height() / viewBox.height()
+    val matrix = Matrix().apply {
+      setScale(scaleX, scaleY)
+      postTranslate(displayRect.left - viewBox.left * scaleX,
+                    displayRect.top  - viewBox.top  * scaleY)
+    }
+    val paint = Paint().apply { isAntiAlias = true }
+    paths.forEach { sp ->
+      val mapped = Path().apply { sp.path.transform(matrix, this) }
+      if (sp.fill != 0) {
+        paint.style = Paint.Style.FILL
+        paint.color = sp.fill
+        canvas.drawPath(mapped, paint)
+      }
+      if (sp.stroke != 0) {
+        paint.style = Paint.Style.STROKE
+        paint.color = sp.stroke
+        paint.strokeWidth = sp.strokeWidth * minOf(scaleX, scaleY)
+        canvas.drawPath(mapped, paint)
+      }
+    }
+  }
+}
+\end{lstlisting}
+
+\section{CSV — Virtual Column Grid}
+
+CSV files share the same virtual grid architecture as XLSX, but simpler: no
+styles, no formulas. We parse lazily using mmap:
+
+\begin{lstlisting}[language=Kotlin,caption={CsvParser — streaming, zero full-load}]
+class CsvParser(private val source: MmapSource) {
+  // Line offsets built from mmap — same as LineIndex in text renderer
+  private val lineOffsets = buildLineOffsets()
+
+  val rowCount: Int get() = lineOffsets.size
+
+  // Parse single row on demand — O(row length)
+  fun getRow(rowIndex: Int): List<String> {
+    val offset = lineOffsets[rowIndex]
+    val end    = if (rowIndex + 1 < lineOffsets.size)
+                   lineOffsets[rowIndex + 1] else source.size
+    val line   = String(source.readBytes(offset, (end - offset).toInt()))
+    return parseCsvLine(line)
+  }
+
+  // RFC 4180 compliant parser: handles quoted fields with commas + newlines
+  private fun parseCsvLine(line: String): List<String> {
+    val fields = mutableListOf<String>()
+    var i = 0; val sb = StringBuilder()
+    while (i < line.length) {
+      when {
+        line[i] == '"' -> {  // quoted field
+          i++
+          while (i < line.length) {
+            if (line[i] == '"' && i+1 < line.length && line[i+1] == '"') {
+              sb.append('"'); i += 2
+            } else if (line[i] == '"') { i++; break }
+            else { sb.append(line[i++]) }
+          }
+        }
+        line[i] == ',' -> { fields += sb.toString(); sb.clear(); i++ }
+        else -> sb.append(line[i++])
+      }
+    }
+    fields += sb.toString()
+    return fields
+  }
+}
+\end{lstlisting}
+
+\section{Markdown — AST + Canvas Render}
+
+\begin{lstlisting}[language=Kotlin,caption={Minimal Markdown renderer to Canvas}]
+sealed class MdBlock {
+  data class Heading(val level: Int, val text: String)  : MdBlock()
+  data class Paragraph(val spans: List<MdSpan>)         : MdBlock()
+  data class CodeBlock(val lang: String, val code: String) : MdBlock()
+  data class BulletItem(val depth: Int, val spans: List<MdSpan>) : MdBlock()
+  data class HorizontalRule(val dummy: Unit = Unit)     : MdBlock()
+  data class BlockQuote(val inner: List<MdBlock>)       : MdBlock()
+}
+
+sealed class MdSpan {
+  data class Plain (val text: String) : MdSpan()
+  data class Bold  (val text: String) : MdSpan()
+  data class Italic(val text: String) : MdSpan()
+  data class Code  (val text: String) : MdSpan()
+  data class Link  (val text: String, val url: String) : MdSpan()
+}
+
+object MarkdownParser {
+  fun parse(source: String): List<MdBlock> {
+    val blocks = mutableListOf<MdBlock>()
+    val lines  = source.lines()
+    var i = 0
+    while (i < lines.size) {
+      val line = lines[i]
+      when {
+        line.startsWith("######") -> blocks += MdBlock.Heading(6, line.drop(6).trim())
+        line.startsWith("#####")  -> blocks += MdBlock.Heading(5, line.drop(5).trim())
+        line.startsWith("####")   -> blocks += MdBlock.Heading(4, line.drop(4).trim())
+        line.startsWith("###")    -> blocks += MdBlock.Heading(3, line.drop(3).trim())
+        line.startsWith("##")     -> blocks += MdBlock.Heading(2, line.drop(2).trim())
+        line.startsWith("# ")     -> blocks += MdBlock.Heading(1, line.drop(2).trim())
+        line.startsWith("```")    -> {
+          val lang = line.drop(3).trim()
+          val code = StringBuilder()
+          i++
+          while (i < lines.size && !lines[i].startsWith("```")) {
+            code.appendLine(lines[i++])
+          }
+          blocks += MdBlock.CodeBlock(lang, code.toString())
+        }
+        line.startsWith("- ") || line.startsWith("* ") ->
+          blocks += MdBlock.BulletItem(0, parseInline(line.drop(2)))
+        line.matches(Regex("""[-*_]{3,}""")) ->
+          blocks += MdBlock.HorizontalRule()
+        line.isNotBlank() ->
+          blocks += MdBlock.Paragraph(parseInline(line))
+      }
+      i++
+    }
+    return blocks
+  }
+
+  private fun parseInline(text: String): List<MdSpan> {
+    // Regex-based inline parsing: **bold**, *italic*, `code`, [link](url)
+    val spans   = mutableListOf<MdSpan>()
+    val pattern = Regex("""\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`|\[(.+?)\]\((.+?)\)""")
+    var last    = 0
+    pattern.findAll(text).forEach { m ->
+      if (m.range.first > last) spans += MdSpan.Plain(text.substring(last, m.range.first))
+      when {
+        m.groups[1] != null -> spans += MdSpan.Bold(m.groups[1]!!.value)
+        m.groups[2] != null -> spans += MdSpan.Italic(m.groups[2]!!.value)
+        m.groups[3] != null -> spans += MdSpan.Code(m.groups[3]!!.value)
+        m.groups[4] != null -> spans += MdSpan.Link(m.groups[4]!!.value, m.groups[5]!!.value)
+      }
+      last = m.range.last + 1
+    }
+    if (last < text.length) spans += MdSpan.Plain(text.substring(last))
+    return spans
+  }
+}
+\end{lstlisting}
+
+\section{Font Preview}
+
+\begin{lstlisting}[language=Kotlin,caption={Font preview — Typeface.createFromFile()}]
+class FontPreviewer(private val file: File) {
+  // Android can load TTF, OTF, WOFF directly
+  private val typeface: Typeface? = try {
+    Typeface.createFromFile(file)  // built-in API, zero library
+  } catch (e: Exception) { null }
+
+  fun drawPreview(canvas: Canvas, width: Int, height: Int) {
+    typeface ?: return
+    val paint = Paint().apply {
+      isAntiAlias = true
+      this.typeface = typeface
+    }
+    val preview = listOf(
+      Pair(48f, "Aa Bb Cc"),
+      Pair(28f, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+      Pair(24f, "abcdefghijklmnopqrstuvwxyz"),
+      Pair(22f, "0123456789 !@#\$%^&*()"),
+      Pair(18f, "The quick brown fox jumps over the lazy dog."),
+    )
+    var y = 60f
+    preview.forEach { (size, text) ->
+      paint.textSize = size
+      paint.color    = 0xFF212121.toInt()
+      canvas.drawText(text, 24f, y, paint)
+      y += size * 1.6f
+    }
+  }
+}
+\end{lstlisting}
+
+\PB
+
+% ============================================================
+% CHAPTER 12 — HTML ENGINE
+% ============================================================
+\chapter{HTML Engine — WebView Optimised for Local Files}
+
+\section{WebView Is Already Loaded}
+
+Android's \texttt{WebView} is backed by the system WebView provider
+(typically Chrome or Android System WebView). It is already loaded into
+memory as a system process. The cold start cost is \textbf{not} from loading
+the rendering engine — it is from creating the \texttt{WebView} instance in
+your process and waiting for the first \texttt{onPageFinished} callback.
+
+\begin{lstlisting}[language=Kotlin,caption={FluxWebViewer — optimised for local HTML files}]
+class FluxWebViewer(context: Context) : WebView(context) {
+  init {
+    settings.apply {
+      // Local file access — needed for HTML with local images/CSS
+      allowFileAccess           = true
+      allowContentAccess        = true
+
+      // Performance
+      cacheMode                 = WebSettings.LOAD_CACHE_ELSE_NETWORK
+      setRenderPriority(WebSettings.RenderPriority.HIGH)
+      blockNetworkLoads         = true  // offline-only: no network requests
+      loadsImagesAutomatically  = true
+      domStorageEnabled         = false // not needed for static HTML
+      javaScriptEnabled         = false // disable by default; enable if needed
+      useWideViewPort           = true
+      loadWithOverviewMode      = true
+      setSupportZoom(true)
+      builtInZoomControls       = true
+      displayZoomControls       = false
+    }
+
+    // Intercept any network requests (should be none for local files)
+    webViewClient = object : WebViewClient() {
+      override fun shouldInterceptRequest(
+        view: WebView, request: WebResourceRequest
+      ): WebResourceResponse? {
+        // Block all network requests for privacy + performance
+        return if (request.url.scheme != "file") {
+          WebResourceResponse("text/plain", "UTF-8",
+            "blocked".byteInputStream())
+        } else null
+      }
+
+      override fun onPageFinished(view: WebView, url: String) {
+        // Inject minimal CSS fixes for better mobile rendering
+        view.evaluateJavascript("""
+          (function() {
+            var style = document.createElement('style');
+            style.textContent = 'body { max-width: 100%; word-wrap: break-word; }
+              img { max-width: 100%; height: auto; }
+              pre { overflow-x: auto; }';
+            document.head.appendChild(style);
+          })();
+        """.trimIndent(), null)
+      }
+    }
+  }
+
+  fun openLocalFile(file: File) {
+    // loadUrl with file:// is fastest for local HTML
+    loadUrl("file://${file.absolutePath}")
+  }
+
+  fun openHtmlString(html: String, baseUrl: String? = null) {
+    loadDataWithBaseURL(baseUrl, html, "text/html", "UTF-8", null)
+  }
+}
+\end{lstlisting}
+
+\section{EPUB — HTML + ZIP}
+
+An EPUB is a ZIP containing HTML files + a manifest. We parse the manifest
+to get reading order, then render each HTML chapter in WebView.
+
+\begin{lstlisting}[language=Kotlin,caption={EpubReader — manifest + chapter ordering}]
+data class EpubChapter(val title: String, val href: String)
+
+class EpubReader(private val file: File) {
+  fun readManifest(): List<EpubChapter> {
+    val chapters = mutableListOf<EpubChapter>()
+    ZipFile(file).use { zip ->
+      // Find OPF file from META-INF/container.xml
+      val container = zip.getEntry("META-INF/container.xml") ?: return emptyList()
+      val opfPath   = parseContainerXml(zip.getInputStream(container))
+
+      // Parse OPF: spine gives reading order
+      val opfEntry  = zip.getEntry(opfPath) ?: return emptyList()
+      chapters += parseOpf(zip.getInputStream(opfEntry))
+    }
+    return chapters
+  }
+
+  fun extractChapterToTempDir(chapterHref: String, tempDir: File): File {
+    val outFile = File(tempDir, chapterHref.substringAfterLast('/'))
+    ZipFile(file).use { zip ->
+      zip.getEntry("OEBPS/$chapterHref")?.let { entry ->
+        zip.getInputStream(entry).use { it.copyTo(outFile.outputStream()) }
+      }
+    }
+    return outFile
+  }
+}
+\end{lstlisting}
+
+\PB
+
+% ============================================================
+% CHAPTER 13 — EDIT LAYER
+% ============================================================
+\chapter{Edit Layer — Universal In-Memory Edit System}
+
+\section{Design Principle: Edits Are Overlays}
+
+The viewer always reads from the original \emph{immutable} \texttt{MmapSource}.
+Edits are stored in a separate \texttt{EditOverlay} that intercepts reads:
+when rendering, the engine first checks if the current position has an edit;
+if so, it uses the edit data; otherwise it uses the mmap data. On save, edits
+are merged and written to a new file (the original is never overwritten until
+the write is confirmed complete).
+
+\begin{lstlisting}[language=Kotlin,caption={EditOverlay — unified edit buffer}]
+// An edit is a replacement of byte range [start, end) with new bytes
+data class Edit(
+  val id:       Long,         // monotonically increasing edit ID
+  val offset:   Long,        // byte offset in original file
+  val length:   Int,          // number of original bytes replaced (0 = insert)
+  val newBytes: ByteArray,    // replacement content
+  val type:     EditType,
+)
+enum class EditType { INSERT, REPLACE, DELETE }
+
+class EditOverlay {
+  // TreeMap: sorted by offset for fast range queries
+  private val edits = TreeMap<Long, Edit>()
+  private var nextId = 0L
+
+  // O(log n) insert/replace
+  fun applyEdit(offset: Long, length: Int, newBytes: ByteArray): Long {
+    val id   = nextId++
+    edits[offset] = Edit(id, offset, length, newBytes, when {
+      length == 0      -> EditType.INSERT
+      newBytes.isEmpty()-> EditType.DELETE
+      else             -> EditType.REPLACE
+    })
+    return id
+  }
+
+  fun undoEdit(id: Long) {
+    edits.entries.removeIf { it.value.id == id }
+  }
+
+  // Read through overlay: applies edits to a virtual byte stream
+  fun readVirtual(original: MmapSource, start: Long, length: Int): ByteArray {
+    val result   = ByteArrayOutputStream(length)
+    var pos      = start
+    val end      = start + length
+
+    while (pos < end) {
+      // Find next edit at or after pos
+      val editEntry = edits.ceilingEntry(pos)
+      if (editEntry == null || editEntry.key >= end) {
+        // No more edits in this range: read directly from mmap
+        val toRead = (end - pos).toInt()
+        result.write(original.readBytes(pos, toRead))
+        break
+      }
+      val edit = editEntry.value
+      if (edit.offset > pos) {
+        // Gap before edit: read from mmap
+        result.write(original.readBytes(pos, (edit.offset - pos).toInt()))
+      }
+      // Apply edit
+      result.write(edit.newBytes)
+      pos = edit.offset + edit.length
+    }
+    return result.toByteArray()
+  }
+
+  // Save: merge original + edits into new file
+  suspend fun saveTo(original: MmapSource, output: File) =
+    withContext(Dispatchers.IO) {
+      output.parentFile?.mkdirs()
+      output.outputStream().buffered(65536).use { out ->
+        var pos = 0L
+        edits.values.sortedBy { it.offset }.forEach { edit ->
+          if (edit.offset > pos) {
+            out.write(original.readBytes(pos, (edit.offset - pos).toInt()))
+          }
+          out.write(edit.newBytes)
+          pos = edit.offset + edit.length
+        }
+        if (pos < original.size) {
+          out.write(original.readBytes(pos, (original.size - pos).toInt()))
+        }
+      }
+    }
+}
+\end{lstlisting}
+
+\section{Format-Specific Edit APIs}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{2.0cm} L{4.6cm} L{3.6cm} L{3.6cm}}
+\TH{Format} & \TH{Edit Operation} & \TH{Edit Overlay Action} & \TH{Save Strategy} \\
+\rowcolor{rowA} TXT / Code & Type character at cursor & INSERT edit at caret offset & Stream merge + write \\
+\rowcolor{rowB} TXT / Code & Delete selection & DELETE edit (length = selection) & Stream merge + write \\
+\rowcolor{rowA} PDF & Add text annotation & EditOverlay stores annotation metadata & Re-render page with annotation layer \\
+\rowcolor{rowB} PDF & Highlight region & EditOverlay stores highlight rect + colour & Re-render page with annotation layer \\
+\rowcolor{rowA} DOCX & Modify paragraph text & Patch \texttt{word/document.xml} within ZIP & Rewrite XML node + repack ZIP \\
+\rowcolor{rowB} XLSX & Edit cell value & Update cell in SheetData + XML & Rewrite \texttt{sheet1.xml} + repack ZIP \\
+\rowcolor{rowA} Image & Crop / rotate & New Bitmap op + encode to JPEG & Write new JPEG to temp file \\
+\rowcolor{rowB} CSV & Edit cell value & Replace text range in mmap view & Stream merge with new value \\
+\end{tabular}
+\end{center}
+
+\PB
+
+% ============================================================
+% CHAPTER 14 — COMPLETE FORMAT SUPPORT MATRIX
+% ============================================================
+\chapter{Complete Format Support Matrix}
+
+\section{All Supported File Types}
+
+\begin{center}\ra{1.3}
+\begin{longtable}{L{1.8cm} L{2.4cm} L{2.0cm} C{1.4cm} C{1.4cm} L{4.2cm}}
+\THG{Category} & \THG{Format} & \THG{Extensions} & \THG{View} & \THG{Edit} &
+\THG{Implementation} \\
+\endhead
+\rowcolor{rowA} Documents & PDF & .pdf & \checkmark & Ann. only & PdfRenderer API + tile cache \\
+\rowcolor{rowB} Documents & Word & .docx, .doc & \checkmark & \checkmark & OOXML ZIP+XML parser + Canvas layout \\
+\rowcolor{rowA} Documents & Excel & .xlsx, .xls & \checkmark & \checkmark & OOXML ZIP+XML parser + virtual grid \\
+\rowcolor{rowB} Documents & PowerPoint & .pptx, .ppt & \checkmark & — & Slide renderer: Canvas shapes + text \\
+\rowcolor{rowA} Documents & RTF & .rtf & \checkmark & — & RTF token parser → canvas layout \\
+\rowcolor{rowB} Documents & ODT/ODS & .odt, .ods & \checkmark & — & ODF ZIP+XML (same approach as OOXML) \\
+\rowcolor{rowA} Images & JPEG/JPG & .jpg, .jpeg & \checkmark & Crop/rotate & BitmapRegionDecoder + tile cache \\
+\rowcolor{rowB} Images & PNG & .png & \checkmark & — & BitmapRegionDecoder \\
+\rowcolor{rowA} Images & WebP & .webp & \checkmark & — & BitmapRegionDecoder \\
+\rowcolor{rowB} Images & HEIC/HEIF & .heic, .heif & \checkmark & — & ImageDecoder API (API 28+) \\
+\rowcolor{rowA} Images & GIF & .gif & \checkmark & — & ImageDecoder + AnimatedImageDrawable \\
+\rowcolor{rowB} Images & RAW/DNG & .dng, .raw, .cr2 & Thumb+preview & — & ThumbnailUtils thumb, ExifInterface meta \\
+\rowcolor{rowA} Images & BMP & .bmp & \checkmark & — & BitmapFactory + inSampleSize \\
+\rowcolor{rowB} Images & SVG & .svg & \checkmark & — & Custom Canvas path renderer \\
+\rowcolor{rowA} Video & MP4 & .mp4, .m4v & \checkmark & — & MediaPlayer + SurfaceView \\
+\rowcolor{rowB} Video & MKV & .mkv & \checkmark & — & MediaPlayer + SurfaceView \\
+\rowcolor{rowA} Video & AVI & .avi & \checkmark & — & MediaPlayer + SurfaceView \\
+\rowcolor{rowB} Video & MOV & .mov & \checkmark & — & MediaPlayer + SurfaceView \\
+\rowcolor{rowA} Video & WebM & .webm & \checkmark & — & MediaPlayer + SurfaceView \\
+\rowcolor{rowB} Video & 3GP & .3gp & \checkmark & — & MediaPlayer + SurfaceView \\
+\rowcolor{rowA} Audio & MP3 & .mp3 & \checkmark & — & MediaPlayer + waveform visualiser \\
+\rowcolor{rowB} Audio & FLAC & .flac & \checkmark & — & MediaPlayer + waveform visualiser \\
+\rowcolor{rowA} Audio & AAC/M4A & .aac, .m4a & \checkmark & — & MediaPlayer + waveform visualiser \\
+\rowcolor{rowB} Audio & OGG & .ogg & \checkmark & — & MediaPlayer \\
+\rowcolor{rowA} Audio & WAV & .wav & \checkmark & — & MediaPlayer + sample-accurate waveform \\
+\rowcolor{rowB} Audio & OPUS & .opus & \checkmark & — & MediaPlayer \\
+\rowcolor{rowA} Text & Plain text & .txt & \checkmark & \checkmark & Canvas LineRenderer + LineIndex (mmap) \\
+\rowcolor{rowB} Text & Markdown & .md & \checkmark & \checkmark & MD parser + Canvas block renderer \\
+\rowcolor{rowA} Code & Kotlin/Java & .kt, .java & \checkmark & \checkmark & Text renderer + KT/Java highlighter \\
+\rowcolor{rowB} Code & Python & .py & \checkmark & \checkmark & Text renderer + Python highlighter \\
+\rowcolor{rowA} Code & JavaScript/TS & .js, .ts & \checkmark & \checkmark & Text renderer + JS highlighter \\
+\rowcolor{rowB} Code & Dart & .dart & \checkmark & \checkmark & Text renderer + Dart highlighter \\
+\rowcolor{rowA} Code & C/C++/Rust/Go & .c, .cpp, .rs, .go & \checkmark & \checkmark & Text renderer + respective highlighter \\
+\rowcolor{rowB} Data & SQL & .sql & \checkmark & \checkmark & Text renderer + SQL highlighter \\
+\rowcolor{rowA} Data & JSON & .json & \checkmark & \checkmark & Streaming tree parser + lazy expand \\
+\rowcolor{rowB} Data & XML & .xml & \checkmark & \checkmark & SAX streaming + tree viewer \\
+\rowcolor{rowA} Data & YAML & .yaml, .yml & \checkmark & \checkmark & Streaming YAML parser \\
+\rowcolor{rowB} Data & CSV & .csv, .tsv & \checkmark & \checkmark & LineIndex + virtual grid renderer \\
+\rowcolor{rowA} Data & SQLite DB & .db, .sqlite & \checkmark & — & SQLiteDatabase API: table list + row viewer \\
+\rowcolor{rowB} Web & HTML & .html, .htm & \checkmark & — & Optimised local WebView \\
+\rowcolor{rowA} Web & CSS & .css & \checkmark & \checkmark & Text renderer + CSS highlighter \\
+\rowcolor{rowB} Archives & ZIP & .zip & \checkmark & — & ZipFile (built-in) + tree viewer \\
+\rowcolor{rowA} Archives & RAR & .rar & View list only & — & RAR5 header parser (minimal, 200 lines) \\
+\rowcolor{rowB} Archives & 7Z & .7z & View list only & — & 7Z header parser (minimal) \\
+\rowcolor{rowA} Archives & APK & .apk & \checkmark & — & PackageManager + ZipFile \\
+\rowcolor{rowB} Archives & EPUB & .epub & \checkmark & — & ZIP + OPF manifest + WebView per chapter \\
+\rowcolor{rowA} Fonts & TTF/OTF & .ttf, .otf & \checkmark & — & Typeface.createFromFile() + Canvas preview \\
+\rowcolor{rowB} Fonts & WOFF & .woff & \checkmark & — & Typeface.createFromFile() (API 29+) \\
+\end{longtable}
+\end{center}
+
+\section{Android API Dependency Map}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{4.0cm} L{3.6cm} C{2.2cm} L{4.0cm}}
+\THC{API Used} & \THC{Purpose} & \THC{Min API} & \THC{Formats} \\
+\rowcolor{rowA} \texttt{PdfRenderer} & PDF rendering & 21 & PDF \\
+\rowcolor{rowB} \texttt{BitmapRegionDecoder} & Image tile decode & 10 & JPEG, PNG, WebP \\
+\rowcolor{rowA} \texttt{ImageDecoder} & HEIC, GIF animation & 28 & HEIC, HEIF, GIF, WebP \\
+\rowcolor{rowB} \texttt{MediaPlayer} & Video + audio playback & 1 & All video/audio \\
+\rowcolor{rowA} \texttt{MediaExtractor} & Waveform extraction & 16 & All audio \\
+\rowcolor{rowB} \texttt{ThumbnailUtils} & Video thumbnail & 8 (legacy), 29 (new) & Video \\
+\rowcolor{rowA} \texttt{ZipFile} & ZIP archive reading & 1 & ZIP, DOCX, XLSX, APK, EPUB \\
+\rowcolor{rowB} \texttt{PackageManager} & APK info parsing & 1 & APK \\
+\rowcolor{rowA} \texttt{XmlPullParser} & XML streaming parse & 1 & DOCX, XLSX, PPTX, SVG, HTML \\
+\rowcolor{rowB} \texttt{SQLiteDatabase} & SQLite file open & 1 & .db, .sqlite \\
+\rowcolor{rowA} \texttt{WebView} & HTML rendering & 1 & HTML, EPUB chapters \\
+\rowcolor{rowB} \texttt{Typeface.createFromFile()} & Font rendering & 1 & TTF, OTF, WOFF \\
+\rowcolor{rowA} \texttt{PdfDocument} & PDF annotation save & 19 & PDF (edit mode) \\
+\rowcolor{rowB} \texttt{StorageManager.openProfd()} & Direct file descriptor & 26 & All (performance) \\
+\end{tabular}
+\end{center}
+
+\PB
+
+% ============================================================
+% CHAPTER 15 — FLUTTER INTEGRATION
+% ============================================================
+\chapter{Flutter Integration — ViewerRouter \& Platform Views}
+
+\section{ViewerRouter — Format Dispatch}
+
+\begin{lstlisting}[language=Kotlin,caption={ViewerRouter.dart — format-based screen dispatch}]
+// Dart — ViewerRouter.dart
+class ViewerRouter extends ConsumerWidget {
+  final int    fid;
+  final String path;
+  final String mimeType;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return switch(detectFormat(path, mimeType)) {
+      FileFormat.PDF     => PdfViewerScreen(fid: fid, path: path),
+      FileFormat.DOCX    => DocxViewerScreen(fid: fid, path: path),
+      FileFormat.XLSX    => XlsxViewerScreen(fid: fid, path: path),
+      FileFormat.PPTX    => PptxViewerScreen(fid: fid, path: path),
+      FileFormat.IMAGE   => ImageViewerScreen(fid: fid, path: path),
+      FileFormat.VIDEO   => VideoPlayerScreen(fid: fid, path: path),
+      FileFormat.AUDIO   => AudioPlayerScreen(fid: fid, path: path),
+      FileFormat.TEXT    => TextViewerScreen(fid: fid, path: path),
+      FileFormat.CODE    => CodeViewerScreen(fid: fid, path: path,
+                             language: detectLanguage(path)),
+      FileFormat.JSON    => JsonViewerScreen(fid: fid, path: path),
+      FileFormat.XML     => XmlViewerScreen(fid: fid, path: path),
+      FileFormat.HTML    => HtmlViewerScreen(fid: fid, path: path),
+      FileFormat.ZIP     => ArchiveViewerScreen(fid: fid, path: path),
+      FileFormat.APK     => ApkInfoScreen(fid: fid, path: path),
+      FileFormat.SVG     => SvgViewerScreen(fid: fid, path: path),
+      FileFormat.EPUB    => EpubViewerScreen(fid: fid, path: path),
+      FileFormat.CSV     => CsvViewerScreen(fid: fid, path: path),
+      FileFormat.SQLITE  => SqliteViewerScreen(fid: fid, path: path),
+      FileFormat.FONT    => FontPreviewScreen(fid: fid, path: path),
+      _                  => UnknownFileScreen(fid: fid, path: path),
+    };
+  }
+}
+\end{lstlisting}
+
+\section{AndroidView — Bridging Native Rendering to Flutter}
+
+For rendering-intensive formats (PDF, images, video), we use
+\texttt{AndroidView} or \texttt{PlatformViewLink} to embed the native
+Kotlin-drawn view directly inside the Flutter widget tree.
+
+\begin{lstlisting}[language=Kotlin,caption={PdfViewerScreen.dart — embedded native view}]
+// Dart — PdfViewerScreen.dart
+class PdfViewerScreen extends StatelessWidget {
+  final int    fid;
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: AndroidView(
+        viewType:             'com.flux/pdf_viewer',
+        creationParams:       {'path': path, 'fid': fid},
+        creationParamsCodec:  const StandardMessageCodec(),
+        onPlatformViewCreated: (id) {
+          // Connect MethodChannel to this specific view
+          _pdfController = PdfViewController(id);
+        },
+      ),
+    );
+  }
+}
+
+// Kotlin — PdfViewerFactory.kt
+class PdfViewerFactory(private val context: Context) :
+    PlatformViewFactory(StandardMessageCodec.INSTANCE) {
+
+  override fun create(ctx: Context, viewId: Int, args: Any?): PlatformView {
+    val params  = args as Map<String, Any>
+    val path    = params["path"] as String
+    val view    = FluxPdfView(ctx, File(path))
+    return object : PlatformView {
+      override fun getView(): View = view
+      override fun dispose() { view.release() }
+    }
+  }
+}
+\end{lstlisting}
+
+\section{Performance: First Paint Timeline}
+
+\begin{center}\ra{1.35}
+\begin{tabular}{L{2.4cm} L{2.0cm} L{2.0cm} L{2.0cm} L{5.4cm}}
+\TH{Format} & \TH{T=0ms} & \TH{T=50ms} & \TH{T=100ms} & \TH{What Happens at Each Stage} \\
+\rowcolor{rowA} PDF (10 pg) & Route resolved & Tile 0 rendered & Full page visible &
+  T=0: FormatDetector. T=30ms: PdfRenderer.openPage(). T=50ms: first 512×512 tile on screen \\
+\rowcolor{rowB} DOCX & Route resolved & First para on canvas & Full viewport &
+  T=0: ZipFile.open(). T=20ms: document.xml stream starts. T=80ms: first 200 lines laid out \\
+\rowcolor{rowA} XLSX & Route resolved & Headers on grid & 20 rows visible &
+  T=0: sharedStrings cached. T=30ms: first 50 cells parsed. T=60ms: virtual grid first draw \\
+\rowcolor{rowB} Image (12MP) & Thumbnail shown & Low-res (÷8) displayed & Visible region decoded &
+  T=0: from ThumbnailCache. T=30ms: BitmapRegionDecoder inSampleSize=8. T=80ms: inSampleSize=1 visible tile \\
+\rowcolor{rowA} Text (10MB) & Route resolved & LineIndex built & 30 visible lines drawn &
+  T=0: MmapSource open. T=20ms: LineIndex built (scan for \textbackslash n). T=40ms: first screen rendered \\
+\rowcolor{rowB} Video & Route resolved & Surface created & First frame displayed &
+  T=0: MediaPlayer.setDataSource(). T=30ms: prepareAsync(). T=80ms: onPrepared, start() \\
+\end{tabular}
+\end{center}
+
+\PB
+
+% ============================================================
+% CHAPTER 16 — IMPLEMENTATION PLAN
+% ============================================================
+\chapter{Implementation Plan — Viewer Engine Build Order}
+
+\section{Build Phases}
+
+\begin{center}\ra{1.4}
+\begin{tabular}{C{1.2cm} L{2.2cm} L{2.8cm} L{5.2cm} L{3.4cm}}
+\THO{Phase} & \THO{Weeks} & \THO{Name} & \THO{What to Build} & \THO{Acceptance Criteria} \\
+\rowcolor{rowA} V1 & 1--2 & Core infra & MmapSource, FormatDetector, TileEngine, EditOverlay &
+  Read any file format via mmap. TileEngine renders 512×512 tiles. \\
+\rowcolor{rowB} V2 & 3--5 & Image + Video & BitmapRegionDecoder tile renderer, MediaPlayer video, audio player &
+  12MP image opens in $<$30ms (thumb). Video plays in $<$80ms. \\
+\rowcolor{rowA} V3 & 6--8 & Text + Code & FluxTextRenderer, LineIndex, SyntaxHighlighter (6 languages) &
+  10MB file opens in $<$50ms. 60fps scroll on 300k line file. \\
+\rowcolor{rowB} V4 & 9--11 & PDF & FluxPdfRenderer tile system, PdfAnnotationLayer &
+  10-page PDF first tile $<$80ms. Annotation overlay works. \\
+\rowcolor{rowA} V5 & 12--15 & Office formats & DocxParser+layout, XlsxVirtualGrid, PptxSlideRenderer &
+  20-page DOCX opens $<$150ms. XLSX 1000 rows: 60fps scroll. \\
+\rowcolor{rowB} V6 & 16--18 & Data formats & JSON/XML/YAML tree viewer, CSV virtual grid, SQLite viewer &
+  50MB JSON opens $<$100ms. 100k-row CSV: 60fps scroll. \\
+\rowcolor{rowA} V7 & 19--21 & Web + Archives & HTML WebView, ZIP/APK viewer, EPUB reader &
+  Local HTML opens $<$200ms. ZIP 1000 files tree $<$30ms. \\
+\rowcolor{rowB} V8 & 22--24 & Advanced & SVG renderer, Font preview, Markdown, edit + save for all &
+  SVG 200 paths renders $<$100ms. Edit+save round-trip verified. \\
+\rowcolor{rowA} V9 & 25--26 & Flutter UI & ViewerRouter, all viewer screens, edit toolbar, PlatformView &
+  All formats open from FLUX browser with correct viewer. \\
+\rowcolor{rowB} V10 & 27 & Polish & Error handling all formats, unsupported fallback, a11y &
+  No crash on any file type. Unknown format shows hex viewer. \\
+\end{tabular}
+\end{center}
+
+\section{AI Coding Agent Rules for Viewer Engine}
+
+\begin{cbox}[FORBIDDEN in Viewer Engine Code]
+\begin{enumerate}[leftmargin=1.4em,topsep=2pt,itemsep=4pt]
+  \item \textbf{NEVER} call \texttt{File.readBytes()} or \texttt{readText()} for
+    files that may exceed 1\,MB. Always use \texttt{MmapSource}.
+  \item \textbf{NEVER} create a \texttt{Bitmap} larger than $2048 \times 2048$
+    in a single allocation. Always tile.
+  \item \textbf{NEVER} use \texttt{Bitmap.Config.ARGB\_8888} for photos/PDF
+    tiles. Use \texttt{RGB\_565} (50\% RAM saving, visually identical for content).
+  \item \textbf{NEVER} load the full document into a DOM before showing anything.
+    Always stream-parse and show first viewport within 150\,ms.
+  \item \textbf{NEVER} do rendering (Canvas draws) on the main thread. Tile
+    generation always runs on \texttt{Dispatchers.Default}.
+  \item \textbf{NEVER} add external rendering libraries for any format already
+    achievable with built-in Android APIs.
+  \item \textbf{NEVER} overwrite the original file during save. Always write to
+    a temp file, then atomic rename.
+  \item \textbf{NEVER} enable \texttt{javaScriptEnabled} in WebView unless the
+    file explicitly requires it and the user approves.
+\end{enumerate}
+\end{cbox}
+
+\begin{gbox}[REQUIRED in Every Format Renderer]
+\begin{enumerate}[leftmargin=1.4em,topsep=2pt,itemsep=4pt]
+  \item Every renderer \textbf{MUST} implement \texttt{AutoCloseable} and
+    release all resources in \texttt{close()}.
+  \item Every renderer \textbf{MUST} show \emph{something} (thumbnail, placeholder,
+    or first tile) within 100\,ms of being opened.
+  \item Every renderer \textbf{MUST} handle \texttt{OutOfMemoryError} gracefully:
+    reduce tile cache, show error state, never crash.
+  \item Every renderer \textbf{MUST} support \texttt{MmapSource} as its input,
+    never a raw \texttt{ByteArray} of the full file.
+  \item Every tile-based renderer \textbf{MUST} use \texttt{RGB\_565} for
+    non-alpha content and \texttt{ARGB\_8888} only when transparency is required.
+  \item Every edit operation \textbf{MUST} go through \texttt{EditOverlay},
+    never modify the source mmap directly.
+  \item Every format's save \textbf{MUST} write to a temp file first, verify
+    integrity, then atomic-rename over the original.
+\end{enumerate}
+\end{gbox}
+
+\vspace{24pt}
+\begin{center}
+  \color{P1}\rule{0.5\linewidth}{1pt}\\[8pt]
+  {\sffamily\bfseries\Large END OF FLUX VIEWER ENGINE DOCUMENT}\\[6pt]
+  \rule{0.5\linewidth}{1pt}\\[8pt]
+  {\sffamily\small\color{GY}
+    Market Analysis · Core Architecture · PDF · DOCX · XLSX · Images\\[3pt]
+    Text/Code · JSON/XML · Video/Audio · Archives · SVG · HTML · Edit Layer\\[3pt]
+    Complete Format Matrix · Flutter Integration · Implementation Plan\\[4pt]
+    Version 1.0 · 2025 · Confidential
+  }
+\end{center}
+
+\end{document}

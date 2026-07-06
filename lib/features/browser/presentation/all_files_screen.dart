@@ -1286,18 +1286,7 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> with WidgetsBin
                                 if (_isSelectionMode) {
                                   _toggleSelection(file.fid!);
                                 } else {
-                                  final detail = FileDetail(
-                                    name: file.name,
-                                    size: file.sizeString,
-                                    createdDate: DateFormatter.formatFriendly(file.modifiedDate),
-                                    modifiedDate:
-                                        '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                                    type: file.category,
-                                    themeColor: file.themeColor,
-                                    fallbackIcon: file.fallbackIcon,
-                                    fluxIcon: file.fluxIcon,
-                                  );
-                                  FileDetailSheet.show(context, detail);
+                                  context.push('/viewer?path=${Uri.encodeQueryComponent(file.path)}');
                                 }
                               },
                               onLongPress: () {
@@ -1363,12 +1352,32 @@ class _AllFilesScreenState extends ConsumerState<AllFilesScreen> with WidgetsBin
                                       ),
                                     ),
                                     if (!_isSelectionMode)
-                                      Icon(
-                                        Icons.more_vert,
-                                        size: 20.0.r,
-                                        color: isDark
-                                            ? Colors.white38
-                                            : Colors.black38,
+                                      GestureDetector(
+                                        onTap: () {
+                                          final detail = FileDetail(
+                                            name: file.name,
+                                            size: file.sizeString,
+                                            createdDate: DateFormatter.formatFriendly(file.modifiedDate),
+                                            modifiedDate:
+                                                '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                                            type: file.category,
+                                            themeColor: file.themeColor,
+                                            fallbackIcon: file.fallbackIcon,
+                                            fluxIcon: file.fluxIcon,
+                                          );
+                                          FileDetailSheet.show(context, detail);
+                                        },
+                                        behavior: HitTestBehavior.opaque,
+                                        child: Padding(
+                                          padding: EdgeInsets.all(8.0.r),
+                                          child: Icon(
+                                            Icons.more_vert,
+                                            size: 20.0.r,
+                                            color: isDark
+                                                ? Colors.white38
+                                                : Colors.black38,
+                                          ),
+                                        ),
                                       ),
                                   ],
                                 ),

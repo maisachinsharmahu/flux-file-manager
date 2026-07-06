@@ -35,7 +35,244 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!-- FLUX Universal File Viewer — Default App Registration          -->
+            <!-- Register for ACTION_VIEW so FLUX appears in "Open with" dialog -->
+            <!-- Covers all 50+ file types from doc1 + doc2 appendix            -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+
+            <!-- ── Documents ─────────────────────────────────────────────── -->
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/pdf"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/msword"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/vnd.ms-excel"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/vnd.ms-powerpoint"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/rtf"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/epub+zip"/>
+            </intent-filter>
+
+            <!-- ── Images ──────────────────────────────────────────────────── -->
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="image/*"/>
+            </intent-filter>
+
+            <!-- ── Video ───────────────────────────────────────────────────── -->
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="video/*"/>
+            </intent-filter>
+
+            <!-- ── Audio ───────────────────────────────────────────────────── -->
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="audio/*"/>
+            </intent-filter>
+
+            <!-- ── Text & Code ─────────────────────────────────────────────── -->
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="text/*"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/json"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/xml"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/javascript"/>
+            </intent-filter>
+
+            <!-- ── Archives ────────────────────────────────────────────────── -->
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/zip"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/x-zip-compressed"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/vnd.android.package-archive"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/x-rar-compressed"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="application/x-7z-compressed"/>
+            </intent-filter>
+
+            <!-- ── Fonts ───────────────────────────────────────────────────── -->
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="font/ttf"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="font/otf"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="font/woff"/>
+            </intent-filter>
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="font/woff2"/>
+            </intent-filter>
+
+            <!-- ── Wildcard for any file — catches extension-only shares ───── -->
+            <intent-filter android:priority="50">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="file"/>
+                <data android:mimeType="*/*"/>
+            </intent-filter>
+            <intent-filter android:priority="50">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="content"/>
+                <data android:mimeType="*/*"/>
+            </intent-filter>
         </activity>
+        
         <!-- ModelDownloadService: foreground service for background ONNX model download.
              foregroundServiceType=dataSync allows download to continue when app is minimized. -->
         <service

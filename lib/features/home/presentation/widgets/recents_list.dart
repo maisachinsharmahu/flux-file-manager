@@ -121,7 +121,7 @@ class _RecentItemRow extends StatelessWidget {
     final subtitle = '${file.category} • ${file.sizeString} • $timeString';
 
     return GestureDetector(
-      onTap: () => _showDetails(context),
+      onTap: () => context.push('/viewer?path=${Uri.encodeQueryComponent(file.path)}'),
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 12.0.h),

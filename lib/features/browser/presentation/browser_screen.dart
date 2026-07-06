@@ -1336,18 +1336,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                       if (_isSelectionMode) {
                         _toggleSelection(file.fid!);
                       } else {
-                        final detail = FileDetail(
-                          name: file.name,
-                          size: file.sizeString,
-                          createdDate: formatFriendlyDate(file.modifiedDate),
-                          modifiedDate:
-                              '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                          type: file.category,
-                          themeColor: file.themeColor,
-                          fallbackIcon: file.fallbackIcon,
-                          fluxIcon: file.fluxIcon,
-                        );
-                        FileDetailSheet.show(context, detail);
+                        context.push('/viewer?path=${Uri.encodeQueryComponent(file.path)}');
                       }
                     },
                     onLongPress: () {
@@ -1614,18 +1603,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
                     if (_isSelectionMode) {
                       _toggleSelection(file.fid!);
                     } else {
-                      final detail = FileDetail(
-                        name: file.name,
-                        size: file.sizeString,
-                        createdDate: formatFriendlyDate(file.modifiedDate),
-                        modifiedDate:
-                            '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                        type: file.category,
-                        themeColor: file.themeColor,
-                        fallbackIcon: file.fallbackIcon,
-                        fluxIcon: file.fluxIcon,
-                      );
-                      FileDetailSheet.show(context, detail);
+                      context.push('/viewer?path=${Uri.encodeQueryComponent(file.path)}');
                     }
                   },
                   onLongPress: () {

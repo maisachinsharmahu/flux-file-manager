@@ -536,18 +536,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
 
               return GestureDetector(
                 onTap: () {
-                  final detail = FileDetail(
-                    name: file.name,
-                    size: file.sizeString,
-                    createdDate: DateFormatter.formatFriendly(file.modifiedDate),
-                    modifiedDate:
-                        '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                    type: file.category,
-                    themeColor: file.themeColor,
-                    fallbackIcon: file.fallbackIcon,
-                    fluxIcon: file.fluxIcon,
-                  );
-                  FileDetailSheet.show(context, detail);
+                  context.push('/viewer?path=${Uri.encodeQueryComponent(file.path)}');
                 },
                 behavior: HitTestBehavior.opaque,
                 child: Padding(

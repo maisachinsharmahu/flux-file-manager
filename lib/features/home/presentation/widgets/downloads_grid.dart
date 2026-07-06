@@ -167,18 +167,7 @@ class DownloadsGrid extends ConsumerWidget {
 
               return GestureDetector(
                 onTap: () {
-                  final detail = FileDetail(
-                    name: file.name,
-                    size: file.sizeString,
-                    createdDate: DateFormatter.formatFriendly(file.modifiedDate),
-                    modifiedDate:
-                        '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
-                    type: file.category,
-                    themeColor: file.themeColor,
-                    fallbackIcon: file.fallbackIcon,
-                    fluxIcon: file.fluxIcon,
-                  );
-                  FileDetailSheet.show(context, detail);
+                  context.push('/viewer?path=${Uri.encodeQueryComponent(file.path)}');
                 },
                 child: Container(
                   decoration: BoxDecoration(
@@ -187,40 +176,76 @@ class DownloadsGrid extends ConsumerWidget {
                     border: Border.all(color: borderColor, width: 1.0.r),
                   ),
                   padding: EdgeInsets.all(12.0.r),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                  child: Stack(
                     children: [
-                      FileTypeIcon(
-                        extension: file.fileExtension,
-                        path: file.path,
-                        size: 36.0.r,
-                      ),
-                      SizedBox(height: 10.0.h),
-                      Text(
-                        file.name,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 12.0.sp,
-                          fontWeight: FontWeight.w600,
-                          color: titleColor,
+                      Align(
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            FileTypeIcon(
+                              extension: file.fileExtension,
+                              path: file.path,
+                              size: 36.0.r,
+                            ),
+                            SizedBox(height: 10.0.h),
+                            Text(
+                              file.name,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12.0.sp,
+                                fontWeight: FontWeight.w600,
+                                color: titleColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 2.0.h),
+                            Text(
+                              '${file.sizeString} • $timeString',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 10.0.sp,
+                                fontWeight: FontWeight.w500,
+                                color: subtitleColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 2.0.h),
-                      Text(
-                        '${file.sizeString} • $timeString',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 10.0.sp,
-                          fontWeight: FontWeight.w500,
-                          color: subtitleColor,
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () {
+                            final detail = FileDetail(
+                              name: file.name,
+                              size: file.sizeString,
+                              createdDate: DateFormatter.formatFriendly(file.modifiedDate),
+                              modifiedDate:
+                                  '${file.modifiedDate.year}-${file.modifiedDate.month.toString().padLeft(2, '0')}-${file.modifiedDate.day.toString().padLeft(2, '0')}',
+                              type: file.category,
+                              themeColor: file.themeColor,
+                              fallbackIcon: file.fallbackIcon,
+                              fluxIcon: file.fluxIcon,
+                            );
+                            FileDetailSheet.show(context, detail);
+                          },
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: EdgeInsets.all(4.0.r),
+                            child: Icon(
+                              Icons.more_vert,
+                              size: 16.0.r,
+                              color: isDark ? Colors.white38 : Colors.black38,
+                            ),
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

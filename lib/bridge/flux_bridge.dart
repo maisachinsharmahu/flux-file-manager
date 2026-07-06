@@ -11,10 +11,17 @@ class FluxBridge {
   static final _indexChangeController = StreamController<void>.broadcast();
   static Stream<void> get onIndexChanged => _indexChangeController.stream;
 
+  // Stream for incoming file intents (when app opened from another app's "Open with")
+  static final _intentFileController = StreamController<String>.broadcast();
+  static Stream<String> get onIntentFile => _intentFileController.stream;
+
   static void initializeMethodCallHandler() {
     _methodChannel.setMethodCallHandler((call) async {
       if (call.method == 'onIndexChanged') {
         _indexChangeController.add(null);
+      } else if (call.method == 'onIntentFile') {
+        final path = call.arguments as String?;
+        if (path != null) _intentFileController.add(path);
       }
     });
   }
@@ -494,5 +501,216 @@ class FluxBridge {
       return 0;
     }
   }
-}
 
+  // ── Viewer Engine Bridge ──────────────────────────────────────────────────
+
+  /// Poll for a pending intent file path.
+  /// Call once on app startup — returns path if app was opened via "Open with".
+  static Future<String?> getIntentFilePath() async {
+    try {
+      final String? path = await _methodChannel.invokeMethod('getIntentFilePath');
+      return path;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getIntentFilePath() -> $e');
+      return null;
+    }
+  }
+
+  /// Resolve a content:// URI to an absolute file path.
+  /// Uses ContentResolver on the Kotlin side.
+  static Future<String?> resolveContentUri(String uri) async {
+    try {
+      final String? path = await _methodChannel.invokeMethod('resolveContentUri', {'uri': uri});
+      return path;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: resolveContentUri(uri: $uri) -> $e');
+      return null;
+    }
+  }
+
+  /// Detect file format using magic bytes (not extension).
+  /// Returns the FileFormat enum name string (e.g. 'PDF', 'DOCX', 'JPEG').
+  static Future<String?> detectFileFormat(String filePath) async {
+    try {
+      final String? format = await _methodChannel.invokeMethod('detectFileFormat', {'path': filePath});
+      return format;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: detectFileFormat(path: $filePath) -> $e');
+      return null;
+    }
+  }
+
+  /// Deliver a file path into the onIntentFile stream programmatically.
+  /// Used by main.dart for cold-start intent polling.
+  static void deliverIntentPath(String path) {
+    _intentFileController.add(path);
+  }
+
+  /// Extract audio waveform amplitudes.
+  /// Returns a list of integers from 0 to 100 representing amplitudes.
+  static Future<List<int>> extractAudioWaveform(String filePath, {int bars = 256}) async {
+    try {
+      final List<dynamic>? points = await _methodChannel.invokeMethod('extractAudioWaveform', {
+        'path': filePath,
+        'bars': bars,
+      });
+      return points?.cast<int>() ?? List.filled(bars, 2);
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: extractAudioWaveform(path: $filePath) -> $e');
+      return List.filled(bars, 2);
+    }
+  }
+
+  static Future<bool> playAudio(String filePath) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('playAudio', {'path': filePath});
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: playAudio() -> $e');
+      return false;
+    }
+  }
+
+  static Future<bool> pauseAudio() async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('pauseAudio');
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: pauseAudio() -> $e');
+      return false;
+    }
+  }
+
+  static Future<bool> seekAudio(int positionMs) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('seekAudio', {'position': positionMs});
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: seekAudio() -> $e');
+      return false;
+    }
+  }
+
+  static Future<int> getAudioPosition() async {
+    try {
+      final int result = await _methodChannel.invokeMethod('getAudioPosition');
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getAudioPosition() -> $e');
+      return 0;
+    }
+  }
+
+  static Future<int> getAudioDuration() async {
+    try {
+      final int result = await _methodChannel.invokeMethod('getAudioDuration');
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getAudioDuration() -> $e');
+      return 0;
+    }
+  }
+
+  static Future<bool> stopAudio() async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('stopAudio');
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: stopAudio() -> $e');
+      return false;
+    }
+  }
+
+  /// Read the full content of a file (up to 10MB limit safety) using zero-copy native memory map.
+  static Future<String> getFileContent(String filePath) async {
+    try {
+      final String? content = await _methodChannel.invokeMethod('getFileContent', {
+        'path': filePath,
+      });
+      return content ?? '';
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getFileContent() -> $e');
+      return '';
+    }
+  }
+
+  /// Read a specific line range from a file using zero-copy native memory map and line starts index.
+  static Future<List<String>> getFileLines(String filePath, int startLine, int count) async {
+    try {
+      final List<dynamic>? lines = await _methodChannel.invokeMethod('getFileLines', {
+        'path': filePath,
+        'start': startLine,
+        'count': count,
+      });
+      return lines?.cast<String>() ?? [];
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getFileLines() -> $e');
+      return [];
+    }
+  }
+
+  /// Get total page count of a PDF file using native PdfRenderer.
+  static Future<int> getPdfPageCount(String filePath) async {
+    try {
+      final int count = await _methodChannel.invokeMethod('getPdfPageCount', {
+        'path': filePath,
+      });
+      return count;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getPdfPageCount() -> $e');
+      return 0;
+    }
+  }
+
+  /// Release native resources held by PdfRenderer.
+  static Future<bool> closePdf(String filePath) async {
+    try {
+      final bool result = await _methodChannel.invokeMethod('closePdf', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: closePdf() -> $e');
+      return false;
+    }
+  }
+
+  /// Parse DOCX paragraphs and tables into structured JSON representation.
+  static Future<String> parseDocx(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('parseDocx', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: parseDocx() -> $e');
+      return '[]';
+    }
+  }
+
+  /// Parse XLSX sheet cells into structured JSON cell coordinates mapping.
+  static Future<String> parseXlsx(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('parseXlsx', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: parseXlsx() -> $e');
+      return '{}';
+    }
+  }
+
+  /// Parse PPTX slides text contents into structured slide maps array.
+  static Future<String> parsePptx(String filePath) async {
+    try {
+      final String result = await _methodChannel.invokeMethod('parsePptx', {
+        'path': filePath,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: parsePptx() -> $e');
+      return '[]';
+    }
+  }
+}

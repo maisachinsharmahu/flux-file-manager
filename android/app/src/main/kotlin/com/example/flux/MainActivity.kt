@@ -1,7 +1,9 @@
 package com.example.flux
 
 import android.content.Intent
+import android.net.Uri
 import android.util.Log
+import com.example.flux.viewer.ViewerEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -18,9 +20,53 @@ class MainActivity : FlutterActivity() {
     private var copyProgressChannel: MethodChannel? = null
     private var bridgeChannel: MethodChannel? = null
 
+    // Pending file intent from ACTION_VIEW — delivered to Flutter once bridge is ready
+    private var pendingIntentFilePath: String? = null
+    private var audioMediaPlayer: android.media.MediaPlayer? = null
+
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         checkAndRequestStoragePermissions()
+        // Handle file intent if app was opened via ACTION_VIEW
+        handleIncomingIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // App already running — handle new ACTION_VIEW intent
+        handleIncomingIntent(intent)
+        // Notify Flutter immediately if bridge is already set up
+        pendingIntentFilePath?.let { path ->
+            bridgeChannel?.invokeMethod("onIntentFile", path)
+        }
+    }
+
+    /**
+     * Handle ACTION_VIEW intent from external apps (file managers, email, etc.).
+     * Resolves the URI to an absolute path and stores for Flutter retrieval.
+     */
+    private fun handleIncomingIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        val uri: Uri = intent.data ?: return
+
+        // Resolve on background thread — content:// URIs may require IO
+        java.util.concurrent.ForkJoinPool.commonPool().execute {
+            try {
+                val path = ViewerEngine.resolveUri(applicationContext, uri)
+                if (path != null) {
+                    pendingIntentFilePath = path
+                    Log.d("FLUX_VIEWER", "Intent file resolved: $path")
+                    // Notify Flutter (may be null if bridge not set up yet — Flutter polls via getIntentFilePath)
+                    runOnUiThread {
+                        bridgeChannel?.invokeMethod("onIntentFile", path)
+                    }
+                } else {
+                    Log.w("FLUX_VIEWER", "Could not resolve intent URI: $uri")
+                }
+            } catch (e: Exception) {
+                Log.e("FLUX_VIEWER", "Intent handling error: ${e.message}")
+            }
+        }
     }
 
     private fun checkAndRequestStoragePermissions() {
@@ -128,6 +174,24 @@ class MainActivity : FlutterActivity() {
                 bridgeChannel?.invokeMethod("onIndexChanged", null)
             }
         }
+
+        // Register native platform views
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "com.flux/image_viewer",
+            com.example.flux.viewer.image.FluxImageViewFactory()
+        )
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "com.flux/video_viewer",
+            com.example.flux.viewer.video.FluxVideoViewFactory(flutterEngine.dartExecutor.binaryMessenger)
+        )
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "com.flux/text_viewer",
+            com.example.flux.viewer.text.FluxTextViewFactory()
+        )
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "com.flux/pdf_page_view",
+            com.example.flux.viewer.pdf.FluxPdfPageViewFactory()
+        )
 
         channel.setMethodCallHandler { call, result ->
             java.util.concurrent.ForkJoinPool.commonPool().execute {
@@ -362,6 +426,171 @@ class MainActivity : FlutterActivity() {
                                 shareFilesNative(paths)
                             }
                             runOnUiThread { result.success(true) }
+                        }
+                        // ─── FLUX Viewer Engine ──────────────────────────────
+                        "getIntentFilePath" -> {
+                            // Flutter polls this on startup to check if we were opened via intent
+                            val path = pendingIntentFilePath
+                            pendingIntentFilePath = null  // consume once delivered
+                            runOnUiThread { result.success(path) }
+                        }
+                        "resolveContentUri" -> {
+                            val uriString = call.argument<String>("uri") ?: ""
+                            try {
+                                val uri = Uri.parse(uriString)
+                                val path = ViewerEngine.resolveUri(applicationContext, uri)
+                                runOnUiThread { result.success(path) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("URI_ERROR", e.message, null) }
+                            }
+                        }
+                        "extractAudioWaveform" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            val bars = call.argument<Int>("bars") ?: 256
+                            try {
+                                val points = com.example.flux.viewer.audio.AudioWaveformExtractor.extract(filePath, bars)
+                                val list = points.toList()
+                                runOnUiThread { result.success(list) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("WAVEFORM_ERROR", e.message, null) }
+                            }
+                        }
+                        "getFileContent" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val mmap = com.example.flux.viewer.MmapSource(java.io.File(filePath))
+                                val size = mmap.size.toInt().coerceAtMost(10 * 1024 * 1024) // 10MB limit safety
+                                val slice = mmap.slice(0, size)
+                                val bytes = ByteArray(size)
+                                slice.get(bytes)
+                                mmap.close()
+                                val content = String(bytes, java.nio.charset.StandardCharsets.UTF_8)
+                                runOnUiThread { result.success(content) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("READ_ERROR", e.message, null) }
+                            }
+                        }
+                        "getFileLines" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            val start = call.argument<Int>("start") ?: 0
+                            val count = call.argument<Int>("count") ?: 50
+                            try {
+                                val mmap = com.example.flux.viewer.MmapSource(java.io.File(filePath))
+                                val index = com.example.flux.viewer.text.LineIndex(mmap)
+                                val lines = ArrayList<String>()
+                                val end = (start + count).coerceAtMost(index.lineCount)
+                                for (i in start until end) {
+                                    lines.add(index.getLineText(i))
+                                }
+                                mmap.close()
+                                runOnUiThread { result.success(lines) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("READ_ERROR", e.message, null) }
+                            }
+                        }
+                        "getPdfPageCount" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val count = com.example.flux.viewer.pdf.PdfRenderService.getPageCount(filePath)
+                                runOnUiThread { result.success(count) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("PDF_ERROR", e.message, null) }
+                            }
+                        }
+                        "closePdf" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                com.example.flux.viewer.pdf.PdfRenderService.closePdf(filePath)
+                                runOnUiThread { result.success(true) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("PDF_ERROR", e.message, null) }
+                            }
+                        }
+                        "parseDocx" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.office.OfficeParser.parseDocx(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("OFFICE_ERROR", e.message, null) }
+                            }
+                        }
+                        "parseXlsx" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.office.OfficeParser.parseXlsx(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("OFFICE_ERROR", e.message, null) }
+                            }
+                        }
+                        "parsePptx" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val json = com.example.flux.viewer.office.OfficeParser.parsePptx(filePath)
+                                runOnUiThread { result.success(json) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("OFFICE_ERROR", e.message, null) }
+                            }
+                        }
+                        "playAudio" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                if (audioMediaPlayer == null) {
+                                    audioMediaPlayer = android.media.MediaPlayer().apply {
+                                        setDataSource(filePath)
+                                        prepare()
+                                    }
+                                }
+                                audioMediaPlayer?.start()
+                                runOnUiThread { result.success(true) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("PLAY_ERROR", e.message, null) }
+                            }
+                        }
+                        "pauseAudio" -> {
+                            try {
+                                audioMediaPlayer?.pause()
+                                runOnUiThread { result.success(true) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("PAUSE_ERROR", e.message, null) }
+                            }
+                        }
+                        "seekAudio" -> {
+                            val position = call.argument<Int>("position") ?: 0
+                            try {
+                                audioMediaPlayer?.seekTo(position)
+                                runOnUiThread { result.success(true) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("SEEK_ERROR", e.message, null) }
+                            }
+                        }
+                        "getAudioPosition" -> {
+                            runOnUiThread { result.success(audioMediaPlayer?.currentPosition ?: 0) }
+                        }
+                        "getAudioDuration" -> {
+                            runOnUiThread { result.success(audioMediaPlayer?.duration ?: 0) }
+                        }
+                        "stopAudio" -> {
+                            try {
+                                audioMediaPlayer?.stop()
+                                audioMediaPlayer?.release()
+                                audioMediaPlayer = null
+                                runOnUiThread { result.success(true) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("STOP_ERROR", e.message, null) }
+                            }
+                        }
+                        "detectFileFormat" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            try {
+                                val session = ViewerEngine.open(filePath)
+                                val formatName = session.format.name
+                                session.close()
+                                runOnUiThread { result.success(formatName) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("FORMAT_ERROR", e.message, null) }
+                            }
                         }
                         "getModelFilePath" -> {
                             // FIXED: Do NOT instantiate Service directly (no Context available)

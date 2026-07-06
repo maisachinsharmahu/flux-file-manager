@@ -46,6 +46,7 @@ dependencies:
   http: ^1.2.2
   lottie: ^3.4.0
   shimmer: ^3.0.0
+  flutter_highlight: ^0.7.0
 
 dev_dependencies:
   flutter_test:

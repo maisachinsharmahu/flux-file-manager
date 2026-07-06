@@ -41,5 +41,14 @@ void main() async {
       child: const FluxApp(),
     ),
   );
+
+  // Cold-start intent polling: check if app was opened via ACTION_VIEW.
+  // FluxApp's onIntentFile listener will handle warm-start (onNewIntent).
+  // Delay 500ms so GoRouter is fully initialized before navigating.
+  Future.delayed(const Duration(milliseconds: 500), () async {
+    final path = await FluxBridge.getIntentFilePath();
+    if (path != null && path.isNotEmpty) {
+      FluxBridge.deliverIntentPath(path);
+    }
+  });
 }
- 

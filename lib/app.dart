@@ -16,6 +16,8 @@ import 'features/trash/presentation/junk_cleaner_screen.dart';
 import 'features/trash/presentation/duplicates_pruner_screen.dart';
 import 'features/navigation/presentation/main_navigation_shell.dart';
 import 'features/home/presentation/widgets/copy_progress_overlay.dart';
+import 'features/viewer/viewer_router.dart';
+import 'bridge/flux_bridge.dart';
 
 final GoRouter _router = GoRouter(
   initialLocation: '/',
@@ -98,14 +100,51 @@ final GoRouter _router = GoRouter(
         return const DuplicatesPrunerScreen();
       },
     ),
+    // ── FLUX Viewer Engine ─────────────────────────────────────────────────
+    GoRoute(
+      path: '/viewer',
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        final path  = state.uri.queryParameters['path'] ?? '';
+        final mime  = state.uri.queryParameters['mime'];
+        final title = state.uri.queryParameters['title'];
+        return CustomTransitionPage(
+          key: state.pageKey,
+          child: ViewerRouter(path: path, mimeType: mime, overrideTitle: title),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        );
+      },
+    ),
   ],
 );
 
-class FluxApp extends ConsumerWidget {
+class FluxApp extends ConsumerStatefulWidget {
   const FluxApp({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FluxApp> createState() => _FluxAppState();
+}
+
+class _FluxAppState extends ConsumerState<FluxApp> {
+  @override
+  void initState() {
+    super.initState();
+    _listenForIntentFiles();
+  }
+
+  /// Listen for files received via Android ACTION_VIEW intent.
+  /// When another app sends us a file, navigate to the viewer immediately.
+  void _listenForIntentFiles() {
+    FluxBridge.onIntentFile.listen((filePath) {
+      if (filePath.isNotEmpty) {
+        _router.go('/viewer?path=${Uri.encodeQueryComponent(filePath)}');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
 
     return ScreenUtilInit(
