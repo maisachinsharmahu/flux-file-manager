@@ -363,17 +363,31 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
                       ],
                     ),
                   ),
-                  GestureDetector(
-                    onTap: allSelected ? _deselectAll : _selectAll,
-                    child: Text(
-                      allSelected ? 'Deselect all' : 'Select all',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.mintAccent,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: allSelected ? _deselectAll : _selectAll,
+                        child: Text(
+                          allSelected ? 'Deselect all' : 'Select all',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.mintAccent,
+                          ),
+                        ),
                       ),
-                    ),
+                      SizedBox(width: 16.w),
+                      GestureDetector(
+                        onTap: _loadDuplicates,
+                        child: Icon(
+                          Icons.sync_rounded,
+                          color: AppColors.mintAccent,
+                          size: 20.r,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -394,40 +408,48 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
               ),
             ),
 
-            // Main duplicates content area
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator(color: AppColors.mintAccent))
-                  : _duplicateGroups.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.check_circle_outline_rounded,
-                                size: 64.r,
-                                color: AppColors.mintAccent.withValues(alpha: 0.5),
-                              ),
-                              SizedBox(height: 16.h),
-                              Text(
-                                'No duplicate photos found!',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: headerColor,
+                  : RefreshIndicator(
+                      color: AppColors.mintAccent,
+                      backgroundColor: isDark ? AppColors.neutral900 : Colors.white,
+                      onRefresh: _loadDuplicates,
+                      child: _duplicateGroups.isEmpty
+                          ? SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Container(
+                                height: 500.h,
+                                alignment: Alignment.center,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_outline_rounded,
+                                      size: 64.r,
+                                      color: AppColors.mintAccent.withValues(alpha: 0.5),
+                                    ),
+                                    SizedBox(height: 16.h),
+                                    Text(
+                                      'No duplicate photos found!',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: headerColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: _duplicateGroups.length,
-                          itemBuilder: (context, index) {
-                            final group = _duplicateGroups[index];
-                            final totalGroupSize = group.fold<int>(0, (sum, item) => sum + (item['size'] as num).toInt());
+                            )
+                          : ListView.builder(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: _duplicateGroups.length,
+                              itemBuilder: (context, index) {
+                                final group = _duplicateGroups[index];
+                                final totalGroupSize = group.fold<int>(0, (sum, item) => sum + (item['size'] as num).toInt());
                             
                             // Check if all duplicates in this group are selected
                             final duplicateFids = group.sublist(1).map((item) => (item['fid'] as num).toInt());
@@ -531,6 +553,7 @@ class _DuplicatesPrunerScreenState extends ConsumerState<DuplicatesPrunerScreen>
                             );
                           },
                         ),
+                  ),
             ),
 
             // Bottom action layout
