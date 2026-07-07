@@ -14,6 +14,7 @@ enum class FileFormat {
     PPTX, PPT,
     ODT, ODS,
     RTF,
+    LATEX,
 
     // Images
     JPEG, PNG, WEBP, GIF, HEIC, HEIF, BMP, SVG, AVIF, DNG,
@@ -55,5 +56,5 @@ enum class FileFormat {
     fun isCode()   = name.startsWith("CODE_")
     fun isArchive()= this in setOf(ZIP, JAR, APK, AAR, EPUB, RAR, SEVEN_ZIP)
     fun isFont()   = name.startsWith("FONT_")
-    fun isText()   = this in setOf(PLAIN_TEXT, MARKDOWN, HTML, JSON, XML, YAML, CSV, TSV, TOML, INI, ENV, LOG, SQL) || isCode()
+    fun isText()   = this in setOf(PLAIN_TEXT, MARKDOWN, HTML, LATEX, JSON, XML, YAML, CSV, TSV, TOML, INI, ENV, LOG, SQL) || isCode()
 }

@@ -249,6 +249,7 @@ object FormatDetector {
         "pptx"  to FileFormat.PPTX, "ppt" to FileFormat.PPT,
         "odt"   to FileFormat.ODT,  "ods" to FileFormat.ODS,
         "rtf"   to FileFormat.RTF,
+        "tex"   to FileFormat.LATEX, "ltx" to FileFormat.LATEX, "latex" to FileFormat.LATEX,
         // Images
         "jpg"   to FileFormat.JPEG, "jpeg" to FileFormat.JPEG,
         "png"   to FileFormat.PNG,
@@ -357,6 +358,7 @@ object FormatDetector {
         "text/plain" -> FileFormat.PLAIN_TEXT
         "text/html" -> FileFormat.HTML
         "text/markdown" -> FileFormat.MARKDOWN
+        "text/x-tex", "application/x-tex" -> FileFormat.LATEX
         "text/csv" -> FileFormat.CSV
         "application/json" -> FileFormat.JSON
         "text/xml", "application/xml" -> FileFormat.XML

@@ -3,12 +3,12 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// MarkdownViewerScreen — native Android-based high performance Markdown rendering screen.
-class MarkdownViewerScreen extends StatelessWidget {
+/// LatexViewerScreen — native Android-based high performance LaTeX formula rendering screen.
+class LatexViewerScreen extends StatelessWidget {
   final String path;
   final String title;
 
-  const MarkdownViewerScreen({
+  const LatexViewerScreen({
     Key? key,
     required this.path,
     required this.title,
@@ -34,7 +34,7 @@ class MarkdownViewerScreen extends StatelessWidget {
         ),
       ),
       body: AndroidView(
-        viewType: 'com.flux/markdown_viewer',
+        viewType: 'com.flux/latex_viewer',
         layoutDirection: TextDirection.ltr,
         creationParams: <String, dynamic>{
           'path': path,

@@ -8,6 +8,7 @@ enum FileFormat {
   pptx, ppt,
   odt, ods,
   rtf,
+  latex,
 
   // Images
   jpeg, png, webp, gif, heic, heif, bmp, svg, avif, dng,
@@ -49,7 +50,7 @@ enum FileFormat {
   bool get isArchive => [zip, jar, apk, aar, epub, rar, sevenZip].contains(this);
   bool get isFont => [fontTtf, fontOtf, fontWoff, fontWoff2].contains(this);
   bool get isCode => name.startsWith('code');
-  bool get isText => [plainText, markdown, html, json, xml, yaml, csv, tsv, toml, ini, env, log, sql].contains(this) || isCode;
+  bool get isText => [plainText, markdown, html, latex, json, xml, yaml, csv, tsv, toml, ini, env, log, sql].contains(this) || isCode;
 
   String get displayName {
     switch (this) {
@@ -67,6 +68,7 @@ enum FileFormat {
       case FileFormat.audioM4a: return 'Audio';
       case FileFormat.plainText: return 'Plain Text';
       case FileFormat.markdown: return 'Markdown';
+      case FileFormat.latex: return 'LaTeX Document';
       case FileFormat.html: return 'HTML';
       case FileFormat.json: return 'JSON';
       case FileFormat.xml: return 'XML';
@@ -136,6 +138,7 @@ const _extensionMap = <String, FileFormat>{
   'txt': FileFormat.plainText,
   'log': FileFormat.log,
   'md': FileFormat.markdown, 'markdown': FileFormat.markdown,
+  'tex': FileFormat.latex, 'ltx': FileFormat.latex, 'latex': FileFormat.latex,
   'html': FileFormat.html, 'htm': FileFormat.html,
   'kt': FileFormat.codeKotlin,
   'java': FileFormat.codeJava,
@@ -234,6 +237,7 @@ const _kotlinNameMap = <String, FileFormat>{
   'audiom4a': FileFormat.audioM4a,
   'plaintext': FileFormat.plainText,
   'markdown': FileFormat.markdown,
+  'latex': FileFormat.latex,
   'html': FileFormat.html,
   'codekotlin': FileFormat.codeKotlin,
   'codejava': FileFormat.codeJava,

@@ -18,6 +18,7 @@ import 'screens/font_viewer_screen.dart';
 import 'screens/apk_info_screen.dart';
 import 'screens/epub_viewer_screen.dart';
 import 'screens/markdown_viewer_screen.dart';
+import 'screens/latex_viewer_screen.dart';
 import 'widgets/error_boundary.dart';
 
 export 'file_format.dart';
@@ -91,6 +92,8 @@ class ViewerRouter extends StatelessWidget {
           TextViewerScreen(path: path, format: format.name, title: title),
         FileFormat.markdown =>
           MarkdownViewerScreen(path: path, title: title),
+        FileFormat.latex =>
+          LatexViewerScreen(path: path, title: title),
         FileFormat.html =>
           HtmlViewerScreen(path: path, title: title),
         _ when format.isCode =>

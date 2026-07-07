@@ -204,6 +204,14 @@ class MainActivity : FlutterActivity() {
             "com.flux/font_view",
             com.example.flux.viewer.font.FluxFontViewFactory()
         )
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "com.flux/markdown_viewer",
+            com.example.flux.viewer.markdown.FluxMarkdownViewFactory()
+        )
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            "com.flux/latex_viewer",
+            com.example.flux.viewer.latex.FluxLatexViewFactory()
+        )
 
         channel.setMethodCallHandler { call, result ->
             java.util.concurrent.ForkJoinPool.commonPool().execute {
