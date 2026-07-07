@@ -149,9 +149,7 @@ String fileTypeIconPath(String extension) {
   }
 }
 
-/// A widget that renders the correct colorful file-type icon
-/// or a memory-efficient thumbnail image for image formats.
-class FileTypeIcon extends StatelessWidget {
+class FileTypeIcon extends StatefulWidget {
   final String extension;
   final String? path;
   final double size;
@@ -164,7 +162,37 @@ class FileTypeIcon extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  State<FileTypeIcon> createState() => _FileTypeIconState();
+}
+
+class _FileTypeIconState extends State<FileTypeIcon> {
+  static final Map<String, bool> _validationCache = {};
+  static final Set<String> _pendingChecks = {};
+
+  bool? _isValid;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkValidity();
+  }
+
+  @override
+  void didUpdateWidget(FileTypeIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.path != oldWidget.path || widget.extension != oldWidget.extension) {
+      _isValid = null;
+      _checkValidity();
+    }
+  }
+
+  void _checkValidity() {
+    final path = widget.path;
+    if (path == null || path.isEmpty) {
+      _isValid = false;
+      return;
+    }
+
     final isImage = const [
       'jpg',
       'jpeg',
@@ -172,59 +200,93 @@ class FileTypeIcon extends StatelessWidget {
       'gif',
       'webp',
       'bmp',
-    ].contains(extension.toLowerCase().trim());
+    ].contains(widget.extension.toLowerCase().trim());
 
-    if (isImage && path != null && path!.isNotEmpty) {
-      final file = File(path!);
-      bool isValidRealImage = false;
-      try {
-        if (file.existsSync() && !path!.contains("flux_test_files")) {
-          final raf = file.openSync(mode: FileMode.read);
-          final bytes = raf.readSync(4);
-          raf.closeSync();
-          if (bytes.length >= 4) {
-            // Ensure first 4 bytes are not all zero (which indicates zero-filled mock files)
-            if (bytes[0] != 0 ||
-                bytes[1] != 0 ||
-                bytes[2] != 0 ||
-                bytes[3] != 0) {
-              isValidRealImage = true;
-            }
+    if (!isImage) {
+      _isValid = false;
+      return;
+    }
+
+    if (_validationCache.containsKey(path)) {
+      _isValid = _validationCache[path];
+      return;
+    }
+
+    _isValid = null;
+
+    if (_pendingChecks.contains(path)) {
+      return;
+    }
+    _pendingChecks.add(path);
+
+    _runAsyncValidation(path);
+  }
+
+  Future<void> _runAsyncValidation(String path) async {
+    bool valid = false;
+    try {
+      final file = File(path);
+      if (await file.exists() && !path.contains("flux_test_files")) {
+        final raf = await file.open(mode: FileMode.read);
+        final bytes = await raf.read(4);
+        await raf.close();
+        if (bytes.length >= 4) {
+          if (bytes[0] != 0 ||
+              bytes[1] != 0 ||
+              bytes[2] != 0 ||
+              bytes[3] != 0) {
+            valid = true;
           }
         }
-      } catch (_) {}
-
-      if (isValidRealImage) {
-        // Listing 4.3 layout pattern: strict RGB_565 decodes with 256x256 cacheWidth bounds
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.file(
-            file,
-            width: size,
-            height: size,
-            cacheWidth: 256,
-            cacheHeight: 256,
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.low,
-            errorBuilder: (context, error, stackTrace) {
-              // Instant fallback placeholder
-              return SvgPicture.asset(
-                fileTypeIconPath(extension),
-                width: size,
-                height: size,
-                fit: BoxFit.contain,
-              );
-            },
-          ),
-        );
       }
+    } catch (_) {
+      valid = false;
+    }
+
+    _validationCache[path] = valid;
+    _pendingChecks.remove(path);
+
+    if (mounted && widget.path == path) {
+      setState(() {
+        _isValid = valid;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.size;
+    final ext = widget.extension;
+
+    if (_isValid == true && widget.path != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.file(
+          File(widget.path!),
+          width: size,
+          height: size,
+          cacheWidth: 256,
+          cacheHeight: 256,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.low,
+          errorBuilder: (context, error, stackTrace) {
+            return SvgPicture.asset(
+              fileTypeIconPath(ext),
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+            );
+          },
+        ),
+      );
     }
 
     return SvgPicture.asset(
-      fileTypeIconPath(extension),
+      fileTypeIconPath(ext),
       width: size,
       height: size,
       fit: BoxFit.contain,
     );
   }
 }
+
