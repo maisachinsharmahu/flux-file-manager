@@ -83,6 +83,16 @@ object PdfRenderService {
     }
 
     /**
+     * Render page safely and compress to JPEG bytes.
+     */
+    fun getPageBytes(filePath: String, pageIndex: Int, scale: Float): ByteArray? {
+        val bitmap = renderPage(filePath, pageIndex, scale) ?: return null
+        val stream = java.io.ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+        return stream.toByteArray()
+    }
+
+    /**
      * Close a PDF and release all descriptors. Called on dispose/close.
      */
     fun closePdf(filePath: String) {

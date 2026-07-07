@@ -148,6 +148,33 @@ class FluxVideoView(
             "isPlaying" -> {
                 result.success(isPrepared && player.isPlaying)
             }
+            "setSpeed" -> {
+                val speed = call.argument<Double>("speed")?.toFloat() ?: 1.0f
+                if (isPrepared) {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        try {
+                            val params = player.playbackParams.setSpeed(speed)
+                            player.playbackParams = params
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("SPEED_ERROR", e.message, null)
+                        }
+                    } else {
+                        result.error("UNSUPPORTED", "API level < 23 does not support speed changes", null)
+                    }
+                } else result.success(false)
+            }
+            "setVolume" -> {
+                val volume = call.argument<Double>("volume")?.toFloat() ?: 1.0f
+                if (isPrepared) {
+                    try {
+                        player.setVolume(volume, volume)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("VOLUME_ERROR", e.message, null)
+                    }
+                } else result.success(false)
+            }
             else -> result.notImplemented()
         }
     }

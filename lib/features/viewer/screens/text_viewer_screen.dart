@@ -31,6 +31,9 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
   int _largeFileTotalLines = 0;
   final Map<int, String> _lineCache = {};
 
+  double _fontSize = 13.0;
+  double _baseScaleFontSize = 13.0;
+
   @override
   void initState() {
     super.initState();
@@ -113,7 +116,7 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     final language = _mapLanguage(widget.format);
     return InteractiveViewer(
       constrained: false,
-      maxScale: 4.0,
+      maxScale: 2.0,
       minScale: 1.0,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -122,9 +125,9 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
           language: language,
           theme: vs2015Theme,
           padding: EdgeInsets.zero,
-          textStyle: const TextStyle(
+          textStyle: TextStyle(
             fontFamily: 'monospace',
-            fontSize: 13,
+            fontSize: _fontSize,
             height: 1.4,
           ),
         ),
@@ -136,7 +139,7 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
     // Virtual Scroll for large files
     return ListView.builder(
       itemCount: _largeFileTotalLines,
-      itemExtent: 22.0, // Fixed height per line for O(1) layout seeks
+      itemExtent: _fontSize * 1.6, // Scale height of line with font size
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemBuilder: (context, index) {
         return FutureBuilder<String>(
@@ -154,10 +157,10 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
                   color: const Color(0xFF181818),
                   child: Text(
                     '${index + 1}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
-                      fontSize: 11,
-                      color: Color(0xFF858585),
+                      fontSize: _fontSize * 0.85,
+                      color: const Color(0xFF858585),
                     ),
                   ),
                 ),
@@ -170,10 +173,10 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Text(
                       lineText,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'monospace',
-                        fontSize: 13,
-                        color: Color(0xFFD4D4D4),
+                        fontSize: _fontSize,
+                        color: const Color(0xFFD4D4D4),
                       ),
                       maxLines: 1,
                     ),
@@ -253,7 +256,22 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
                 valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00BCD4)),
               ),
             )
-          : (_isLargeFile ? _buildLargeFileView() : _buildHighlightView()),
+          : GestureDetector(
+              onScaleStart: (details) {
+                _baseScaleFontSize = _fontSize;
+              },
+              onScaleUpdate: (details) {
+                setState(() {
+                  _fontSize = (_baseScaleFontSize * details.scale).clamp(10.0, 40.0);
+                });
+              },
+              child: Container(
+                color: Colors.transparent, // Ensures tap and scale gestures register everywhere
+                width: double.infinity,
+                height: double.infinity,
+                child: _isLargeFile ? _buildLargeFileView() : _buildHighlightView(),
+              ),
+            ),
     );
   }
 }

@@ -31,6 +31,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   double _videoWidth = 0;
   double _videoHeight = 0;
 
+  // Custom player properties
+  double _playbackSpeed = 1.0;
+  bool _isMuted = false;
+
+  Future<void> _setSpeed(double speed) async {
+    await _channel?.invokeMethod('setSpeed', {'speed': speed});
+    setState(() => _playbackSpeed = speed);
+  }
+
+  Future<void> _toggleMute() async {
+    final nextMute = !_isMuted;
+    await _channel?.invokeMethod('setVolume', {'volume': nextMute ? 0.0 : 1.0});
+    setState(() => _isMuted = nextMute);
+  }
+
   @override
   void dispose() {
     _positionTimer?.cancel();
@@ -207,38 +222,88 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
                   // Media Buttons
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
+                      // Mute/Unmute
                       IconButton(
-                        icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 28),
-                        onPressed: () {
-                          final target = (_position - 10000).clamp(0, _duration);
-                          _seek(target);
-                        },
-                      ),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        iconSize: 48,
                         icon: Icon(
-                          _isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
-                          color: const Color(0xFF00BCD4),
+                          _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                          color: Colors.white,
+                          size: 24,
                         ),
-                        onPressed: () {
-                          if (!_isPrepared) return;
-                          if (_isPlaying) {
-                            _pause();
-                          } else {
-                            _play();
-                          }
-                        },
+                        onPressed: _toggleMute,
                       ),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 28),
-                        onPressed: () {
-                          final target = (_position + 10000).clamp(0, _duration);
-                          _seek(target);
-                        },
+                      
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 28),
+                            onPressed: () {
+                              final target = (_position - 10000).clamp(0, _duration);
+                              _seek(target);
+                            },
+                          ),
+                          const SizedBox(width: 16),
+                          IconButton(
+                            iconSize: 48,
+                            icon: Icon(
+                              _isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
+                              color: const Color(0xFF00BCD4),
+                            ),
+                            onPressed: () {
+                              if (!_isPrepared) return;
+                              if (_isPlaying) {
+                                _pause();
+                              } else {
+                                _play();
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 16),
+                          IconButton(
+                            icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 28),
+                            onPressed: () {
+                              final target = (_position + 10000).clamp(0, _duration);
+                              _seek(target);
+                            },
+                          ),
+                        ],
+                      ),
+
+                      // Speed selector dropdown popup
+                      PopupMenuButton<double>(
+                        initialValue: _playbackSpeed,
+                        icon: const Icon(Icons.speed_rounded, color: Colors.white, size: 24),
+                        tooltip: 'Playback speed',
+                        onSelected: _setSpeed,
+                        color: const Color(0xFF1E1E1E),
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 0.25,
+                            child: Text('0.25x', style: TextStyle(color: Colors.white70)),
+                          ),
+                          const PopupMenuItem(
+                            value: 0.5,
+                            child: Text('0.5x', style: TextStyle(color: Colors.white70)),
+                          ),
+                          const PopupMenuItem(
+                            value: 1.0,
+                            child: Text('Normal', style: TextStyle(color: Colors.white70)),
+                          ),
+                          const PopupMenuItem(
+                            value: 1.25,
+                            child: Text('1.25x', style: TextStyle(color: Colors.white70)),
+                          ),
+                          const PopupMenuItem(
+                            value: 1.5,
+                            child: Text('1.5x', style: TextStyle(color: Colors.white70)),
+                          ),
+                          const PopupMenuItem(
+                            value: 2.0,
+                            child: Text('2.0x', style: TextStyle(color: Colors.white70)),
+                          ),
+                        ],
                       ),
                     ],
                   ),

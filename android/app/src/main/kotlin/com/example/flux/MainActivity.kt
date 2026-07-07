@@ -509,6 +509,19 @@ class MainActivity : FlutterActivity() {
                                 runOnUiThread { result.error("PDF_ERROR", e.message, null) }
                             }
                         }
+                        "getPdfPageBytes" -> {
+                            val filePath = call.argument<String>("path") ?: ""
+                            val pageIndex = call.argument<Int>("pageIndex") ?: 0
+                            val scale = (call.argument<Double>("scale") ?: 1.5).toFloat()
+                            java.util.concurrent.ForkJoinPool.commonPool().execute {
+                                try {
+                                    val bytes = com.example.flux.viewer.pdf.PdfRenderService.getPageBytes(filePath, pageIndex, scale)
+                                    runOnUiThread { result.success(bytes) }
+                                } catch (e: Exception) {
+                                    runOnUiThread { result.error("PDF_ERROR", e.message, null) }
+                                }
+                            }
+                        }
                         "closePdf" -> {
                             val filePath = call.argument<String>("path") ?: ""
                             try {
@@ -516,6 +529,23 @@ class MainActivity : FlutterActivity() {
                                 runOnUiThread { result.success(true) }
                             } catch (e: Exception) {
                                 runOnUiThread { result.error("PDF_ERROR", e.message, null) }
+                            }
+                        }
+                        "getPerformanceMetrics" -> {
+                            try {
+                                val appCpu = com.example.flux.viewer.performance.CpuMonitor.getAppCpuUsage()
+                                val systemCpu = com.example.flux.viewer.performance.CpuMonitor.getSystemCpuUsage(appCpu)
+                                val battery = com.example.flux.viewer.performance.CpuMonitor.getBatteryInfo(this)
+                                runOnUiThread {
+                                    result.success(mapOf(
+                                        "appCpu" to appCpu,
+                                        "systemCpu" to systemCpu,
+                                        "batteryLevel" to (battery["batteryLevel"] ?: -1.0),
+                                        "batteryTemp" to (battery["batteryTemp"] ?: -1.0)
+                                    ))
+                                }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("PERF_ERROR", e.message, null) }
                             }
                         }
                         "parseDocx" -> {

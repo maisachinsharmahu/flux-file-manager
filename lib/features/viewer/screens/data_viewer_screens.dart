@@ -259,6 +259,7 @@ class _CsvViewerScreenState extends State<CsvViewerScreen> {
 
   // Page caching parameters
   final Map<int, List<String>> _rowCache = {};
+  final Set<int> _fetchingPages = {};
   static const int pageSize = 50;
 
   @override
@@ -290,23 +291,27 @@ class _CsvViewerScreenState extends State<CsvViewerScreen> {
     }
   }
 
-  Future<List<String>> _fetchRow(int index) async {
-    if (_rowCache.containsKey(index)) {
-      return _rowCache[index]!;
-    }
-
-    // Batch query
+  Future<void> _fetchRow(int index) async {
     final pageStart = (index ~/ pageSize) * pageSize;
+    if (_fetchingPages.contains(pageStart)) return;
+    _fetchingPages.add(pageStart);
+
     try {
       final rowsJsonStr = await FluxBridge.getCsvRows(widget.path, pageStart, pageSize);
       final list = json.decode(rowsJsonStr) as List;
-      for (int i = 0; i < list.length; i++) {
-        final rowCells = (list[i] as List).cast<String>();
-        _rowCache[pageStart + i] = rowCells;
+      if (mounted) {
+        setState(() {
+          for (int i = 0; i < list.length; i++) {
+            final rowCells = (list[i] as List).cast<String>();
+            _rowCache[pageStart + i] = rowCells;
+          }
+        });
       }
-    } catch (_) {}
-
-    return _rowCache[index] ?? List.filled(_headers.length, "");
+    } catch (e) {
+      debugPrint("Error fetching CSV rows: $e");
+    } finally {
+      _fetchingPages.remove(pageStart);
+    }
   }
 
   String _getColLabel(int colIndex) {
@@ -319,8 +324,80 @@ class _CsvViewerScreenState extends State<CsvViewerScreen> {
     return label;
   }
 
+  Widget _buildIndexCell(String text) {
+    return Container(
+      width: 50.0,
+      height: 26,
+      color: const Color(0xFF161616),
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        border: Border(
+          right: BorderSide(color: Colors.white24, width: 0.5),
+          bottom: BorderSide(color: Colors.white12, width: 0.5),
+        ),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white60, fontSize: 11),
+      ),
+    );
+  }
+
+  Widget _buildDataCell(String text, {bool isPlaceholder = false, bool isHeader = false}) {
+    return Container(
+      width: 110.0,
+      height: isHeader ? 28 : 26,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: isHeader ? const Color(0xFF161616) : Colors.transparent,
+        border: const Border(
+          right: BorderSide(color: Colors.white12, width: 0.5),
+          bottom: BorderSide(color: Colors.white12, width: 0.5),
+        ),
+      ),
+      alignment: isHeader ? Alignment.center : Alignment.centerLeft,
+      child: Text(
+        text,
+        style: TextStyle(
+          color: isPlaceholder
+              ? Colors.white24
+              : (isHeader ? Colors.white60 : Colors.white70),
+          fontSize: isHeader ? 11 : 12,
+          fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _buildRow(int r) {
+    final cells = _rowCache[r];
+    if (cells == null) {
+      _fetchRow(r);
+      return Row(
+        children: [
+          _buildIndexCell('${r + 1}'),
+          for (int c = 0; c < _headers.length; c++)
+            _buildDataCell('...', isPlaceholder: true),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        _buildIndexCell('${r + 1}'),
+        for (int c = 0; c < _headers.length; c++)
+          _buildDataCell(c < cells.length ? cells[c] : ''),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colCount = _headers.length;
+    final totalWidth = 50.0 + (colCount * 110.0);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
@@ -339,68 +416,36 @@ class _CsvViewerScreenState extends State<CsvViewerScreen> {
           ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFF00BCD4))))
           : _errorMsg.isNotEmpty
               ? Center(child: Text(_errorMsg, style: const TextStyle(color: Colors.white54)))
-              : InteractiveViewer(
-                  constrained: false,
-                  maxScale: 2.0,
-                  minScale: 0.8,
-                  child: Container(
-                    color: const Color(0xFF0F0F0F),
-                    child: Table(
-                      defaultColumnWidth: const FixedColumnWidth(110.0),
-                      border: TableBorder.all(color: Colors.white12, width: 0.5),
-                      children: [
-                        // Column Headers Row (A, B, C...)
-                        TableRow(
-                          children: List<Widget>.generate(_headers.length + 1, (c) {
-                            return Container(
-                              height: 28,
-                              color: const Color(0xFF161616),
-                              alignment: Alignment.center,
-                              child: Text(
-                                c == 0 ? '' : _getColLabel(c - 1),
-                                style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            );
-                          }),
-                        ),
-                        // Virtual rows list
-                        ...List<TableRow>.generate(_rowCount.clamp(0, 1000), (r) {
-                          return TableRow(
-                            children: List<Widget>.generate(_headers.length + 1, (c) {
-                              if (c == 0) {
-                                return Container(
-                                  height: 26,
-                                  color: const Color(0xFF161616),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    '${r + 1}',
-                                    style: const TextStyle(color: Colors.white60, fontSize: 11),
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: totalWidth,
+                    child: ListView.builder(
+                      itemCount: _rowCount + 1,
+                      padding: EdgeInsets.zero,
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          // Headers row
+                          return Row(
+                            children: [
+                              Container(
+                                width: 50.0,
+                                height: 28,
+                                color: const Color(0xFF161616),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    right: BorderSide(color: Colors.white24, width: 0.5),
+                                    bottom: BorderSide(color: Colors.white24, width: 0.5),
                                   ),
-                                );
-                              }
-
-                              return FutureBuilder<List<String>>(
-                                future: _fetchRow(r),
-                                builder: (context, snapshot) {
-                                  final cells = snapshot.data;
-                                  final value = (cells != null && c - 1 < cells.length) ? cells[c - 1] : "";
-                                  return Container(
-                                    height: 26,
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      value,
-                                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  );
-                                },
-                              );
-                            }),
+                                ),
+                              ),
+                              for (int c = 0; c < colCount; c++)
+                                _buildDataCell(_getColLabel(c), isHeader: true),
+                            ],
                           );
-                        }),
-                      ],
+                        }
+                        return _buildRow(index - 1);
+                      },
                     ),
                   ),
                 ),

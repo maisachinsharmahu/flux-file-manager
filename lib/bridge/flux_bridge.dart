@@ -662,17 +662,50 @@ class FluxBridge {
     }
   }
 
+  /// Get PDF page rendered as a compressed JPEG byte array.
+  static Future<Uint8List?> getPdfPageBytes(String filePath, int pageIndex, double scale) async {
+    try {
+      final Uint8List? bytes = await _methodChannel.invokeMethod('getPdfPageBytes', {
+        'path': filePath,
+        'pageIndex': pageIndex,
+        'scale': scale,
+      });
+      return bytes;
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getPdfPageBytes() -> $e');
+      return null;
+    }
+  }
+
   /// Release native resources held by PdfRenderer.
   static Future<bool> closePdf(String filePath) async {
     try {
-      final bool result = await _methodChannel.invokeMethod('closePdf', {
+      final bool success = await _methodChannel.invokeMethod('closePdf', {
         'path': filePath,
       });
-      return result;
+      return success;
     } on PlatformException catch (e) {
       debugPrint('[FluxBridge] Error: closePdf() -> $e');
       return false;
     }
+  }
+
+  /// Get real-time process/system CPU, battery level and temperature from native.
+  static Future<Map<String, double>> getPerformanceMetrics() async {
+    try {
+      final Map<dynamic, dynamic>? res = await _methodChannel.invokeMethod('getPerformanceMetrics');
+      if (res != null) {
+        return {
+          'appCpu': (res['appCpu'] as num).toDouble(),
+          'systemCpu': (res['systemCpu'] as num).toDouble(),
+          'batteryLevel': (res['batteryLevel'] as num).toDouble(),
+          'batteryTemp': (res['batteryTemp'] as num).toDouble(),
+        };
+      }
+    } on PlatformException catch (e) {
+      debugPrint('[FluxBridge] Error: getPerformanceMetrics() -> $e');
+    }
+    return {'appCpu': 0.0, 'systemCpu': 0.0, 'batteryLevel': -1.0, 'batteryTemp': -1.0};
   }
 
   /// Parse DOCX paragraphs and tables into structured JSON representation.

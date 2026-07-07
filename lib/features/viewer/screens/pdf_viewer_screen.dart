@@ -64,6 +64,15 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   // Track currently active drawing stroke
   List<Offset> _currentStrokePoints = [];
 
+  // Future cache for PDF page JPEG byte streams
+  final Map<int, Future<Uint8List?>> _pageFutures = {};
+
+  Future<Uint8List?> _getPageFuture(int index) {
+    return _pageFutures.putIfAbsent(index, () {
+      return FluxBridge.getPdfPageBytes(widget.path, index, 1.5);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -293,39 +302,60 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                                   ),
                                   child: Stack(
                                     children: [
-                                      // Native Pdf Renderer Page view
+                                      // Render page using Image.memory fetched from native byte stream
                                       Positioned.fill(
-                                        child: AndroidView(
-                                          viewType: 'com.flux/pdf_page_view',
-                                          layoutDirection: TextDirection.ltr,
-                                          creationParams: <String, dynamic>{
-                                            'path': widget.path,
-                                            'pageIndex': index,
-                                            'scale': 2.0, // 2x scale for sharp readability
-                                          },
-                                          creationParamsCodec: const StandardMessageCodec(),
-                                          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                                            Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+                                        child: FutureBuilder<Uint8List?>(
+                                          future: _getPageFuture(index),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState == ConnectionState.waiting) {
+                                              return const Center(
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor: AlwaysStoppedAnimation(Color(0xFF00BCD4)),
+                                                ),
+                                              );
+                                            }
+                                            if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                                              return const Center(
+                                                child: Icon(Icons.broken_image_rounded, color: Colors.white24, size: 48),
+                                              );
+                                            }
+                                            return Image.memory(
+                                              snapshot.data!,
+                                              fit: BoxFit.contain,
+                                              gaplessPlayback: true,
+                                            );
                                           },
                                         ),
                                       ),
 
                                       // Canvas Annotation drawing overlay layer
                                       Positioned.fill(
-                                        child: GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onPanStart: (details) => _onDrawingPanStart(index, details, constraints),
-                                          onPanUpdate: (details) => _onDrawingPanUpdate(index, details, constraints),
-                                          onPanEnd: (details) => _onDrawingPanEnd(index, details),
-                                          child: CustomPaint(
-                                            painter: AnnotationPainter(
-                                              savedStrokes: _pageAnnotations[index] ?? [],
-                                              currentStrokePoints: _currentStrokePoints,
-                                              activeColor: _activeColor,
-                                              activeWidth: _activeWidth,
-                                            ),
-                                          ),
-                                        ),
+                                        child: _isDrawingMode
+                                            ? GestureDetector(
+                                                behavior: HitTestBehavior.opaque,
+                                                onPanStart: (details) => _onDrawingPanStart(index, details, constraints),
+                                                onPanUpdate: (details) => _onDrawingPanUpdate(index, details, constraints),
+                                                onPanEnd: (details) => _onDrawingPanEnd(index, details),
+                                                child: CustomPaint(
+                                                  painter: AnnotationPainter(
+                                                    savedStrokes: _pageAnnotations[index] ?? [],
+                                                    currentStrokePoints: _currentStrokePoints,
+                                                    activeColor: _activeColor,
+                                                    activeWidth: _activeWidth,
+                                                  ),
+                                                ),
+                                              )
+                                            : IgnorePointer(
+                                                child: CustomPaint(
+                                                  painter: AnnotationPainter(
+                                                    savedStrokes: _pageAnnotations[index] ?? [],
+                                                    currentStrokePoints: _currentStrokePoints,
+                                                    activeColor: _activeColor,
+                                                    activeWidth: _activeWidth,
+                                                  ),
+                                                ),
+                                              ),
                                       ),
                                     ],
                                   ),
