@@ -102,12 +102,6 @@ class CopyProgressOverlay extends ConsumerWidget {
     }
   }
 
-  /// Build the operation verb + percentage for the compact pill.
-  String _buildCompactLabel(CopyTaskState state, _TaskStyle style) {
-    final pct = (state.progress * 100).toInt();
-    return '${style.compactText}  $pct%';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(copyTaskProvider);
@@ -213,7 +207,7 @@ class CopyProgressOverlay extends ConsumerWidget {
           // Animated spinning indicator + percentage
           Row(
             children: [
-              _SpinningArc(color: _accentColor(style)),
+              if (state.isActive) _SpinningArc(color: _accentColor(style)),
               SizedBox(width: 6.w),
               Text(
                 '${(state.progress * 100).toInt()}%',
