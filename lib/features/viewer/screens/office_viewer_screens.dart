@@ -56,17 +56,26 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
   }
 
   Widget _buildElement(dynamic elem) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final defaultTextColor = isDark ? Colors.white70 : const Color(0xFF2C2C2E);
+
     final type = elem['type'] as String? ?? 'p';
     if (type == 'p') {
       final runs = elem['runs'] as List? ?? [];
       final align = elem['align'] as String?;
 
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: RichText(
           textAlign: _mapAlignment(align),
           text: TextSpan(
-            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+            style: TextStyle(
+              color: defaultTextColor,
+              fontSize: 15,
+              height: 1.6,
+              fontFamily: 'Inter',
+            ),
             children: runs.map<TextSpan>((r) {
               final text = r['text'] as String? ?? '';
               final bold = r['b'] as bool? ?? false;
@@ -87,7 +96,7 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
                   fontWeight: bold ? FontWeight.bold : FontWeight.normal,
                   fontStyle: italic ? FontStyle.italic : FontStyle.normal,
                   decoration: underline ? TextDecoration.underline : TextDecoration.none,
-                  color: color ?? Colors.white70,
+                  color: color ?? defaultTextColor,
                 ),
               );
             }).toList(),
@@ -98,25 +107,36 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
       final rows = elem['rows'] as List? ?? [];
       if (rows.isEmpty) return const SizedBox.shrink();
 
+      final tableBorderColor = isDark ? Colors.white10 : Colors.black12;
+
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0),
-        child: Table(
-          border: TableBorder.all(color: Colors.white24, width: 1),
-          children: rows.map<TableRow>((row) {
-            final cells = row as List? ?? [];
-            return TableRow(
-              children: cells.map<Widget>((cell) {
-                final cellParagraphs = cell as List? ?? [];
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: cellParagraphs.map<Widget>(_buildElement).toList(),
-                  ),
-                );
-              }).toList(),
-            );
-          }).toList(),
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: tableBorderColor, width: 1.0),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Table(
+            border: TableBorder.symmetric(
+              inside: BorderSide(color: tableBorderColor, width: 0.8),
+            ),
+            children: rows.map<TableRow>((row) {
+              final cells = row as List? ?? [];
+              return TableRow(
+                children: cells.map<Widget>((cell) {
+                  final cellParagraphs = cell as List? ?? [];
+                  return Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: cellParagraphs.map<Widget>(_buildElement).toList(),
+                    ),
+                  );
+                }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       );
     }
@@ -125,18 +145,38 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final bgScreenColor = isDark ? const Color(0xFF0A0A0B) : const Color(0xFFF3F3F5);
+    final paperBgColor = isDark ? const Color(0xFF161618) : Colors.white;
+    final paperBorderColor = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.08);
+    final docTitleColor = isDark ? Colors.white : Colors.black;
+    final docMetaColor = isDark ? Colors.white38 : Colors.black45;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: bgScreenColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: isDark ? const Color(0xFF111112) : Colors.white,
         elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
+            height: 1.0,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.title,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       body: _isLoading
@@ -144,10 +184,78 @@ class _DocxViewerScreenState extends State<DocxViewerScreen> {
           : _errorMsg.isNotEmpty
               ? Center(child: Text(_errorMsg, style: const TextStyle(color: Colors.white54)))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _elements.map<Widget>(_buildElement).toList(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    decoration: BoxDecoration(
+                      color: paperBgColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: paperBorderColor, width: 1.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.description_rounded,
+                                color: Colors.blue,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.title,
+                                    style: TextStyle(
+                                      color: docTitleColor,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "Word Document",
+                                    style: TextStyle(
+                                      color: docMetaColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Divider(
+                          color: isDark ? Colors.white12 : Colors.black12,
+                          height: 1,
+                          thickness: 1,
+                        ),
+                        const SizedBox(height: 24),
+                        ..._elements.map<Widget>(_buildElement).toList(),
+                      ],
+                    ),
                   ),
                 ),
     );
@@ -208,16 +316,26 @@ class _XlsxViewerScreenState extends State<XlsxViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgScreenColor = isDark ? const Color(0xFF0A0A0B) : const Color(0xFFF3F3F5);
+    final headerBgColor = isDark ? const Color(0xFF1E1E22) : const Color(0xFFEAEAEF);
+    final cellBgColor = isDark ? const Color(0xFF121214) : Colors.white;
+    final gridLineColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08);
+    final headerTextColor = isDark ? Colors.white70 : Colors.black87;
+    final dataTextColor = isDark ? Colors.white60 : Colors.black87;
+
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0F0F0F),
-        body: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFF00BCD4)))),
+      return Scaffold(
+        backgroundColor: bgScreenColor,
+        body: const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFF00BCD4)))),
       );
     }
 
     if (_errorMsg.isNotEmpty) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0F0F0F),
+        backgroundColor: bgScreenColor,
         body: Center(child: Text(_errorMsg, style: const TextStyle(color: Colors.white54))),
       );
     }
@@ -226,86 +344,122 @@ class _XlsxViewerScreenState extends State<XlsxViewerScreen> {
     final maxCol = (_gridData['maxCol'] as int? ?? 0) + 1;
     final cells = _gridData['cells'] as Map<String, dynamic>? ?? {};
 
-    // Adjust count grid layout constraints
     final rowCount = maxRow.clamp(10, 500);
     final colCount = maxCol.clamp(6, 100);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: bgScreenColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: isDark ? const Color(0xFF111112) : Colors.white,
         elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
+            height: 1.0,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.title,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       body: InteractiveViewer(
         constrained: false,
-        maxScale: 2.0,
-        minScale: 0.8,
+        maxScale: 2.5,
+        minScale: 0.7,
         child: Container(
-          color: const Color(0xFF0F0F0F),
-          child: Table(
-            defaultColumnWidth: const FixedColumnWidth(110.0),
-            border: TableBorder.all(color: Colors.white12, width: 0.5),
-            children: List<TableRow>.generate(rowCount + 1, (r) {
-              if (r == 0) {
-                // Header row (A, B, C...)
+          color: bgScreenColor,
+          padding: const EdgeInsets.all(16),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: gridLineColor, width: 1.0),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Table(
+              defaultColumnWidth: const FixedColumnWidth(110.0),
+              border: TableBorder.all(color: gridLineColor, width: 0.6),
+              children: List<TableRow>.generate(rowCount + 1, (r) {
+                if (r == 0) {
+                  // Header row (A, B, C...)
+                  return TableRow(
+                    children: List<Widget>.generate(colCount + 1, (c) {
+                      return Container(
+                        height: 32,
+                        color: headerBgColor,
+                        alignment: Alignment.center,
+                        child: Text(
+                          c == 0 ? '' : _getColLabel(c - 1),
+                          style: TextStyle(
+                            color: headerTextColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                }
+
+                final rowBgColor = r % 2 == 0 
+                    ? cellBgColor 
+                    : (isDark ? const Color(0xFF161619) : const Color(0xFFF9F9FB));
+
+                // Data rows
                 return TableRow(
                   children: List<Widget>.generate(colCount + 1, (c) {
+                    if (c == 0) {
+                      // Row index number (1, 2, 3...)
+                      return Container(
+                        height: 30,
+                        color: headerBgColor,
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$r',
+                          style: TextStyle(
+                            color: headerTextColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Resolve coordinates ref string
+                    final colLabel = _getColLabel(c - 1);
+                    final cellRef = '$colLabel$r';
+                    final cellValue = cells[cellRef] as String? ?? '';
+
                     return Container(
-                      height: 28,
-                      color: const Color(0xFF161616),
-                      alignment: Alignment.center,
+                      height: 30,
+                      color: rowBgColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      alignment: Alignment.centerLeft,
                       child: Text(
-                        c == 0 ? '' : _getColLabel(c - 1),
-                        style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold),
+                        cellValue,
+                        style: TextStyle(
+                          color: dataTextColor,
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     );
                   }),
                 );
-              }
-
-              // Data rows
-              return TableRow(
-                children: List<Widget>.generate(colCount + 1, (c) {
-                  if (c == 0) {
-                    // Row index number (1, 2, 3...)
-                    return Container(
-                      height: 26,
-                      color: const Color(0xFF161616),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '$r',
-                        style: const TextStyle(color: Colors.white60, fontSize: 11),
-                      ),
-                    );
-                  }
-
-                  // Resolve coordinates ref string
-                  final colLabel = _getColLabel(c - 1);
-                  final cellRef = '$colLabel$r';
-                  final cellValue = cells[cellRef] as String? ?? '';
-
-                  return Container(
-                    height: 26,
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      cellValue,
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }),
-              );
-            }),
+              }),
+            ),
           ),
         ),
       ),
@@ -357,18 +511,37 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgScreenColor = isDark ? const Color(0xFF0A0A0B) : const Color(0xFFF3F3F5);
+    final slideBgColor = isDark ? const Color(0xFF161618) : Colors.white;
+    final slideBorderColor = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.08);
+    final dataTextColor = isDark ? Colors.white60 : Colors.black87;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: bgScreenColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: isDark ? const Color(0xFF111112) : Colors.white,
         elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
+            height: 1.0,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.title,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       body: _isLoading
@@ -377,57 +550,95 @@ class _PptxViewerScreenState extends State<PptxViewerScreen> {
               ? Center(child: Text(_errorMsg, style: const TextStyle(color: Colors.white54)))
               : ListView.builder(
                   itemCount: _slides.length,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                   itemBuilder: (context, index) {
                     final slide = _slides[index];
                     final pageNum = slide['slide'] as int;
                     final texts = (slide['texts'] as List).cast<String>();
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 24),
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Slide header badge
-                          Container(
-                            color: Colors.white.withOpacity(0.04),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: Text(
-                              'Slide $pageNum',
-                              style: const TextStyle(color: Color(0xFF00BCD4), fontSize: 12, fontWeight: FontWeight.bold),
+                    return AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: slideBgColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: slideBorderColor, width: 1.0),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
                             ),
-                          ),
-                          // Slide content text blocks
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: texts.isEmpty
-                                  ? const Center(
-                                      child: Text(
-                                        'Empty Slide',
-                                        style: TextStyle(color: Colors.white24, fontSize: 12),
-                                      ),
-                                    )
-                                  : ListView(
-                                      children: texts.map<Widget>((t) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(bottom: 4.0),
-                                          child: Text(
-                                            t,
-                                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Slide header badge
+                            Container(
+                              color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: Text(
+                                'Slide $pageNum',
+                                style: const TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                            // Slide content text blocks
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: texts.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          'Empty Slide',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.white24 : Colors.black26,
+                                            fontSize: 12,
+                                            fontFamily: 'Inter',
                                           ),
-                                        );
-                                      }).toList(),
-                                    ),
+                                        ),
+                                      )
+                                    : ListView(
+                                        physics: const ClampingScrollPhysics(),
+                                        children: texts.map<Widget>((t) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 6.0),
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  '•  ',
+                                                  style: TextStyle(
+                                                    color: Colors.orange.withValues(alpha: 0.8),
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  child: Text(
+                                                    t,
+                                                    style: TextStyle(
+                                                      color: dataTextColor,
+                                                      fontSize: 13,
+                                                      height: 1.4,
+                                                      fontFamily: 'Inter',
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -490,17 +701,26 @@ class _OdtViewerScreenState extends State<OdtViewerScreen> {
   }
 
   Widget _buildElement(dynamic elem) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final defaultTextColor = isDark ? Colors.white70 : const Color(0xFF2C2C2E);
+
     final type = elem['type'] as String? ?? 'p';
     if (type == 'p') {
       final runs = elem['runs'] as List? ?? [];
       final align = elem['align'] as String?;
 
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: RichText(
           textAlign: _mapAlignment(align),
           text: TextSpan(
-            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+            style: TextStyle(
+              color: defaultTextColor,
+              fontSize: 15,
+              height: 1.6,
+              fontFamily: 'Inter',
+            ),
             children: runs.map<TextSpan>((r) {
               final text = r['text'] as String? ?? '';
               final bold = r['b'] as bool? ?? false;
@@ -513,7 +733,7 @@ class _OdtViewerScreenState extends State<OdtViewerScreen> {
                   fontWeight: bold ? FontWeight.bold : FontWeight.normal,
                   fontStyle: italic ? FontStyle.italic : FontStyle.normal,
                   decoration: underline ? TextDecoration.underline : TextDecoration.none,
-                  color: Colors.white70,
+                  color: defaultTextColor,
                 ),
               );
             }).toList(),
@@ -526,18 +746,38 @@ class _OdtViewerScreenState extends State<OdtViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final bgScreenColor = isDark ? const Color(0xFF0A0A0B) : const Color(0xFFF3F3F5);
+    final paperBgColor = isDark ? const Color(0xFF161618) : Colors.white;
+    final paperBorderColor = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.08);
+    final docTitleColor = isDark ? Colors.white : Colors.black;
+    final docMetaColor = isDark ? Colors.white38 : Colors.black45;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: bgScreenColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: isDark ? const Color(0xFF111112) : Colors.white,
         elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
+            height: 1.0,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.title,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       body: _isLoading
@@ -545,10 +785,78 @@ class _OdtViewerScreenState extends State<OdtViewerScreen> {
           : _errorMsg.isNotEmpty
               ? Center(child: Text(_errorMsg, style: const TextStyle(color: Colors.white54)))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _elements.map<Widget>(_buildElement).toList(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    decoration: BoxDecoration(
+                      color: paperBgColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: paperBorderColor, width: 1.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.description_rounded,
+                                color: Colors.teal,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.title,
+                                    style: TextStyle(
+                                      color: docTitleColor,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "OpenDocument Text",
+                                    style: TextStyle(
+                                      color: docMetaColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Divider(
+                          color: isDark ? Colors.white12 : Colors.black12,
+                          height: 1,
+                          thickness: 1,
+                        ),
+                        const SizedBox(height: 24),
+                        ..._elements.map<Widget>(_buildElement).toList(),
+                      ],
+                    ),
                   ),
                 ),
     );
@@ -609,16 +917,26 @@ class _OdsViewerScreenState extends State<OdsViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgScreenColor = isDark ? const Color(0xFF0A0A0B) : const Color(0xFFF3F3F5);
+    final headerBgColor = isDark ? const Color(0xFF1E1E22) : const Color(0xFFEAEAEF);
+    final cellBgColor = isDark ? const Color(0xFF121214) : Colors.white;
+    final gridLineColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08);
+    final headerTextColor = isDark ? Colors.white70 : Colors.black87;
+    final dataTextColor = isDark ? Colors.white60 : Colors.black87;
+
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0F0F0F),
-        body: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFF00BCD4)))),
+      return Scaffold(
+        backgroundColor: bgScreenColor,
+        body: const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color(0xFF00BCD4)))),
       );
     }
 
     if (_errorMsg.isNotEmpty) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0F0F0F),
+        backgroundColor: bgScreenColor,
         body: Center(child: Text(_errorMsg, style: const TextStyle(color: Colors.white54))),
       );
     }
@@ -631,80 +949,123 @@ class _OdsViewerScreenState extends State<OdsViewerScreen> {
     final colCount = maxCol.clamp(6, 100);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: bgScreenColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: isDark ? const Color(0xFF111112) : Colors.white,
         elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
+            height: 1.0,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.title,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       body: InteractiveViewer(
         constrained: false,
-        maxScale: 2.0,
-        minScale: 0.8,
-        child: Table(
-          defaultColumnWidth: const FixedColumnWidth(100),
-          border: TableBorder.all(color: Colors.white12, width: 0.5),
-          children: [
-            // Header Row (A, B, C...)
-            TableRow(
-              decoration: const BoxDecoration(color: Color(0xFF161616)),
-              children: [
-                const TableCell(
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ),
-                for (int c = 0; c < colCount; c++)
-                  TableCell(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(_getColLabel(c), style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-              ],
+        maxScale: 2.5,
+        minScale: 0.7,
+        child: Container(
+          color: bgScreenColor,
+          padding: const EdgeInsets.all(16),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: gridLineColor, width: 1.0),
+              borderRadius: BorderRadius.circular(4),
             ),
-            // Data Rows
-            for (int r = 0; r < rowCount; r++)
-              TableRow(
-                children: [
-                  // Row Index Cell
-                  TableCell(
-                    child: Container(
-                      color: const Color(0xFF161616),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text('${r + 1}', style: const TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  // Grid cell values
-                  for (int c = 0; c < colCount; c++)
-                    TableCell(
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        alignment: Alignment.centerLeft,
+            child: Table(
+              defaultColumnWidth: const FixedColumnWidth(110.0),
+              border: TableBorder.all(color: gridLineColor, width: 0.6),
+              children: List<TableRow>.generate(rowCount + 1, (r) {
+                if (r == 0) {
+                  // Header Row (A, B, C...)
+                  return TableRow(
+                    children: [
+                      Container(
+                        height: 32,
+                        color: headerBgColor,
+                        alignment: Alignment.center,
                         child: Text(
-                          cells['${_getColLabel(c)}${r + 1}']?.toString() ?? '',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                          '',
+                          style: TextStyle(color: headerTextColor, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      for (int c = 0; c < colCount; c++)
+                        Container(
+                          height: 32,
+                          color: headerBgColor,
+                          alignment: Alignment.center,
+                          child: Text(
+                            _getColLabel(c),
+                            style: TextStyle(
+                              color: headerTextColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }
+
+                final rowBgColor = r % 2 == 0 
+                    ? cellBgColor 
+                    : (isDark ? const Color(0xFF161619) : const Color(0xFFF9F9FB));
+
+                // Data Rows
+                return TableRow(
+                  children: [
+                    // Row Index Cell
+                    Container(
+                      height: 30,
+                      color: headerBgColor,
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$r',
+                        style: TextStyle(
+                          color: headerTextColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Inter',
                         ),
                       ),
                     ),
-                ],
-              ),
-          ],
+                    // Grid cell values
+                    for (int c = 0; c < colCount; c++)
+                      Container(
+                        height: 30,
+                        color: rowBgColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          cells['${_getColLabel(c)}$r']?.toString() ?? '',
+                          style: TextStyle(
+                            color: dataTextColor,
+                            fontSize: 12,
+                            fontFamily: 'Inter',
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                );
+              }),
+            ),
+          ),
         ),
       ),
     );
@@ -754,14 +1115,23 @@ class _RtfViewerScreenState extends State<RtfViewerScreen> {
   }
 
   Widget _buildElement(dynamic elem) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final defaultTextColor = isDark ? Colors.white70 : const Color(0xFF2C2C2E);
+
     final type = elem['type'] as String? ?? 'p';
     if (type == 'p') {
       final runs = elem['runs'] as List? ?? [];
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: RichText(
           text: TextSpan(
-            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+            style: TextStyle(
+              color: defaultTextColor,
+              fontSize: 15,
+              height: 1.6,
+              fontFamily: 'Inter',
+            ),
             children: runs.map<TextSpan>((r) {
               final text = r['text'] as String? ?? '';
               final bold = r['b'] as bool? ?? false;
@@ -774,7 +1144,7 @@ class _RtfViewerScreenState extends State<RtfViewerScreen> {
                   fontWeight: bold ? FontWeight.bold : FontWeight.normal,
                   fontStyle: italic ? FontStyle.italic : FontStyle.normal,
                   decoration: underline ? TextDecoration.underline : TextDecoration.none,
-                  color: Colors.white70,
+                  color: defaultTextColor,
                 ),
               );
             }).toList(),
@@ -787,18 +1157,38 @@ class _RtfViewerScreenState extends State<RtfViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final bgScreenColor = isDark ? const Color(0xFF0A0A0B) : const Color(0xFFF3F3F5);
+    final paperBgColor = isDark ? const Color(0xFF161618) : Colors.white;
+    final paperBorderColor = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.08);
+    final docTitleColor = isDark ? Colors.white : Colors.black;
+    final docMetaColor = isDark ? Colors.white38 : Colors.black45;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: bgScreenColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: isDark ? const Color(0xFF111112) : Colors.white,
         elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08),
+            height: 1.0,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.title,
-          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       body: _isLoading
@@ -806,10 +1196,78 @@ class _RtfViewerScreenState extends State<RtfViewerScreen> {
           : _errorMsg.isNotEmpty
               ? Center(child: Text(_errorMsg, style: const TextStyle(color: Colors.white54)))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _elements.map<Widget>(_buildElement).toList(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    decoration: BoxDecoration(
+                      color: paperBgColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: paperBorderColor, width: 1.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.description_rounded,
+                                color: Colors.purple,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.title,
+                                    style: TextStyle(
+                                      color: docTitleColor,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "Rich Text Format (RTF)",
+                                    style: TextStyle(
+                                      color: docMetaColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Divider(
+                          color: isDark ? Colors.white12 : Colors.black12,
+                          height: 1,
+                          thickness: 1,
+                        ),
+                        const SizedBox(height: 24),
+                        ..._elements.map<Widget>(_buildElement).toList(),
+                      ],
+                    ),
                   ),
                 ),
     );
