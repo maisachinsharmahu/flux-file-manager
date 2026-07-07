@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/storage_category_icon.dart';
 import '../../../../core/widgets/shimmer_placeholder.dart';
-import '../../../navigation/providers/navigation_provider.dart';
 import '../../providers/storage_status_provider.dart';
 
 class AllStorageSection extends ConsumerWidget {
@@ -142,77 +140,71 @@ class AllStorageSection extends ConsumerWidget {
                       onTap: () {
                         context.push('/browser');
                       },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20.0.r),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                          child: Container(
-                            padding: EdgeInsets.all(16.0.r),
-                            decoration: BoxDecoration(
-                              color: cardBgColor,
-                              borderRadius: BorderRadius.circular(20.0.r),
-                              border: Border.all(
-                                color: borderColor,
-                                width: 1.2.r,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Container(
+                        padding: EdgeInsets.all(16.0.r),
+                        decoration: BoxDecoration(
+                          color: cardBgColor,
+                          borderRadius: BorderRadius.circular(20.0.r),
+                          border: Border.all(
+                            color: borderColor,
+                            width: 1.2.r,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    StorageCategoryIconWidget(
-                                      icon: StorageCategoryIcon.internalStorage,
-                                      size: 36.0.r,
-                                    ),
-                                    Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 12.0.r,
-                                      color: subtitleColor,
-                                    ),
-                                  ],
+                                StorageCategoryIconWidget(
+                                  icon: StorageCategoryIcon.internalStorage,
+                                  size: 36.0.r,
                                 ),
-                                SizedBox(height: 14.0.h),
-                                Text(
-                                  'Internal Storage',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 14.0.sp,
-                                    fontWeight: FontWeight.w700,
-                                    color: titleColor,
-                                  ),
-                                ),
-                                SizedBox(height: 4.0.h),
-                                Text(
-                                  '${_formatSize(totalUsed)} / ${_formatSize(totalStorage)}',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 12.0.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: subtitleColor,
-                                  ),
-                                ),
-                                SizedBox(height: 12.0.h),
-                                // Mini Progress Bar
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(4.0.r),
-                                  child: LinearProgressIndicator(
-                                    value: internalProgress,
-                                    minHeight: 4.0.h,
-                                    backgroundColor: isDark
-                                        ? Colors.white10
-                                        : Colors.black.withValues(alpha: 0.05),
-                                    valueColor:
-                                        const AlwaysStoppedAnimation<Color>(
-                                          AppColors.mintAccent,
-                                        ),
-                                  ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 12.0.r,
+                                  color: subtitleColor,
                                 ),
                               ],
                             ),
-                          ),
+                            SizedBox(height: 14.0.h),
+                            Text(
+                              'Internal Storage',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 14.0.sp,
+                                fontWeight: FontWeight.w700,
+                                color: titleColor,
+                              ),
+                            ),
+                            SizedBox(height: 4.0.h),
+                            Text(
+                              '${_formatSize(totalUsed)} / ${_formatSize(totalStorage)}',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12.0.sp,
+                                fontWeight: FontWeight.w500,
+                                color: subtitleColor,
+                              ),
+                            ),
+                            SizedBox(height: 12.0.h),
+                            // Mini Progress Bar
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4.0.r),
+                              child: LinearProgressIndicator(
+                                value: internalProgress,
+                                minHeight: 4.0.h,
+                                backgroundColor: isDark
+                                    ? Colors.white10
+                                    : Colors.black.withValues(alpha: 0.05),
+                                valueColor:
+                                    const AlwaysStoppedAnimation<Color>(
+                                      AppColors.mintAccent,
+                                    ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -225,82 +217,73 @@ class AllStorageSection extends ConsumerWidget {
                         onTap: () {
                           // SD Card browsable if navigated
                         },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20.0.r),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(
-                              sigmaX: 10.0,
-                              sigmaY: 10.0,
+                        child: Container(
+                          padding: EdgeInsets.all(16.0.r),
+                          decoration: BoxDecoration(
+                            color: cardBgColor,
+                            borderRadius: BorderRadius.circular(20.0.r),
+                            border: Border.all(
+                              color: borderColor,
+                              width: 1.2.r,
                             ),
-                            child: Container(
-                              padding: EdgeInsets.all(16.0.r),
-                              decoration: BoxDecoration(
-                                color: cardBgColor,
-                                borderRadius: BorderRadius.circular(20.0.r),
-                                border: Border.all(
-                                  color: borderColor,
-                                  width: 1.2.r,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      StorageCategoryIconWidget(
-                                        icon: StorageCategoryIcon.sdCard,
-                                        size: 36.0.r,
-                                      ),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 12.0.r,
-                                        color: subtitleColor,
-                                      ),
-                                    ],
+                                  StorageCategoryIconWidget(
+                                    icon: StorageCategoryIcon.sdCard,
+                                    size: 36.0.r,
                                   ),
-                                  SizedBox(height: 14.0.h),
-                                  Text(
-                                    'SD Card',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 14.0.sp,
-                                      fontWeight: FontWeight.w700,
-                                      color: titleColor,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4.0.h),
-                                  Text(
-                                    '${_formatSize(secondaryUsed)} / ${_formatSize(secondaryTotal)}',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 12.0.sp,
-                                      fontWeight: FontWeight.w500,
-                                      color: subtitleColor,
-                                    ),
-                                  ),
-                                  SizedBox(height: 12.0.h),
-                                  // Mini Progress Bar
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4.0.r),
-                                    child: LinearProgressIndicator(
-                                      value: secondaryProgress,
-                                      minHeight: 4.0.h,
-                                      backgroundColor: isDark
-                                          ? Colors.white10
-                                          : Colors.black.withValues(
-                                              alpha: 0.05,
-                                            ),
-                                      valueColor:
-                                          const AlwaysStoppedAnimation<Color>(
-                                            Color(0xFFA020F0),
-                                          ),
-                                    ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 12.0.r,
+                                    color: subtitleColor,
                                   ),
                                 ],
                               ),
-                            ),
+                              SizedBox(height: 14.0.h),
+                              Text(
+                                'SD Card',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 14.0.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: titleColor,
+                                ),
+                              ),
+                              SizedBox(height: 4.0.h),
+                              Text(
+                                '${_formatSize(secondaryUsed)} / ${_formatSize(secondaryTotal)}',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12.0.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: subtitleColor,
+                                ),
+                              ),
+                              SizedBox(height: 12.0.h),
+                              // Mini Progress Bar
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4.0.r),
+                                child: LinearProgressIndicator(
+                                  value: secondaryProgress,
+                                  minHeight: 4.0.h,
+                                  backgroundColor: isDark
+                                      ? Colors.white10
+                                      : Colors.black.withValues(
+                                          alpha: 0.05,
+                                        ),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        Color(0xFFA020F0),
+                                      ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),

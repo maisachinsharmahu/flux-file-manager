@@ -304,8 +304,14 @@ class MainActivity : FlutterActivity() {
                             runOnUiThread { result.success(true) }
                         }
                         "getStorageStatistics" -> {
-                            val stats = fluxIndex.getStorageStatistics()
-                            runOnUiThread { result.success(stats) }
+                            Thread {
+                                try {
+                                    val stats = fluxIndex.getStorageStatistics()
+                                    runOnUiThread { result.success(stats) }
+                                } catch (e: Exception) {
+                                    runOnUiThread { result.error("ERROR", e.message, null) }
+                                }
+                            }.start()
                         }
                         "getAppStorageUsage" -> {
                             val usage = listOf(

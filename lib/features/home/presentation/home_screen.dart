@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -16,7 +15,6 @@ import '../../../../core/providers/file_filter_provider.dart';
 import '../../../../bridge/flux_bridge.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../providers/copy_task_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -84,9 +82,6 @@ class _HomeSearchBar extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final bgColor = isDark
-        ? Colors.white.withValues(alpha: 0.05)
-        : Colors.black.withValues(alpha: 0.03);
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.05);
@@ -102,58 +97,51 @@ class _HomeSearchBar extends StatelessWidget {
         },
         child: Hero(
           tag: 'search_bar_hero',
-          child: Material(
-            color: Colors.transparent,
-            child: ClipRRect(
+          child: Container(
+            height: 52.0.h,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(26.0.r),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-                child: Container(
-                  height: 52.0.h,
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(26.0.r),
-                    border: Border.all(color: borderColor, width: 1.5.r),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 14.0.w),
-                  child: Row(
-                    children: [
-                      // Clickable Sidebar open Menu Icon on the Left
-                      GestureDetector(
-                        onTap: () {
-                          Scaffold.of(context).openDrawer();
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: Icon(
-                          Icons.menu_rounded,
-                          color: iconColor,
-                          size: 22.0.r,
-                        ),
-                      ),
-                      SizedBox(width: 12.0.w),
-                      // Search Label in the middle
-                      Expanded(
-                        child: Text(
-                          'Search files, folders...',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 15.0.sp,
-                            color: iconColor,
-                            decoration: TextDecoration.none,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      // Search Icon on the Right
-                      FluxIcon(
-                        FluxIconType.searchOff,
-                        color: iconColor,
-                        size: 22.0.r,
-                      ),
-                    ],
+              border: Border.all(color: borderColor, width: 1.5.r),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 14.0.w),
+            child: Row(
+              children: [
+                // Clickable Sidebar open Menu Icon on the Left
+                GestureDetector(
+                  onTap: () {
+                    Scaffold.of(context).openDrawer();
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Icon(
+                    Icons.menu_rounded,
+                    color: iconColor,
+                    size: 22.0.r,
                   ),
                 ),
-              ),
+                SizedBox(width: 12.0.w),
+                // Search Label in the middle
+                Expanded(
+                  child: Text(
+                    'Search files, folders...',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15.0.sp,
+                      color: iconColor,
+                      decoration: TextDecoration.none,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                // Search Icon on the Right
+                FluxIcon(
+                  FluxIconType.searchOff,
+                  color: iconColor,
+                  size: 22.0.r,
+                ),
+              ],
             ),
           ),
         ),
@@ -191,19 +179,15 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 16.0.h),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20.0.r),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.fastOutSlowIn,
-            padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 16.0.h),
-            decoration: BoxDecoration(
-              color: cardBgColor,
-              borderRadius: BorderRadius.circular(20.0.r),
-              border: Border.all(color: borderColor, width: 1.2.r),
-            ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.fastOutSlowIn,
+        padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 16.0.h),
+        decoration: BoxDecoration(
+          color: cardBgColor,
+          borderRadius: BorderRadius.circular(20.0.r),
+          border: Border.all(color: borderColor, width: 1.2.r),
+        ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -669,8 +653,6 @@ class _DevSimulationConsoleState extends ConsumerState<_DevSimulationConsole> {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -110,87 +109,81 @@ class _StorageBarState extends ConsumerState<StorageBar>
     if (isScanning) {
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 12.0.h),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28.0.r),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-            child: Container(
-              padding: EdgeInsets.all(24.0.r),
-              decoration: BoxDecoration(
-                color: cardBgColor,
-                borderRadius: BorderRadius.circular(28.0.r),
-                border: Border.all(color: borderColor, width: 1.5.r),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Container(
+          padding: EdgeInsets.all(24.0.r),
+          decoration: BoxDecoration(
+            color: cardBgColor,
+            borderRadius: BorderRadius.circular(28.0.r),
+            border: Border.all(color: borderColor, width: 1.5.r),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 10.r,
-                        height: 10.r,
-                        decoration: const BoxDecoration(
+                  Container(
+                    width: 10.r,
+                    height: 10.r,
+                    decoration: const BoxDecoration(
+                      color: AppColors.mintAccent,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
                           color: AppColors.mintAccent,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.mintAccent,
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ],
+                          blurRadius: 8,
+                          spreadRadius: 2,
                         ),
-                      ).animate(onPlay: (controller) => controller.repeat(reverse: true))
-                       .fade(begin: 0.4, end: 1.0, duration: const Duration(milliseconds: 800)),
-                      SizedBox(width: 14.w),
-                      Text(
-                        'Scanning Storage...',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w700,
-                          color: usedTextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 14.h),
+                      ],
+                    ),
+                  ).animate(onPlay: (controller) => controller.repeat(reverse: true))
+                   .fade(begin: 0.4, end: 1.0, duration: const Duration(milliseconds: 800)),
+                  SizedBox(width: 14.w),
                   Text(
-                    'Building 9 composite indexes (RadixTrie, VEB, HNSW...)',
+                    'Scanning Storage...',
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      fontSize: 11.sp,
-                      color: totalTextColor,
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4.r),
-                    child: Container(
-                      height: 6.h,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white12 : Colors.black12,
-                      ),
-                      child: const ShimmerContainer(
-                        width: double.infinity,
-                        height: 6,
-                        borderRadius: 4,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 14.h),
-                  Text(
-                    'This happens once. Subsequent reads are O(1).',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 10.sp,
-                      color: AppColors.mintAccent.withValues(alpha: 0.7),
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w700,
+                      color: usedTextColor,
                     ),
                   ),
                 ],
               ),
-            ),
+              SizedBox(height: 14.h),
+              Text(
+                'Building 9 composite indexes (RadixTrie, VEB, HNSW...)',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 11.sp,
+                  color: totalTextColor,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4.r),
+                child: Container(
+                  height: 6.h,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                  child: const ShimmerContainer(
+                    width: double.infinity,
+                    height: 6,
+                    borderRadius: 4,
+                  ),
+                ),
+              ),
+              SizedBox(height: 14.h),
+              Text(
+                'This happens once. Subsequent reads are O(1).',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10.sp,
+                  color: AppColors.mintAccent.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -240,7 +233,6 @@ class _StorageBarState extends ConsumerState<StorageBar>
       data: (data) {
         final totalStorage = data['totalStorage'] as int? ?? 256 * 1000 * 1000 * 1000;
         final totalUsed = data['totalUsed'] as int? ?? 0;
-        final freeStorage = data['freeStorage'] as int? ?? (totalStorage - totalUsed);
         final photos = data['Photos'] as int? ?? 0;
         final videos = data['Videos'] as int? ?? 0;
         final audio = data['Audio'] as int? ?? 0;
@@ -277,17 +269,13 @@ class _StorageBarState extends ConsumerState<StorageBar>
               context.push('/analytics');
             },
             behavior: HitTestBehavior.opaque,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28.0.r),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-                child: Container(
-                  padding: EdgeInsets.all(24.0.r),
-                  decoration: BoxDecoration(
-                    color: cardBgColor,
-                    borderRadius: BorderRadius.circular(28.0.r),
-                    border: Border.all(color: borderColor, width: 1.5.r),
-                  ),
+            child: Container(
+              padding: EdgeInsets.all(24.0.r),
+              decoration: BoxDecoration(
+                color: cardBgColor,
+                borderRadius: BorderRadius.circular(28.0.r),
+                border: Border.all(color: borderColor, width: 1.5.r),
+              ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -593,9 +581,7 @@ class _StorageBarState extends ConsumerState<StorageBar>
                     ],
                   ),
                 ),
-              ),
             ),
-          ),
         );
       },
     );

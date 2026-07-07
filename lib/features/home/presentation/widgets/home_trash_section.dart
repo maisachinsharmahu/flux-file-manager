@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -48,73 +47,67 @@ class HomeTrashSection extends ConsumerWidget {
             onTap: () {
               context.push('/trash');
             },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20.0.r),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                child: Container(
-                  padding: EdgeInsets.all(16.0.r),
-                  decoration: BoxDecoration(
-                    color: cardBgColor,
-                    borderRadius: BorderRadius.circular(20.0.r),
-                    border: Border.all(color: borderColor, width: 1.2.r),
+            child: Container(
+              padding: EdgeInsets.all(16.0.r),
+              decoration: BoxDecoration(
+                color: cardBgColor,
+                borderRadius: BorderRadius.circular(20.0.r),
+                border: Border.all(color: borderColor, width: 1.2.r),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44.0.r,
+                    height: 44.0.r,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.red.withValues(alpha: 0.15)
+                          : Colors.red.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12.0.r),
+                    ),
+                    child: Icon(
+                      Icons.delete_sweep_outlined,
+                      color: isDark ? Colors.redAccent : Colors.red.shade600,
+                      size: 24.0.r,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44.0.r,
-                        height: 44.0.r,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.red.withValues(alpha: 0.15)
-                              : Colors.red.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12.0.r),
+                  SizedBox(width: 16.0.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Trash & Recovery',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14.0.sp,
+                            fontWeight: FontWeight.w700,
+                            color: titleColor,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.delete_sweep_outlined,
-                          color: isDark ? Colors.redAccent : Colors.red.shade600,
-                          size: 24.0.r,
+                        SizedBox(height: 3.0.h),
+                        Text(
+                          trashFiles.isEmpty
+                              ? 'Trash is empty. Reclaim space here.'
+                              : '${trashFiles.length} items waiting in Trash.',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12.0.sp,
+                            fontWeight: FontWeight.w500,
+                            color: trashFiles.isEmpty
+                                ? subtitleColor
+                                : (isDark ? Colors.orangeAccent : Colors.orange.shade700),
+                          ),
                         ),
-                      ),
-                      SizedBox(width: 16.0.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Trash & Recovery',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 14.0.sp,
-                                fontWeight: FontWeight.w700,
-                                color: titleColor,
-                              ),
-                            ),
-                            SizedBox(height: 3.0.h),
-                            Text(
-                              trashFiles.isEmpty
-                                  ? 'Trash is empty. Reclaim space here.'
-                                  : '${trashFiles.length} items waiting in Trash.',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12.0.sp,
-                                fontWeight: FontWeight.w500,
-                                color: trashFiles.isEmpty
-                                    ? subtitleColor
-                                    : (isDark ? Colors.orangeAccent : Colors.orange.shade700),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 12.0.r,
-                        color: subtitleColor,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 12.0.r,
+                    color: subtitleColor,
+                  ),
+                ],
               ),
             ),
           ),

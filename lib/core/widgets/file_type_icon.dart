@@ -180,7 +180,8 @@ class _FileTypeIconState extends State<FileTypeIcon> {
   @override
   void didUpdateWidget(FileTypeIcon oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.path != oldWidget.path || widget.extension != oldWidget.extension) {
+    if (widget.path != oldWidget.path ||
+        widget.extension != oldWidget.extension) {
       _isValid = null;
       _checkValidity();
     }
@@ -289,4 +290,3 @@ class _FileTypeIconState extends State<FileTypeIcon> {
     );
   }
 }
-
